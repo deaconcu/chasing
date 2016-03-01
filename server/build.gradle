@@ -1,0 +1,22 @@
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'eclipse'
+    apply plugin: 'maven'
+    apply plugin: 'maven-publish'
+    apply plugin: 'application'
+    
+    version = '0.0.1-release'
+    group = 'com.prosper'
+
+    repositories {
+       mavenCentral()
+    }
+
+    dependencies {
+        compile 'com.fasterxml.jackson.core:jackson-databind:2.4.4'
+        compile 'com.fasterxml.jackson.core:jackson-core:2.4.4'
+        compile 'com.fasterxml.jackson.core:jackson-annotations:2.4.4'
+        compile 'org.apache.thrift:libthrift:0.9.3'
+        testCompile 'junit:junit:4.8.2'
+    }
+}
