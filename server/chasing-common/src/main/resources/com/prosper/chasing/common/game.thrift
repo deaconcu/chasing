@@ -5,7 +5,16 @@ exception GameException {
   2: string desc
 }
 
-service GameMessageService {
-   void send(1:binary bs) throws (1:GameException ex),
+struct Message {
+}
+
+service GameService {
+   
+   bool createGame(1:binary bs) throws (1:GameException ex),
+   
+   bool closeGame(1:string gameId) throws (1:GameException ex),
+   
+   void sendData(1:Message message) throws (1:GameException ex),
+
 }
 

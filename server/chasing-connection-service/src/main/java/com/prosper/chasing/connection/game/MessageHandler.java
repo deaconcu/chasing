@@ -11,7 +11,8 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 
 import com.prosper.chasing.common.client.ZkClient;
-import com.prosper.chasing.common.interfaces.GameMessageService;
+import com.prosper.chasing.common.interfaces.GameService;
+import com.prosper.chasing.common.message.PositionMessage;
 import com.prosper.chasing.connection.bean.Data;
 
 public class MessageHandler extends Thread {
@@ -37,7 +38,7 @@ public class MessageHandler extends Thread {
                 // get game id from zk by userid
                 byte[] gameIdBytes = zkClient.get("/user-game/" + userId);
                 if (gameIdBytes == null) continue;
-                long gameId = Long.parseLong(new String(gameIdBytes));
+                String gameId = new String(gameIdBytes);
 
                 // get ip from zk by game id
                 byte[] serverBytes = zkClient.get("/game-server/" + gameId);
@@ -53,9 +54,13 @@ public class MessageHandler extends Thread {
                     transport.open();
 
                     TProtocol protocol = new  TBinaryProtocol(transport);
-                    GameMessageService.Client client = new GameMessageService.Client(protocol);
+                    GameService.Client client = new GameService.Client(protocol);
 
-                    client.send(ByteBuffer.wrap(data.getBytes()));
+                    PositionMessage message = new PositionMessage();
+                    message.setUserId(userId);
+                    message.setGameId(gameId);
+                    message.setDistance(5);
+                    client.sendData(message);
                     transport.close();
                 } catch (TException x) {
                     x.printStackTrace();
