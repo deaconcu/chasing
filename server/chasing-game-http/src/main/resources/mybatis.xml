@@ -5,11 +5,17 @@
 
 <configuration>
 	<typeAliases>
-		<typeAlias alias="Action" type="com.youku.java.censorship.bean.Action" />
+		<typeAlias alias="User" type="com.prosper.chasing.game.http.bean.User" />
+		<typeAlias alias="UserData" type="com.prosper.chasing.game.http.bean.UserData" />
+		<typeAlias alias="Prop" type="com.prosper.chasing.game.http.bean.Prop" />
+		<typeAlias alias="UserProp" type="com.prosper.chasing.game.http.bean.UserProp" />
 	</typeAliases>
 
 	<mappers>
-		<mapper resource="mapper/ActionMapper.xml" />
+		<mapper resource="mapper/UserMapper.xml" />
+		<mapper resource="mapper/UserDataMapper.xml" />
+		<mapper resource="mapper/PropMapper.xml" />
+		<mapper resource="mapper/UserPropMapper.xml" />
 	</mappers>
 </configuration>
 

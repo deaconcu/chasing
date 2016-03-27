@@ -2,5 +2,6 @@
 .settings
 .classpath
 .project
+.log
 build
 bin
