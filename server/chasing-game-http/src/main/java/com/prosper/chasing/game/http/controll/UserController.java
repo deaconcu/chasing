@@ -24,7 +24,7 @@ public class UserController {
     @Autowired
     private Validation validation;
 
-    @RequestMapping(value="/user",method=RequestMethod.POST)
+    @RequestMapping(value="/users",method=RequestMethod.POST)
     public Object addUser(HttpServletRequest request, @RequestBody String body){
         String ipAddress = request.getHeader("X-FORWARDED-FOR");
         if (ipAddress == null || "".equals(ipAddress)) {
@@ -40,7 +40,7 @@ public class UserController {
         return response;
     }
     
-    @RequestMapping(value="/user",method=RequestMethod.GET)
+    @RequestMapping(value="/users",method=RequestMethod.GET)
     public Object addUser(
             @RequestParam(value="page") int page,
             @RequestParam(value="pageLength", defaultValue="50") int pageLength,

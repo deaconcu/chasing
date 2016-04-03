@@ -54,7 +54,7 @@ public class UserPropController {
         }
     }
     
-    @RequestMapping(value="/props",method=RequestMethod.PUT)
+    @RequestMapping(value="/userProps",method=RequestMethod.PUT)
     public Object putUserProp(HttpServletRequest request, @RequestBody String body){
         UserProp userProp = validation.getObject(body, UserProp.class, new String[]{"name"});
         propService.putUserProp(userProp);

@@ -5,6 +5,7 @@ public class Friend {
     private int id;
     private int userId;
     private int friendUserId;
+    private int state;
     private String createTime;
     
     public int getId() {
@@ -30,5 +31,11 @@ public class Friend {
     }
     public void setCreateTime(String createTime) {
         this.createTime = createTime;
+    }
+    public int getState() {
+        return state;
+    }
+    public void setState(int state) {
+        this.state = state;
     }
 }

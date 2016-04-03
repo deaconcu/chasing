@@ -53,16 +53,18 @@
     
     <insert id="insert" parameterType="userProp" useGeneratedKeys="true" keyProperty="id" keyColumn="pk_id">
 		INSERT INTO t_user_prop
-		SET name = #{name},
-		    state = #{state},
+		SET fk_user_id = #{userId},
+		    fk_prop_id = #{propId},
+		    count = #{count},
             create_time = #{createTime},
             update_time = #{updateTime}
 	</insert>
 
 	<update id="update" parameterType="userProp">
 		UPDATE t_user_prop
-		SET name = #{name},
-            state = #{state},
+		SET fk_user_id = #{userId},
+            fk_prop_id = #{propId},
+            count = #{count},
             update_time = #{updateTime}
 		WHERE pk_id = #{id}
 	</update>

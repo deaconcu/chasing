@@ -3,7 +3,7 @@ package com.prosper.chasing.game.http.bean;
 public class UserProp {
     
     private int id;
-    private int UserId;
+    private int userId;
     private int propId;
     private int count;
     private short action;
@@ -17,10 +17,10 @@ public class UserProp {
         this.id = id;
     }
     public int getUserId() {
-        return UserId;
+        return userId;
     }
     public void setUserId(int userId) {
-        UserId = userId;
+        this.userId = userId;
     }
     public int getPropId() {
         return propId;

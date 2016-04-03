@@ -10,6 +10,7 @@
 		<result property="name" column="name" />
 		<result property="email" column="email" />
 		<result property="phone" column="phone" />
+		<result property="passwordMd5" column="password_md5" />
 		<result property="registerTime" column="register_time" />
 		<result property="registerIp" column="register_ip" />
 		<result property="lastLoginTime" column="last_login_time" />
@@ -41,6 +42,7 @@
 		SET name = #{name},
 		    email = #{email},
 		    phone = #{phone},
+		    password_md5 = #{passwordMd5},
 		    register_time = #{registerTime},
             register_ip = #{registerIp},
             last_login_time = #{lastLoginTime},
@@ -52,6 +54,7 @@
 		SET name = #{name},
             email = #{email},
             phone = #{phone},
+            password_md5 = #{passwordMd5},
             register_time = #{registerTime},
             register_ip = #{registerIp},
             last_login_time = #{lastLoginTime},

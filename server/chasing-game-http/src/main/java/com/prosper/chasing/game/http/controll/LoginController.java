@@ -9,11 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.prosper.chasing.game.http.anotation.NeedLogin;
 import com.prosper.chasing.game.http.bean.User;
-import com.prosper.chasing.game.http.exception.ResourceNotExistException;
 import com.prosper.chasing.game.http.service.UserService;
 import com.prosper.chasing.game.http.validation.Validation;
 
@@ -25,7 +24,7 @@ public class LoginController {
     @Autowired
     private Validation validation;
 
-    @RequestMapping(value="/login",method=RequestMethod.POST)
+    @RequestMapping(value="/logins",method=RequestMethod.POST)
     public Object login(HttpServletRequest request, @RequestBody String body){
         String ipAddress = request.getHeader("X-FORWARDED-FOR");
         if (ipAddress == null || "".equals(ipAddress)) {
@@ -33,14 +32,20 @@ public class LoginController {
         }
 
         User user = validation.getObject(body, User.class, new String[]{"password"});
-        boolean exist = userService.checkUser(user);
-        if (!exist) {
-            throw new ResourceNotExistException("user is not exist");
-        }
+        String sessionId = userService.login(user);
 
         Map<String, Object> response = new HashMap<>();
+        response.put("sessionId", sessionId);
         response.put("id", user.getId());
         return response;
+    }
+    
+    @NeedLogin
+    @RequestMapping(value="/logouts",method=RequestMethod.POST)
+    public Object logout(HttpServletRequest request){
+        String userId = request.getHeader("userId");
+        userService.logout(userId);
+        return null;
     }
     
 }

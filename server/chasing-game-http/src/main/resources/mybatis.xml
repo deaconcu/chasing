@@ -9,6 +9,7 @@
 		<typeAlias alias="UserData" type="com.prosper.chasing.game.http.bean.UserData" />
 		<typeAlias alias="Prop" type="com.prosper.chasing.game.http.bean.Prop" />
 		<typeAlias alias="UserProp" type="com.prosper.chasing.game.http.bean.UserProp" />
+		<typeAlias alias="Friend" type="com.prosper.chasing.game.http.bean.Friend" />
 	</typeAliases>
 
 	<mappers>
@@ -16,6 +17,7 @@
 		<mapper resource="mapper/UserDataMapper.xml" />
 		<mapper resource="mapper/PropMapper.xml" />
 		<mapper resource="mapper/UserPropMapper.xml" />
+		<mapper resource="mapper/FriendMapper.xml" />
 	</mappers>
 </configuration>
 

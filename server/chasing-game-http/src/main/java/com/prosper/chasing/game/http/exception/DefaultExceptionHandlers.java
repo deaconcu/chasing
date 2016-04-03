@@ -45,12 +45,8 @@ public class DefaultExceptionHandlers {
     }
 	
 	@ExceptionHandler(NeedAuthorizationException.class)
-	public Map<String, Object> handleNAE(NeedAuthorizationException e) {
-		Map<String, Object> response = new HashMap<String, Object>();
-		response.put("code", OpCode.NEED_AUTHORIZATION);
-		response.put("desc", lang.getLang("NEED_LOGIN"));
-		response.put("loginUrl", e.getLoginUrl());
-		return response;
+	public ExceptionResponse handleNAE(NeedAuthorizationException e) {
+	    return new ExceptionResponse(OpCode.NEED_AUTHORIZATION, lang.getLang("NEED_LOGIN"));
     }
 	
 	@ExceptionHandler(Exception.class)

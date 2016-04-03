@@ -39,8 +39,6 @@
         SELECT * 
         FROM t_prop
         WHERE name = #{name}
-        LIMIT #{limit}
-        OFFSET #{offset}
     </select>
     
     <insert id="insert" parameterType="Prop" useGeneratedKeys="true" keyProperty="id" keyColumn="pk_id">

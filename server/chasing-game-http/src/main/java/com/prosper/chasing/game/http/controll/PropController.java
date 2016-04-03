@@ -12,12 +12,14 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.prosper.chasing.game.http.anotation.NeedLogin;
 import com.prosper.chasing.game.http.bean.Prop;
 import com.prosper.chasing.game.http.exception.InvalidArgumentException;
 import com.prosper.chasing.game.http.mapper.PropMapper;
 import com.prosper.chasing.game.http.service.PropService;
 import com.prosper.chasing.game.http.validation.Validation;
 
+@NeedLogin
 @RestController
 public class PropController {
 
@@ -30,8 +32,8 @@ public class PropController {
 
     @RequestMapping(value="/props",method=RequestMethod.GET)
     public Object getProps(
-            @RequestParam(value="ids") String ids,
-            @RequestParam(value="name") String name,
+            @RequestParam(value="ids", required=false) String ids,
+            @RequestParam(value="name", required=false) String name,
             @RequestParam(value="page", defaultValue="1") int page,
             @RequestParam(value="pageLength", defaultValue="50") int pageLength){
         if (ids != null && !"".equals(ids)) {
@@ -45,8 +47,8 @@ public class PropController {
                 }
             }
             return propMapper.selectListByIds(idList);
-        } else if (name != null && "".equals(name)) {
-            return propService.getPropByName("name");
+        } else if (name != null && !"".equals(name)) {
+            return propService.getPropByName(name);
         } else {
             return propMapper.selectListByPage(pageLength, (page - 1) * pageLength);
         }

@@ -15,19 +15,19 @@
 		<result property="updateTime" column="update_time" />
 	</resultMap>
 
-	<select id="selectOne" parameterType="Map" resultMap="userMap">
+	<select id="selectOne" parameterType="Map" resultMap="userDataMap">
 		SELECT * 
 		FROM t_user_data
 		WHERE pk_id = #{id}
 	</select>
 	
-	<select id="selectListByPage" parameterType="Map" resultMap="userMap">
+	<select id="selectListByPage" parameterType="Map" resultMap="userDataMap">
         SELECT * 
         FROM t_user_data
         LIMIT #{limit}
         OFFSET #{offset}
     </select>
-    <select id="selectListByIds" parameterType="Map" resultMap="userMap">
+    <select id="selectListByIds" parameterType="Map" resultMap="userDataMap">
         SELECT * 
         FROM t_user_data
         WHERE pk_id IN
@@ -35,9 +35,10 @@
 	        #{item}
 	    </foreach>
     </select>
-    <insert id="insert" parameterType="User" useGeneratedKeys="true" keyProperty="id" keyColumn="pk_id">
+    <insert id="insert" parameterType="UserData" useGeneratedKeys="true" keyProperty="id" keyColumn="pk_id">
 		INSERT INTO t_user_data
-		SET distance = #{distance},
+		SET pk_id = #{id},
+		    distance = #{distance},
 		    road = #{road},
 		    hill = #{hill},
             river = #{river},
@@ -45,7 +46,7 @@
             update_time = #{updateTime}
 	</insert>
 
-	<update id="update" parameterType="User">
+	<update id="update" parameterType="UserData">
 		UPDATE t_user_data
 		SET distance = #{distance},
             road = #{road},
