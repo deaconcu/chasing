@@ -5,4 +5,5 @@
 *.log
 build
 bin
+log
 client/unity/chasing-client/*
