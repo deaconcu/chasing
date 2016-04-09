@@ -5,3 +5,14 @@
 .log
 build
 bin
+client/unity/chasing-client/Temp
+client/unity/chasing-client/ProjectSettings
+client/unity/chasing-client/obj
+client/unity/chasing-client/Library
+client/unity/chasing-client/Builds
+client/unity/chasing-client/.vs
+client/unity/chasing-client/Assets
+client/unity/chasing-client/*
+!client/unity/chasing-client/Assets/*.unity
+!client/unity/chasing-client/Assets/script/*.cs
+!client/unity/chasing-client/Assets/script/service/*.cs
