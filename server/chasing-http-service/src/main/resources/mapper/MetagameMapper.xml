@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper 
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.prosper.chasing.game.http.mapper.MetagameMapper">
+
+	<resultMap id="metagameMap" type="Metagame">
+		<result property="id" column="pk_id" />
+		<result property="name" column="name" />
+		<result property="duration" column="duration" />
+		<result property="state" column="state" />
+		<result property="types" column="types" />
+		<result property="createTime" column="create_time" />
+		<result property="updateTime" column="update_time" />
+	</resultMap>
+
+	<select id="selectOne" parameterType="Map" resultMap="metagameMap">
+		SELECT * 
+		FROM t_metagame
+		WHERE pk_id = #{id}
+	</select>
+	
+	<select id="selectListByPage" parameterType="Map" resultMap="metagameMap">
+        SELECT * 
+        FROM t_metagame
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+    
+    <select id="selectListByIds" parameterType="Map" resultMap="metagameMap">
+        SELECT * 
+        FROM t_metagame
+        WHERE pk_id IN
+	    <foreach item="item" index="index" collection="ids" open="(" separator="," close=")">
+	        #{item}
+	    </foreach>
+    </select>
+    
+    <insert id="insert" parameterType="Metagame" useGeneratedKeys="true" keyProperty="id" keyColumn="pk_id">
+		INSERT INTO t_metagame
+		SET name = #{name},
+		    code = #{code},
+		    duration = #{duration},
+		    state = #{state},
+		    types = #{types},
+            create_time = #{createTime},
+            update_time = #{updateTime}
+	</insert>
+
+	<update id="update" parameterType="Metagame">
+		UPDATE t_metagame
+        SET name = #{name},
+            code = #{code},
+            duration = #{duration},
+            state = #{state},
+            types = #{types},
+            update_time = #{updateTime}
+		WHERE pk_id = #{id}
+	</update>
+
+	<delete id="delete" parameterType="Map">
+		delete from t_metagame
+		where pk_id = #{id}
+	</delete>
+	
+</mapper>

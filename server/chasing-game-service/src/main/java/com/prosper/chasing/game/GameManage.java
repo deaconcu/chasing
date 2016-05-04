@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.prosper.chasing.common.interfaces.Message;
+import com.prosper.chasing.common.interfaces.game.Message;
 import com.prosper.chasing.common.message.PositionMessage;
 import com.prosper.chasing.game.bean.Game;
 import com.prosper.chasing.game.bean.User;

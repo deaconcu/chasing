@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.util;
 
-import com.prosper.chasing.util.Pair;
+import com.prosper.chasing.common.util.Pair;
 
 public class Constant {
     

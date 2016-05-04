@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper 
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.prosper.chasing.data.mapper.GameUserMapper">
+
+	<resultMap id="gameUserMap" type="GameUser">
+		<result property="id" column="pk_id" />
+		<result property="gameId" column="fk_game_id" />
+		<result property="userId" column="fk_user_id" />
+		<result property="createTime" column="create_time" />
+	</resultMap>
+
+	<select id="selectOne" parameterType="Map" resultMap="gameUserMap">
+		SELECT * 
+		FROM t_game_user
+		WHERE pk_id = #{id}
+	</select>
+	
+	<select id="selectListByPage" parameterType="Map" resultMap="gameUserMap">
+        SELECT * 
+        FROM t_game_user
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+    
+    <select id="selectListByIds" parameterType="Map" resultMap="gameUserMap">
+        SELECT * 
+        FROM t_game_user
+        WHERE pk_id IN
+	    <foreach item="item" index="index" collection="ids" open="(" separator="," close=")">
+	        #{item}
+	    </foreach>
+    </select>
+    
+    <select id="selectOneByUserId" parameterType="Map" resultMap="gameUserMap">
+        SELECT * 
+        FROM t_game_user
+        WHERE fk_user_id = #{userId}
+    </select>
+    
+    <select id="selectOneByGameUser" parameterType="Map" resultMap="gameUserMap">
+        SELECT * 
+        FROM t_game_user
+        WHERE fk_game_id = #{gameId}
+        AND fk_user_id = #{userId}
+    </select>
+    
+    <select id="selectUserListByGameId" parameterType="Map" resultType="int">
+        SELECT fk_user_id
+        FROM t_game_user
+        where fk_game_id = #{gameId}
+    </select>
+    
+    <insert id="insert" parameterType="GameUser" useGeneratedKeys="true" keyProperty="id" keyColumn="pk_id">
+		INSERT INTO t_game_user
+		SET fk_game_id = #{gameId},
+		    fk_user_id = #{userId},
+            create_time = #{createTime}
+	</insert>
+
+	<update id="update" parameterType="GameUser">
+		UPDATE t_game_user
+        SET fk_game_id = #{gameId},
+            fk_user_id = #{userId},
+            create_time = #{createTime}
+		WHERE pk_id = #{id}
+	</update>
+
+	<delete id="delete" parameterType="Map">
+		delete from t_game_user
+		where pk_id = #{id}
+	</delete>
+	
+</mapper>

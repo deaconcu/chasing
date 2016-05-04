@@ -11,7 +11,7 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 
 import com.prosper.chasing.common.client.ZkClient;
-import com.prosper.chasing.common.interfaces.GameService;
+import com.prosper.chasing.common.interfaces.game.GameService;
 import com.prosper.chasing.common.message.PositionMessage;
 import com.prosper.chasing.connection.bean.Data;
 

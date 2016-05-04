@@ -5,7 +5,7 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TTransportException;
 
-import com.prosper.chasing.common.interfaces.GameService;
+import com.prosper.chasing.common.interfaces.game.GameService;
 import com.prosper.chasing.game.Service.ChasingGameService;
 
 public class GameMessageServer {

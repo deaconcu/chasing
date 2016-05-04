@@ -8,7 +8,7 @@ import org.apache.thrift.transport.TSSLTransportFactory.TSSLTransportParameters;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 
-import com.prosper.chasing.common.interfaces.GameService;
+import com.prosper.chasing.common.interfaces.game.GameService;
 
 public class ThriftClient {
     public static TTransport open(String [] args) {

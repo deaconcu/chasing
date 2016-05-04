@@ -1,6 +1,6 @@
 package com.prosper.chasing.common.message;
 
-import com.prosper.chasing.common.interfaces.Message;
+import com.prosper.chasing.common.interfaces.game.Message;
 
 public class PositionMessage extends Message {
     

@@ -4,8 +4,8 @@ import java.nio.ByteBuffer;
 
 import org.apache.thrift.TException;
 
-import com.prosper.chasing.common.interfaces.GameException;
-import com.prosper.chasing.common.interfaces.GameMessageService;
+import com.prosper.chasing.common.interfaces.game.GameException;
+import com.prosper.chasing.common.interfaces.game.GameMessageService;
 
 public class GameMessageHandler implements GameMessageService.Iface {
 
