@@ -91,7 +91,7 @@ public abstract class DefaultRPCApplication implements Application {
             if (zkClient != null) {
                 zkClient.create(ZKNodePath, "".getBytes());
             }
-            log.info("Starting server on port 8811 ...");
+            log.info("Starting server on port " + getPort() + " ...");
             server.serve();
         } catch (Exception e) {
             if (zkClient != null) {

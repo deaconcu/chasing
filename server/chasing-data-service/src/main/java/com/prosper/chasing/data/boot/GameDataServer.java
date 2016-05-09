@@ -16,7 +16,7 @@ public class GameDataServer extends DefaultRPCApplication {
 
     @Override
     public String getPackage() {
-        return "com.prosper.chasing.game";
+        return "com.prosper.chasing.data";
     }
 
     @Override
