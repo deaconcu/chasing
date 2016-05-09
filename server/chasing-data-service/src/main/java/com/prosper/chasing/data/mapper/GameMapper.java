@@ -11,8 +11,8 @@ import com.prosper.chasing.data.bean.Prop;
 public interface GameMapper extends MapperI<Game>{
 
     List<Game> selectListByStatePage(
-            @Param("state") byte state, 
-            @Param("limit") short pageLength, 
-            @Param("offset") int page);
+            @Param("state") int state, 
+            @Param("limit") int limit, 
+            @Param("offset") int offset);
     
 }

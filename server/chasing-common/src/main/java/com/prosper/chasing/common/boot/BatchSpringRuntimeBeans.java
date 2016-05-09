@@ -1,4 +1,4 @@
-package com.prosper.chasing.common.runtime.base;
+package com.prosper.chasing.common.boot;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,5 +7,6 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface EnableCron {
+public @interface BatchSpringRuntimeBeans {
+
 }

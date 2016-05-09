@@ -6,10 +6,13 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.thrift.TException;
+import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonObjectFormatVisitor;
+import com.prosper.chasing.common.boot.RPCService;
+import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.game.GameException;
 import com.prosper.chasing.common.interfaces.game.GameService;
 import com.prosper.chasing.common.interfaces.game.Message;
@@ -17,12 +20,12 @@ import com.prosper.chasing.game.GameManage;
 import com.prosper.chasing.game.bean.User;
 import com.prosper.chasing.common.util.JsonUtil;
 
-public class ChasingGameService implements GameService.Iface {
+@Component
+public class GameProcessService {
     
     private GameManage gameManage;
     private JsonUtil jsonUtil = new JsonUtil();
 
-    @Override
     public boolean createGame(ByteBuffer bs) throws GameException, TException {
         String dataString = new String(bs.array());
         JsonNode node;
@@ -44,13 +47,11 @@ public class ChasingGameService implements GameService.Iface {
         return true;
     }
 
-    @Override
     public boolean closeGame(String gameId) throws GameException, TException {
         // TODO Auto-generated method stub
         return false;
     }
 
-    @Override
     public void sendData(Message message) throws GameException, TException {
         gameManage.executeData(message);
     }

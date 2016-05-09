@@ -1,5 +1,6 @@
 package com.prosper.chasing.common.client;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.zookeeper.CreateMode;
@@ -11,47 +12,53 @@ import org.apache.zookeeper.ZooKeeper;
 
 public class ZkClient {
 
-    //private String hosts = "localhost:4180,localhost:4181,localhost:4182";  
-    private String hosts;
-    
     private static final int SESSION_TIMEOUT = 5000;  
-    private CountDownLatch connectedSignal = new CountDownLatch(1);  
+
+    /**
+     * eg:hosts = "localhost:4180,localhost:4181,localhost:4182";
+     */
+    private String hosts;
     protected ZooKeeper zk;
-    
-    public static ZkClient zkClient;
-    
-    public static ZkClient instance() {
-        return zkClient;
-    }
-    
-    public static void init(String hosts) throws RuntimeException {
+
+    public ZkClient(String hosts) {
+        this.hosts = hosts;
         try {
-            zkClient = new ZkClient(hosts);
-            zkClient.connect();
+            CountDownLatch connectedSignal = new CountDownLatch(1);  
+            zk = new ZooKeeper(hosts, SESSION_TIMEOUT, new ConnWatcher(connectedSignal));  
+            connectedSignal.await();  
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
-    
-    public ZkClient(String hosts) {
-        this.hosts = hosts;
-    }
 
-    public void connect() throws Exception {  
-        zk = new ZooKeeper(hosts, SESSION_TIMEOUT, new ConnWatcher());  
-        connectedSignal.await();  
-    }
-
-    public class ConnWatcher implements Watcher {  
+    public class ConnWatcher implements Watcher {
+        private CountDownLatch connectedSignal;
+        public ConnWatcher(CountDownLatch connectedSignal) {
+            this.connectedSignal = connectedSignal;
+        }
         public void process(WatchedEvent event) {  
             if (event.getState() == KeeperState.SyncConnected) {  
                 connectedSignal.countDown();  
-            }  
-        }  
+            }
+        }
     }
 
-    public void create(String nodePath, byte[] data) throws Exception {  
-        zk.create(nodePath, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);  
+    public void create(String nodePath, byte[] data) {  
+        try {
+            if (!nodePath.startsWith("/")) {
+                throw new RuntimeException("node path must start with '/'");
+            }
+            String[] paths = nodePath.substring(1).split("/");
+            String path = "";
+            for (String nextPath: paths) {
+                path = path + "/" + nextPath;
+                if (zk.exists(path, false) == null) {
+                    zk.create(path, data, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);  
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }  
 
     public boolean exists(String path) {
@@ -64,7 +71,7 @@ public class ZkClient {
             throw new RuntimeException(e);
         }
     }
-    
+
     public byte[] get(String path) {
         try {
             return zk.getData(path, false, null);
@@ -72,7 +79,15 @@ public class ZkClient {
             throw new RuntimeException(e);
         }  
     }
-    
+
+    public List<String> getChild(String path) {
+        try {
+            return zk.getChildren(path, false);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }  
+    }
+
     public void set(String path, byte[] data, int version) {
         try {
             zk.setData(path, data, version);

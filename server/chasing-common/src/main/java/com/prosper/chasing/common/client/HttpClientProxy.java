@@ -13,9 +13,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.util.CommonUtil;
 
+@Component
 public class HttpClientProxy {
 	
 	private Logger log = LoggerFactory.getLogger(HttpClientProxy.class);

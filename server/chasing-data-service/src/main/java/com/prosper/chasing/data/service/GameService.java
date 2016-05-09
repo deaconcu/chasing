@@ -161,7 +161,7 @@ public class GameService {
     /**
      * 根据状态获取游戏列表
      */
-    public List<Game> getGame(byte state, int page, short pageLength) {
+    public List<Game> getGame(int state, int page, int pageLength) {
         return gameMapper.selectListByStatePage(state, pageLength, pageLength * (page - 1));
     }
 

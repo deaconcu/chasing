@@ -3,14 +3,19 @@ package com.prosper.chasing.data.thrift;
 import java.util.List;
 
 import org.apache.thrift.TException;
+import org.springframework.stereotype.Component;
 
+import com.prosper.chasing.common.boot.RPCService;
+import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserPropTr;
 import com.prosper.chasing.data.bean.UserProp;
 import com.prosper.chasing.data.service.PropService;
 import com.prosper.chasing.data.util.ViewTransformer;
 
-public class UserPropDataServiceImpl implements PropDataService.Iface {
+@Component
+@RPCService(processorClass = PropDataService.Processor.class)
+public class PropDataServiceImpl implements PropDataService.Iface {
     
     private PropService propService;
 

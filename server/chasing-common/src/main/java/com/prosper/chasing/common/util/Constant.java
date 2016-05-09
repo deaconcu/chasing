@@ -5,6 +5,11 @@ package com.prosper.chasing.common.util;
  */
 public class Constant {
     
+    public static String RPCServerZkName = "RPCServer";
+    public static String gameDataServiceRegisterName = "";
+    public static String userDataServiceRegisterName = "";
+    public static String porpDataServiceRegisterName = "";
+    
     public static class CacheName {
         public static final String session = "c_session_";
     }
@@ -56,6 +61,8 @@ public class Constant {
         public static final short PROCESSING = 4;    //进行中
         public static final short FINISHED = 5;    //完成
     }
+	
+	
 	
 }
 

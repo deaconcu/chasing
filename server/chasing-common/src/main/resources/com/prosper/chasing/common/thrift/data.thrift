@@ -36,7 +36,7 @@ service GameDataService {
      * @param page: 页码
      * @param pageLength: 页长 
      */
-    list<GameTr> getGames(1: byte state, 2: i32 page, 3:i16 pageLength),
+    list<GameTr> getGames(1: i32 state, 2: i32 page, 3:i32 pageLength),
    
     /*
      * 更新游戏
