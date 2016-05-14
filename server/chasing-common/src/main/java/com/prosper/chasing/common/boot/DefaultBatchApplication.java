@@ -15,10 +15,10 @@ import org.springframework.core.type.filter.AnnotationTypeFilter;
 import com.prosper.chasing.common.runtime.base.DefaultBatchBeans;
 import com.prosper.chasing.common.runtime.base.DefaultBeans;
 
-public abstract class DefaultBatchApplication implements Application {
+public abstract class DefaultBatchApplication extends Application {
 
     @Override
-    public void run(String[] args) {
+    public void execute(String[] args) {
         ClassPathScanningCandidateComponentProvider scanner =
                 new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AnnotationTypeFilter(BatchSpringRuntimeBeans.class));

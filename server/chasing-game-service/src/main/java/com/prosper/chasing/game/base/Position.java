@@ -1,4 +1,4 @@
-package com.prosper.chasing.game.bean;
+package com.prosper.chasing.game.base;
 
 public class Position {
     

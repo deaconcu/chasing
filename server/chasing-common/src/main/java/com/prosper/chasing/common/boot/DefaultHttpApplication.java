@@ -11,10 +11,10 @@ import org.springframework.core.type.filter.AnnotationTypeFilter;
 import com.prosper.chasing.common.runtime.base.DefaultBeans;
 import com.prosper.chasing.common.runtime.base.DefaultHttpBeans;
 
-public abstract class DefaultHttpApplication implements Application {
+public abstract class DefaultHttpApplication extends Application {
 
     @Override
-    public void run(String[] args) {
+    public void execute(String[] args) {
         ClassPathScanningCandidateComponentProvider scanner =
                 new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AnnotationTypeFilter(HttpSpringRuntimeBeans.class));

@@ -10,14 +10,14 @@ import com.prosper.chasing.common.boot.RPCService;
 import com.prosper.chasing.common.interfaces.game.GameException;
 import com.prosper.chasing.common.interfaces.game.GameService;
 import com.prosper.chasing.common.interfaces.game.Message;
-import com.prosper.chasing.game.Service.GameProcessService;
+import com.prosper.chasing.game.base.Game;
 
 @Component
 @RPCService(processorClass = GameService.Processor.class)
 public class GameServiceImpl implements GameService.Iface {
     
     @Autowired
-    private GameProcessService gameProcessService;
+    private Game gameProcessService;
     
     @Override
     public boolean createGame(ByteBuffer bs) throws GameException, TException {

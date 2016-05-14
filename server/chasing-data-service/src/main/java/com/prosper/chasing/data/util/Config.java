@@ -8,6 +8,12 @@ import org.springframework.stereotype.Component;
 @DependsOn("propertySources")
 public class Config {
 
+    @Value("${server.ip}")
+    public String serverIp;
+    
+    @Value("${server.port}")
+    public int serverPort;
+    
     @Value("${db.mysql.ip}")
     public String dbIp;
     
@@ -31,5 +37,11 @@ public class Config {
     
     @Value("${zookeeper.addrs}")
     public String zookeeperAddrs;
+    
+    @Value("${game.maxGameDuration}")
+    public short maxGameDuration;
+
+    @Value("${game.minGameDuration}")
+    public short minGameDuration;
     
 }

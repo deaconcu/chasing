@@ -19,7 +19,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 
 import com.prosper.chasing.common.util.CommonUtil;
 import com.prosper.chasing.common.util.Lang;
-import com.prosper.chasing.common.util.Constant.OpCode;
+import com.prosper.chasing.common.util.CommonConstant.OpCode;
 
 @Component
 public class DefaultExceptionHandlers {

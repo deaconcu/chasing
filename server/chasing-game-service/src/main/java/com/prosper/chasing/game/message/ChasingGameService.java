@@ -14,7 +14,7 @@ import com.prosper.chasing.common.interfaces.game.GameException;
 import com.prosper.chasing.common.interfaces.game.GameService;
 import com.prosper.chasing.common.interfaces.game.Message;
 import com.prosper.chasing.game.GameManage;
-import com.prosper.chasing.game.bean.User;
+import com.prosper.chasing.game.base.User;
 import com.prosper.chasing.common.util.JsonUtil;
 
 public class ChasingGameService implements GameService.Iface {

@@ -31,12 +31,9 @@ struct UserPropTr {
 
 service GameDataService {
     /*
-     * 获取游戏列表
-     * @param state: 游戏的状态，state=0表示查询全部
-     * @param page: 页码
-     * @param pageLength: 页长 
+     * 获取游戏
      */
-    list<GameTr> getGames(1: i32 state, 2: i32 page, 3:i32 pageLength),
+    list<GameTr> ClaimGame(1: string ip, 2: i32 port, 3: i32 count),
    
     /*
      * 更新游戏
@@ -48,7 +45,7 @@ service GameDataService {
      * 获取游戏用户列表
      * @param gameId: 游戏ID
      */
-    list<GameTr> getGameUsers(1: i32 gameId),
+    list<UserTr> getGameUsers(1: i32 gameId),
 }
     
 service UserDataService {

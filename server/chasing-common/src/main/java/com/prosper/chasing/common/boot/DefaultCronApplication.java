@@ -12,10 +12,10 @@ import org.springframework.core.type.filter.AnnotationTypeFilter;
 import com.prosper.chasing.common.runtime.base.DefaultBeans;
 import com.prosper.chasing.common.runtime.base.DefaultCronBeans;
 
-public abstract class DefaultCronApplication implements Application {
+public abstract class DefaultCronApplication extends Application {
 
     @Override
-    public void run(String[] args) {
+    public void execute(String[] args) {
         ClassPathScanningCandidateComponentProvider scanner =
                 new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AnnotationTypeFilter(HttpSpringRuntimeBeans.class));

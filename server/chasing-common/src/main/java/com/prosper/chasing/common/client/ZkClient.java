@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -43,7 +45,21 @@ public class ZkClient {
         }
     }
 
-    public void create(String nodePath, byte[] data) {  
+    public void createNode(String nodePath, byte[] data, CreateMode mode, boolean override) {  
+        try {
+            try {
+                zk.create(nodePath, data, Ids.OPEN_ACL_UNSAFE, mode);  
+            } catch (NodeExistsException ke) {
+                if (override) {
+                    zk.setData(nodePath, data, -1);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void createPath(String nodePath, CreateMode mode) {  
         try {
             if (!nodePath.startsWith("/")) {
                 throw new RuntimeException("node path must start with '/'");
@@ -53,13 +69,16 @@ public class ZkClient {
             for (String nextPath: paths) {
                 path = path + "/" + nextPath;
                 if (zk.exists(path, false) == null) {
-                    zk.create(path, data, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);  
+                    try {
+                        zk.create(path, null, Ids.OPEN_ACL_UNSAFE, mode);  
+                    } catch (NodeExistsException ke) {
+                    }
                 }
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }  
+    }
 
     public boolean exists(String path) {
         try {

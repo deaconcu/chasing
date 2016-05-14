@@ -5,6 +5,8 @@ package com.prosper.chasing.data.util;
  */
 public class Constant {
     
+    public static String SERVE_LIST_ZK_NAME = "/gameDataServer/serverList";
+    
     public static class CacheName {
         public static final String session = "c_session_";
     }

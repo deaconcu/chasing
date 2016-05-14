@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class Config {
+public class CommonConfig {
 
 	@Value("${db.mysql.ip}")
 	public String dbIp;

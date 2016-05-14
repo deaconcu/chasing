@@ -34,7 +34,7 @@ import com.prosper.chasing.data.mapper.MetagameMapper;
 import com.prosper.chasing.data.mapper.MetagameTypeMapper;
 import com.prosper.chasing.data.mapper.UserDataMapper;
 import com.prosper.chasing.data.mapper.UserMapper;
-import com.prosper.chasing.data.util.CommonConfig;
+import com.prosper.chasing.data.util.Config;
 import com.prosper.chasing.data.util.Constant.CacheName;
 import com.prosper.chasing.data.util.Constant.FriendState;
 import com.prosper.chasing.data.util.Constant.FriendType;
@@ -64,7 +64,7 @@ public class GameService {
     @Autowired
     private Jedis jedis;
     @Autowired
-    private CommonConfig commonConfig;
+    private Config config;
 
     /**
      * 插入一条metagame
@@ -173,21 +173,48 @@ public class GameService {
         if (gameUser != null) {
             throw new OperationNotAllowedException("user is in game");
         }
-        if (game.getDuration() > commonConfig.maxGameDuration || game.getDuration() < commonConfig.minGameDuration) {
+        if (game.getDuration() > config.maxGameDuration || game.getDuration() < config.minGameDuration) {
             throw new InvalidArgumentException("duration is not in range");
         }
         game.setCreatorId(userId);
         game.setState(GameState.CREATE);
+        game.setServer("");
         game.setCreateTime(CommonUtil.getTime(new Date()));
         game.setUpdateTime(CommonUtil.getTime(new Date()));
         gameMapper.insert(game);
+    }
+    
+    /**
+     * TODO 不确定update list是否是原子操作，需要再优化
+     * 领取一个游戏
+     */
+    public List<Game> claimGame(String ip, int port, int count) {
+        if (count < 0 || count > 1000) {
+            throw new InvalidArgumentException("count is invalid, count:" + count);
+        }
+        String server = ip + ":" + port;
+        List<Game> gameList = gameMapper.selectListByStateAndServer(GameState.LOADING, server, 100);
+        if (gameList.size() > 0) {
+            return gameList;
+        }
+
+        gameList = gameMapper.selectListByStatePage(GameState.POST_START, 1, 1);
+        if (gameList.size() > 0) {
+            gameMapper.updateGameByState(GameState.POST_START, GameState.LOADING, server, CommonUtil.getTime(new Date()), count);
+        }
+        
+        gameList = gameMapper.selectListByStateAndServer(GameState.LOADING, server, 100);
+        if (gameList.size() > 0) {
+            return gameList;
+        }
+        return new LinkedList<>();
     }
 
     /**
      * 修改游戏，包括游戏状态和游戏时间
      */
     public void updateGame(Game game) {
-        if (game.getDuration() > commonConfig.maxGameDuration || game.getDuration() < commonConfig.minGameDuration) {
+        if (game.getDuration() > config.maxGameDuration || game.getDuration() < config.minGameDuration) {
             throw new InvalidArgumentException("duration is not in range");
         }
         Game gameInDb = gameMapper.selectOne(game.getId());

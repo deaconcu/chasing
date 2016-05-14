@@ -1,6 +1,6 @@
-package com.prosper.chasing.data.bean;
+package com.prosper.chasing.game.base;
 
-public class Game {
+public class GameInfo {
 
     private Integer id;
     private String metagameId;

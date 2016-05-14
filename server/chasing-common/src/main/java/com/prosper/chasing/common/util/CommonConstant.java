@@ -3,7 +3,7 @@ package com.prosper.chasing.common.util;
 /**
  * 系统配置，一经定义只能添加，不能修改！
  */
-public class Constant {
+public class CommonConstant {
     
     public static String RPCServerZkName = "RPCServer";
     public static String gameDataServiceRegisterName = "";

@@ -14,5 +14,16 @@ public interface GameMapper extends MapperI<Game>{
             @Param("state") int state, 
             @Param("limit") int limit, 
             @Param("offset") int offset);
-    
+
+    List<Game> selectListByStateAndServer(
+            @Param("state") int state, 
+            @Param("server") String server, 
+            @Param("limit") int limit);
+
+    void updateGameByState(
+            @Param("sourceState") int sourceState,
+            @Param("targetState") int targetState,
+            @Param("server") String server, 
+            @Param("updateTime") String updateTime, 
+            @Param("limit") int limit);
 }

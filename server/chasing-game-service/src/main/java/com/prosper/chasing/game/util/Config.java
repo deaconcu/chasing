@@ -9,6 +9,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class Config {
 
+    @Value("${server.ip}")
+    public String serverIp;
+    
+    @Value("${server.port}")
+    public int serverPort;
+    
     @Value("${redis.ip}")
     public String redisIp;
     
@@ -17,5 +23,12 @@ public class Config {
     
     @Value("${zookeeper.addrs}")
     public String zookeeperAddrs;
+    
+    @Value("${gameServer.list.zkName}")
+    public String gameServerZKName;
+
+    @Value("${gameDataServer.list.zkName}")
+    public String gameDataServerZKName;
+    
 		
 }

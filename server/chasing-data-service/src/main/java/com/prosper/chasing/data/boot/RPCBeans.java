@@ -30,7 +30,6 @@ import redis.clients.jedis.Jedis;
 
 import com.prosper.chasing.common.boot.RPCSpringRuntimeBeans;
 import com.prosper.chasing.common.client.ZkClient;
-import com.prosper.chasing.data.util.CommonConfig;
 import com.prosper.chasing.data.util.Config;
 
 @Configuration

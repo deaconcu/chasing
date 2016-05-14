@@ -2,6 +2,8 @@ package com.prosper.chasing.game.boot;
 
 import java.beans.PropertyVetoException;
 import java.sql.SQLException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.sql.DataSource;
 
@@ -42,6 +44,7 @@ import com.prosper.chasing.game.util.Config;
     @PropertySource(value="file:config/app.properties", ignoreResourceNotFound=true)
 })
 @ComponentScan(basePackages = {
+        "com.prosper.chasing.common.client",
         "com.prosper.chasing.game"
 })
 @RPCSpringRuntimeBeans
@@ -64,6 +67,11 @@ public class RPCBeans {
     @Bean
     public ZkClient zkClient(Config config) {
         return new ZkClient(config.zookeeperAddrs);
+    }
+    
+    @Bean
+    public ExecutorService executorService() {
+        return Executors.newCachedThreadPool();
     }
 
 }

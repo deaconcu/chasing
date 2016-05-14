@@ -9,9 +9,9 @@ import com.prosper.chasing.common.boot.RPCService;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserPropTr;
+import com.prosper.chasing.common.util.ViewTransformer;
 import com.prosper.chasing.data.bean.UserProp;
 import com.prosper.chasing.data.service.PropService;
-import com.prosper.chasing.data.util.ViewTransformer;
 
 @Component
 @RPCService(processorClass = PropDataService.Processor.class)
@@ -22,7 +22,7 @@ public class PropDataServiceImpl implements PropDataService.Iface {
     @Override
     public List<UserPropTr> getUserProp(int userId) throws TException {
         List<UserProp> userPropList = propService.getUserProp(userId);
-        return ViewTransformer.transferList(userPropList);
+        return ViewTransformer.transferList(userPropList, UserPropTr.class);
     }
 
     @Override

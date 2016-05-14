@@ -1,30 +1,29 @@
 package com.prosper.chasing.common.boot;
 
-public interface Application {
+public abstract class Application {
     
     /**
-     * 应用ip
+     * 执行前执行
      */
-    public String getIP();
+    public abstract void beforeExecute(String[] args);
     
     /**
-     * 应用端口
+     * 执行
      */
-    public int getPort();
+    public abstract void execute(String[] args);
     
     /**
-     * 应用base package，用来扫描需要的类
+     * 执行后执行
      */
-    public String getPackage();
+    public abstract void afterExecute(String[] args);
 
-    /**
-     * 应用名称
-     */
-    public String getName();
-    
     /**
      * 执行入口
      */
-    public void run(String[] args);
-
+    public void run(String[] args) {
+        beforeExecute(args);
+        execute(args);
+        afterExecute(args);
+    }
+    
 }
