@@ -1,27 +1,34 @@
 package com.prosper.chasing.game.base;
 
+import java.util.Map;
+
 public class User {
     
-    private long id;
+    /**
+     * 用户id
+     */
+    private int id;
+    
+    /**
+     * 用户位置
+     */
     private Position position;
-    private Game game;
     
-    public void addX(int x) {
-        this.position.setX(this.position.getX() + x);
-    }
+    /**
+     * 所拥有的道具
+     */
+    private Map<Integer, Prop> propMap;
     
-    public void addY(int y) {
-        this.position.setX(this.position.getX() + y);
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
+    /**
+     * 使用过的道具
+     */
+    private Map<Integer, Prop> usedPropMap;
+    
+    /**
+     * 状态
+     */
+    private Map<Integer, Integer> stateMap; 
+    
     public Position getPosition() {
         return position;
     }
@@ -29,9 +36,43 @@ public class User {
     public void setPosition(Position position) {
         this.position = position;
     }
-
-    public void onChange() {
-        game.onChange(this);
+    
+    /**
+     * 检查道具是否满足要求的数量
+     */
+    public boolean checkProp(int propId, int count) {
+        Prop prop = propMap.get(propId);
+        if (prop == null) {
+            return false;
+        }
+        if (prop.getCount() < count) {
+            return false;
+        }
+        return true;
     }
     
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public Map<Integer, Prop> getPropMap() {
+        return propMap;
+    }
+
+    public void setPropMap(Map<Integer, Prop> propMap) {
+        this.propMap = propMap;
+    }
+
+    public Map<Integer, Prop> getUsedPropMap() {
+        return usedPropMap;
+    }
+
+    public void setUsedPropMap(Map<Integer, Prop> usedPropMap) {
+        this.usedPropMap = usedPropMap;
+    }
+
 }

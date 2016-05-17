@@ -9,29 +9,19 @@ import org.springframework.stereotype.Component;
 import com.prosper.chasing.common.boot.RPCService;
 import com.prosper.chasing.common.interfaces.game.GameException;
 import com.prosper.chasing.common.interfaces.game.GameService;
-import com.prosper.chasing.common.interfaces.game.Message;
-import com.prosper.chasing.game.base.Game;
+import com.prosper.chasing.game.GameManage;
 
 @Component
 @RPCService(processorClass = GameService.Processor.class)
 public class GameServiceImpl implements GameService.Iface {
     
     @Autowired
-    private Game gameProcessService;
-    
-    @Override
-    public boolean createGame(ByteBuffer bs) throws GameException, TException {
-        return gameProcessService.createGame(bs);
-    }
+    private GameManage gameManage;
 
     @Override
-    public boolean closeGame(String gameId) throws GameException, TException {
-        return gameProcessService.closeGame(gameId);
-    }
-
-    @Override
-    public void sendData(Message message) throws GameException, TException {
-        gameProcessService.sendData(message);
+    public void executeData(int gameId, int userId, ByteBuffer message)
+            throws GameException, TException {
+        gameManage.recieveData(gameId, userId, message);
     }
 
 }

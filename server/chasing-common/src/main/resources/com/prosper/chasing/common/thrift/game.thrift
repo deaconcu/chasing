@@ -1,20 +1,13 @@
-namespace java com.prosper.chasing.common.interfaces
+namespace java com.prosper.chasing.common.interfaces.game
 
 exception GameException {
   1: i32 exCode,
   2: string desc
 }
 
-struct Message {
-}
-
 service GameService {
    
-   bool createGame(1:binary bs) throws (1:GameException ex),
-   
-   bool closeGame(1:string gameId) throws (1:GameException ex),
-   
-   void sendData(1:Message message) throws (1:GameException ex),
+   void executeData(1: i32 gameId, 2: i32 userId, 3:binary message) throws (1:GameException ex)
 
 }
 

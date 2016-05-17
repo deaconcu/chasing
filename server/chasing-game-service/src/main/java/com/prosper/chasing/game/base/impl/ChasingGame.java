@@ -3,12 +3,13 @@ package com.prosper.chasing.game.base.impl;
 import com.prosper.chasing.game.base.Game;
 import com.prosper.chasing.game.base.MetaGameAnno;
 import com.prosper.chasing.game.base.User;
+import com.prosper.chasing.game.message.Message;
 
 @MetaGameAnno("chasing")
 public class ChasingGame extends Game {
 
     @Override
-    public void executeMessage() {
+    public void executeMessage(Message message) {
         // TODO Auto-generated method stub
         
     }

@@ -6,6 +6,8 @@ import java.util.concurrent.ExecutorService;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -25,6 +27,8 @@ import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 @Component
 public class GameCron {
     
+    private Logger log = LoggerFactory.getLogger(getClass());
+    
     @Autowired
     ThriftClient thriftClient;
     @Autowired
@@ -37,22 +41,24 @@ public class GameCron {
     GameManage gameManage;
     
     @Scheduled(cron="${cron.create.game}")
-    public void createGame() throws TException {
-        GameDataService.Client gameDataServiceClient = thriftClient.getGameDataServiceClient(
-                "GameDataServiceImpl", config.gameDataServerZKName);
-        List<GameTr> gameTrList = gameDataServiceClient.ClaimGame(config.serverIp, config.serverPort, 100);
-        
-        CountDownLatch countDownLatch = new CountDownLatch(gameTrList.size());
-        for (final GameTr gameTr: gameTrList) {
-            executorService.execute(new Runnable() {
-                @Override
-                public void run() {
-                    GameManage.createGame(gameTr);
-                }
-            });
+    public void createGame() {
+        try {
+            GameDataService.Client gameDataServiceClient = thriftClient.getGameDataServiceClient();
+            List<GameTr> gameTrList = gameDataServiceClient.ClaimGame(config.serverIp, config.serverPort, 100);
+            
+            final CountDownLatch countDownLatch = new CountDownLatch(gameTrList.size());
+            for (final GameTr gameTr: gameTrList) {
+                executorService.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        gameManage.createGame(gameTr);
+                        countDownLatch.countDown();
+                    }
+                });
+            }    
+        } catch (Exception e) {
+            log.error("create game failed", e);
         }
-        
-        
     }
 
 }
