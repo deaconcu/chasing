@@ -14,19 +14,19 @@ public class PropMessage extends Message {
     /**
      * 道具使用对象的id， -1表示用在自己身上
      */
-    private int userId;
+    private int toUserId;
 
     public PropMessage(Message message) {
         ByteBuffer content = message.getContent();
         this.propId = content.getInt();
-        this.userId = content.getInt();
+        this.toUserId = content.getInt();
     }
 
     public int getPropId() {
         return propId;
     }
 
-    public int getUserId() {
-        return userId;
+    public int getToUserId() {
+        return toUserId;
     }
 }

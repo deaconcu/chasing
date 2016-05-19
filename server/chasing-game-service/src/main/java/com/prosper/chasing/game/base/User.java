@@ -75,4 +75,12 @@ public class User {
         this.usedPropMap = usedPropMap;
     }
 
+    public Map<Integer, Integer> getStateMap() {
+        return stateMap;
+    }
+
+    public void setStateMap(Map<Integer, Integer> stateMap) {
+        this.stateMap = stateMap;
+    }
+
 }

@@ -37,7 +37,8 @@ public class GameManage {
     private static String gameImplScanPackage = "com.prosper.chasing.game.base.impl";
     private Map<String, Class<? extends Game>> gameClassMap = new HashMap<>();
     private Map<Integer, Game> gameMap = new HashMap<>();
-    private BlockingQueue<Message> messageQueue;
+    private BlockingQueue<Message> recieveMessageQueue;
+    private BlockingQueue<Message> sendMessageQueue;
 
     @Autowired
     ThriftClient thriftClient;
@@ -75,7 +76,8 @@ public class GameManage {
             }
         }
         
-        messageQueue = new LinkedBlockingQueue<>();
+        recieveMessageQueue = new LinkedBlockingQueue<>();
+        sendMessageQueue = new LinkedBlockingQueue<>();
     }
 
     /**
@@ -131,7 +133,18 @@ public class GameManage {
      */
     public void recieveData(int gameId, int userId, ByteBuffer message) {
         try {
-            messageQueue.put(new Message(gameId, userId, message));
+            recieveMessageQueue.put(new Message(gameId, userId, message));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * 发送游戏消息
+     */
+    public void sendData(Message message) {
+        try {
+            sendMessageQueue.put(message);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -143,7 +156,7 @@ public class GameManage {
     public void executeData() {
         while(true) {
             try {
-                Message message = messageQueue.take();
+                Message message = recieveMessageQueue.take();
                 Message parsedMessage = messageParser.parse(message);
                 
                 int gameId = parsedMessage.getGameId();
@@ -153,6 +166,14 @@ public class GameManage {
                 e.printStackTrace();
             }
         }
+    }
+
+    public BlockingQueue<Message> getSendMessageQueue() {
+        return sendMessageQueue;
+    }
+
+    public void setSendMessageQueue(BlockingQueue<Message> sendMessageQueue) {
+        this.sendMessageQueue = sendMessageQueue;
     }
     
 }
