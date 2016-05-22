@@ -11,22 +11,21 @@ public class Boot {
 
     public static void main(String[] args) {
         String applicationClassName = System.getProperty("app");
-        if (applicationClassName == null) {
-            throw new RuntimeException("application is null");
-        }
-        
         Object appObject = null;
-        try {
-            Class<?> appClass = Class.forName(applicationClassName);
-            appObject = appClass.newInstance();
-        } catch (Exception e) {
-            throw new RuntimeException("cannot create application object", e);
+        if (applicationClassName == null) {
+            appObject = new DefaultSpringApplication();
+        } else {
+            try {
+                Class<?> appClass = Class.forName(applicationClassName);
+                appObject = appClass.newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException("cannot create application object", e);
+            }
+            
+            if (!(appObject instanceof Application)) {
+                throw new RuntimeException("application must extends com.prosper.chasing.common.boot.Application");
+            }
         }
-        
-        if (!(appObject instanceof Application)) {
-            throw new RuntimeException("application must extends com.prosper.chasing.common.boot.Application");
-        }
-        
         ((Application)appObject).run(args);
     }
 }

@@ -7,6 +7,16 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface BatchSpringRuntimeBeans {
+public @interface RuntimeSpringBeans {
 
+    /**
+     * 启动模式
+     */
+    String mode();
+    
+    /**
+     * 是否含有web的部分
+     */
+    boolean withWeb() default false;
+    
 }

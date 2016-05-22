@@ -2,6 +2,9 @@ package com.prosper.chasing.game.message;
 
 import java.nio.ByteBuffer;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class MessageParser {
 
     private static int POSITION_MESSAGE = 1;

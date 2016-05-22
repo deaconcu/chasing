@@ -8,7 +8,13 @@ import org.springframework.stereotype.Component;
 @Primary
 @Component
 public class Config {
+    
+    @Value("${application.package}")
+    public String appPackage;
 
+    @Value("${rpc.port}")
+    public int rpcPort;
+    
     @Value("${server.ip}")
     public String serverIp;
     

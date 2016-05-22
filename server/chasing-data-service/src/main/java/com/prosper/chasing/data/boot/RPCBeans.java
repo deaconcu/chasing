@@ -3,6 +3,8 @@ package com.prosper.chasing.data.boot;
 import java.beans.PropertyVetoException;
 import java.sql.SQLException;
 
+import javafx.beans.DefaultProperty;
+
 import javax.sql.DataSource;
 
 import org.mybatis.spring.SqlSessionFactoryBean;
@@ -28,7 +30,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import redis.clients.jedis.Jedis;
 
-import com.prosper.chasing.common.boot.RPCSpringRuntimeBeans;
+import com.prosper.chasing.common.boot.RuntimeSpringBeans;
 import com.prosper.chasing.common.client.ZkClient;
 import com.prosper.chasing.data.util.Config;
 
@@ -48,7 +50,7 @@ import com.prosper.chasing.data.util.Config;
         "com.prosper.chasing.data.exception",
         "com.prosper.chasing.data.thrift"
 })
-@RPCSpringRuntimeBeans
+@RuntimeSpringBeans(mode = "dataHttpServer")
 public class RPCBeans {
 
     @Bean(name="propertySources")

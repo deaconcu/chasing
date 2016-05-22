@@ -1,4 +1,4 @@
-package com.prosper.chasing.game;
+package com.prosper.chasing.game.base;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AssignableTypeFilter;
+import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.client.ThriftClient;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
@@ -22,14 +23,10 @@ import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserPropTr;
 import com.prosper.chasing.common.interfaces.data.UserTr;
 import com.prosper.chasing.common.util.ViewTransformer;
-import com.prosper.chasing.game.base.Game;
-import com.prosper.chasing.game.base.GameInfo;
-import com.prosper.chasing.game.base.MetaGameAnno;
-import com.prosper.chasing.game.base.Prop;
-import com.prosper.chasing.game.base.User;
 import com.prosper.chasing.game.message.Message;
 import com.prosper.chasing.game.message.MessageParser;
 
+@Component
 public class GameManage {
 
     private Logger log = LoggerFactory.getLogger(getClass());

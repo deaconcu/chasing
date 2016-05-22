@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.interfaces.game.GameException;
-import com.prosper.chasing.game.GameManage;
 import com.prosper.chasing.game.base.ActionChange.Action;
 import com.prosper.chasing.game.base.ActionChange.FieldChange;
 import com.prosper.chasing.game.base.ActionChange.PositionChange;
@@ -28,7 +27,6 @@ import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant.GameLoadingState;
 import com.prosper.chasing.common.util.JsonUtil;
 
-@Component
 public abstract class Game {
     
     private Logger log = LoggerFactory.getLogger(getClass());

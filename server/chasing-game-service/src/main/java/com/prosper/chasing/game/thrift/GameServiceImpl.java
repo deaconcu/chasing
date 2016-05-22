@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import com.prosper.chasing.common.boot.RPCService;
 import com.prosper.chasing.common.interfaces.game.GameException;
 import com.prosper.chasing.common.interfaces.game.GameService;
-import com.prosper.chasing.game.GameManage;
+import com.prosper.chasing.game.base.GameManage;
 
 @Component
 @RPCService(processorClass = GameService.Processor.class)

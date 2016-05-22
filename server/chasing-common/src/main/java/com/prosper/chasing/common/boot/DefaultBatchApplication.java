@@ -21,7 +21,7 @@ public abstract class DefaultBatchApplication extends Application {
     public void execute(String[] args) {
         ClassPathScanningCandidateComponentProvider scanner =
                 new ClassPathScanningCandidateComponentProvider(false);
-        scanner.addIncludeFilter(new AnnotationTypeFilter(BatchSpringRuntimeBeans.class));
+        scanner.addIncludeFilter(new AnnotationTypeFilter(RuntimeSpringBeans.class));
         Set<BeanDefinition> beanSet = scanner.findCandidateComponents("com.prosper.chasing");
         if (beanSet.size() != 1) {
             throw new RuntimeException(

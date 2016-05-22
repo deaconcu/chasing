@@ -1,4 +1,4 @@
-package com.prosper.chasing.connection.server;
+fpackage com.prosper.chasing.connection.server;
 
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
