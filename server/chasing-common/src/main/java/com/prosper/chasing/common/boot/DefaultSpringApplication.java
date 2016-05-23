@@ -6,14 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 
-import com.prosper.chasing.common.runtime.base.DefaultBeans;
-import com.prosper.chasing.common.runtime.base.DefaultHttpBeans;
+import com.prosper.chasing.common.util.Args;
 
 public class DefaultSpringApplication extends Application {
     
@@ -26,6 +23,8 @@ public class DefaultSpringApplication extends Application {
         if (mode == null) {
             throw new RuntimeException("no mode name provided");
         }
+        
+        Args.args = args;
         
         ClassPathScanningCandidateComponentProvider scanner =
                 new ClassPathScanningCandidateComponentProvider(false);

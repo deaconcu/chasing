@@ -12,8 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.prosper.chasing.common.client.ThriftClient;
-import com.prosper.chasing.common.client.ZkClient;
+import com.prosper.chasing.common.bean.client.ThriftClient;
+import com.prosper.chasing.common.bean.client.ZkClient;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.GameTr;
 import com.prosper.chasing.common.util.CommonConstant;

@@ -1,4 +1,4 @@
-package com.prosper.chasing.game.boot;
+package com.prosper.chasing.connection;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,13 +16,13 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import redis.clients.jedis.Jedis;
 
 import com.prosper.chasing.common.bean.client.ZkClient;
+import com.prosper.chasing.common.bean.wrapper.NettyWebSocketServer;
 import com.prosper.chasing.common.bean.wrapper.ThriftRPCServer;
+import com.prosper.chasing.common.bean.wrapper.WebSocketService;
 import com.prosper.chasing.common.boot.RuntimeSpringBeans;
-import com.prosper.chasing.game.util.Config;
 
 @Configuration
 @EnableAspectJAutoProxy
-@EnableTransactionManagement
 @EnableScheduling
 @PropertySources({
     @PropertySource("classpath:app.properties"),
@@ -30,10 +30,10 @@ import com.prosper.chasing.game.util.Config;
     @PropertySource(value = "file:config/app.properties", ignoreResourceNotFound=true)
 })
 @ComponentScan(basePackages = {
-        "com.prosper.chasing.common.client",
-        "com.prosper.chasing.game"
+        "com.prosper.chasing.common.bean.client",
+        "com.prosper.chasing.connection"
 })
-@RuntimeSpringBeans(mode = "gameServer")
+@RuntimeSpringBeans(mode = "connectionServer")
 public class GameServerBeans {
 
     @Bean(name="propertySources")
@@ -58,6 +58,11 @@ public class GameServerBeans {
     @Bean
     public ThriftRPCServer thriftRPCServer(Config config) {
         return new ThriftRPCServer(config.appPackage, config.rpcPort);
+    }
+    
+    @Bean
+    public NettyWebSocketServer webSocketServer(Config config, WebSocketService webSocketService) {
+        return new NettyWebSocketServer(config.serverPort, false, webSocketService);
     }
     
     @Bean

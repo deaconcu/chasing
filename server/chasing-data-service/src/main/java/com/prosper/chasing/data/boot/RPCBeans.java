@@ -30,8 +30,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import redis.clients.jedis.Jedis;
 
+import com.prosper.chasing.common.bean.client.ZkClient;
 import com.prosper.chasing.common.boot.RuntimeSpringBeans;
-import com.prosper.chasing.common.client.ZkClient;
 import com.prosper.chasing.data.util.Config;
 
 @Configuration

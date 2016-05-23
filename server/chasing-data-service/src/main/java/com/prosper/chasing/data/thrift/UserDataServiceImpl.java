@@ -3,7 +3,7 @@ package com.prosper.chasing.data.thrift;
 import org.apache.thrift.TException;
 import org.springframework.stereotype.Component;
 
-import com.prosper.chasing.common.boot.RPCService;
+import com.prosper.chasing.common.bean.wrapper.RPCService;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.UserDataService;
 import com.prosper.chasing.common.interfaces.data.UserTr;

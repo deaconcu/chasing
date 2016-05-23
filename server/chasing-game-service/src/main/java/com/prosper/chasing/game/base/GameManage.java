@@ -16,7 +16,7 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.stereotype.Component;
 
-import com.prosper.chasing.common.client.ThriftClient;
+import com.prosper.chasing.common.bean.client.ThriftClient;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.GameTr;
 import com.prosper.chasing.common.interfaces.data.PropDataService;

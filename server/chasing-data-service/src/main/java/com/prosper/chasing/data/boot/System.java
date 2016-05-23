@@ -6,7 +6,7 @@ import org.apache.zookeeper.CreateMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.prosper.chasing.common.client.ZkClient;
+import com.prosper.chasing.common.bean.client.ZkClient;
 import com.prosper.chasing.data.util.Config;
 import com.prosper.chasing.data.util.Constant;
 
