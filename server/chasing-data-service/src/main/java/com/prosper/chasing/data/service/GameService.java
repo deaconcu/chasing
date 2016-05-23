@@ -198,7 +198,7 @@ public class GameService {
             return gameList;
         }
 
-        gameList = gameMapper.selectListByStatePage(GameState.POST_START, 1, 1);
+        gameList = gameMapper.selectListByStatePage(GameState.POST_START, 1, 0);
         if (gameList.size() > 0) {
             gameMapper.updateGameByState(GameState.POST_START, GameState.LOADING, server, CommonUtil.getTime(new Date()), count);
         }
@@ -218,9 +218,9 @@ public class GameService {
             throw new InvalidArgumentException("duration is not in range");
         }
         Game gameInDb = gameMapper.selectOne(game.getId());
-        if (gameInDb.getState() != GameState.CREATE) {
-            throw new InvalidArgumentException("invalid state");
-        }
+        
+        // TODO check if state change is legal
+        
         gameInDb.setDuration(game.getDuration());
         gameInDb.setState(game.getState());
         gameInDb.setUpdateTime(CommonUtil.getTime(new Date()));

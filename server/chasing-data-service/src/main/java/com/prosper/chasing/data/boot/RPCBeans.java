@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import redis.clients.jedis.Jedis;
 
 import com.prosper.chasing.common.bean.client.ZkClient;
+import com.prosper.chasing.common.bean.wrapper.ThriftRPCServer;
 import com.prosper.chasing.common.boot.RuntimeSpringBeans;
 import com.prosper.chasing.data.util.Config;
 
@@ -44,13 +45,10 @@ import com.prosper.chasing.data.util.Config;
     @PropertySource(value="file:config/application.properties", ignoreResourceNotFound=true)
 })
 @ComponentScan(basePackages = {
-        "com.prosper.chasing.data.util",
-        "com.prosper.chasing.data.mapper",
-        "com.prosper.chasing.data.service",
-        "com.prosper.chasing.data.exception",
-        "com.prosper.chasing.data.thrift"
+        "com.prosper.chasing.common.bean.client",
+        "com.prosper.chasing.data"
 })
-@RuntimeSpringBeans(mode = "dataHttpServer")
+@RuntimeSpringBeans(mode = "dataRPCServer")
 public class RPCBeans {
 
     @Bean(name="propertySources")
@@ -105,6 +103,11 @@ public class RPCBeans {
     @Bean
     public ZkClient zkClient(Config config) {
         return new ZkClient(config.zookeeperAddrs);
+    }
+    
+    @Bean
+    public ThriftRPCServer thriftRPCServer(Config config) {
+        return new ThriftRPCServer(config.appPackage, config.rpcPort);
     }
 
 }

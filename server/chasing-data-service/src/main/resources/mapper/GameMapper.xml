@@ -80,7 +80,6 @@
         UPDATE t_game
         SET state = #{targetState},
             server = #{server},
-            creator_id = #{creatorId},
             update_time = #{updateTime}
         WHERE state = #{sourceState}
         ORDER BY pk_id

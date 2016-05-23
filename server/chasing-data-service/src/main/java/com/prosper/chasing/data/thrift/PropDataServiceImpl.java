@@ -3,6 +3,7 @@ package com.prosper.chasing.data.thrift;
 import java.util.List;
 
 import org.apache.thrift.TException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.bean.wrapper.RPCService;
@@ -17,6 +18,7 @@ import com.prosper.chasing.data.service.PropService;
 @RPCService(processorClass = PropDataService.Processor.class)
 public class PropDataServiceImpl implements PropDataService.Iface {
     
+    @Autowired
     private PropService propService;
 
     @Override

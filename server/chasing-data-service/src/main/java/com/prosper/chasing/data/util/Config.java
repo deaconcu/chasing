@@ -4,15 +4,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
-@Component
-@DependsOn("propertySources")
+@Component("dataConfig")
 public class Config {
-
-    @Value("${server.ip}")
-    public String serverIp;
     
-    @Value("${server.port}")
-    public int serverPort;
+    @Value("${application.package}")
+    public String appPackage;
+
+    @Value("${rpc.port}")
+    public int rpcPort;
+
+    @Value("${server.ip:127.0.0.1}")
+    public String serverIp;
     
     @Value("${db.mysql.ip}")
     public String dbIp;

@@ -5,8 +5,7 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
-@Primary
-@Component
+@Component("connectionConfig")
 public class Config {
     
     @Value("${application.package}")

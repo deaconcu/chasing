@@ -1,13 +1,18 @@
 package com.prosper.chasing.game.base;
 
+import java.lang.annotation.Annotation;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import javax.annotation.PostConstruct;
+
+import org.apache.zookeeper.CreateMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,14 +22,18 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.bean.client.ThriftClient;
+import com.prosper.chasing.common.bean.client.ZkClient;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.GameTr;
+import com.prosper.chasing.common.interfaces.data.MetagameDataService;
+import com.prosper.chasing.common.interfaces.data.MetagameTr;
 import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserPropTr;
 import com.prosper.chasing.common.interfaces.data.UserTr;
 import com.prosper.chasing.common.util.ViewTransformer;
 import com.prosper.chasing.game.message.Message;
 import com.prosper.chasing.game.message.MessageParser;
+import com.prosper.chasing.game.util.Config;
 
 @Component
 public class GameManage {
@@ -38,9 +47,13 @@ public class GameManage {
     private BlockingQueue<Message> sendMessageQueue;
 
     @Autowired
-    ThriftClient thriftClient;
+    private ThriftClient thriftClient;
     @Autowired
-    MessageParser messageParser;
+    private ZkClient zkClient;
+    @Autowired
+    private MessageParser messageParser;
+    @Autowired
+    private Config config;
 
     /**
      * 初始化游戏管理，主要实现把现有的游戏类加载到一个map里
@@ -56,7 +69,7 @@ public class GameManage {
             Class<? extends Game> gameClass = null;
             try {
                 gameClass = (Class<? extends Game>)Class.forName(className);
-                gameClass.newInstance();
+                Object object = gameClass.newInstance();
             } catch (Exception e) {
                 log.warn("create game object failed:" + className, e);
                 continue;
@@ -85,8 +98,14 @@ public class GameManage {
         try {
             // create game
             GameInfo gameInfo = ViewTransformer.transferObject(gameTr, GameInfo.class);
-            String metagameCode = gameInfo.getMetagameId();
-
+            MetagameDataService.Client metaGameDataServiceClient = thriftClient.getMetagameDataServiceClient();
+            
+            List<Integer> metagameIdList = new LinkedList<Integer>();
+            metagameIdList.add(gameInfo.getMetagameId());
+            List<MetagameTr> metagameTrList = metaGameDataServiceClient.getMetagame(metagameIdList);
+            
+            String metagameCode = metagameTrList.get(0).getCode();
+            
             Class<? extends Game> gameClass = gameClassMap.get(metagameCode);
             if (gameClass == null) {
                 log.error("metagame implement is not exist:" + metagameCode);
@@ -120,6 +139,10 @@ public class GameManage {
             game.setUserMap(userMap);
             // put game into map
             gameMap.put(gameInfo.getId(), game);
+            
+            String serverAddr = config.serverIp + ":" + config.rpcPort;
+            zkClient.createNode(config.gameZkName + "/" + gameInfo.getId(), 
+                    serverAddr.getBytes(), CreateMode.PERSISTENT, true);
         } catch (Exception e) {
             log.error("create game failed", e);
         }
@@ -150,19 +173,25 @@ public class GameManage {
     /**
      * 执行游戏消息
      */
+    @PostConstruct
     public void executeData() {
-        while(true) {
-            try {
-                Message message = recieveMessageQueue.take();
-                Message parsedMessage = messageParser.parse(message);
-                
-                int gameId = parsedMessage.getGameId();
-                Game game = gameMap.get(gameId);
-                game.executeMessage(parsedMessage);
-            } catch (Exception e) {
-                e.printStackTrace();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    try {
+                        Message message = recieveMessageQueue.take();
+                        Message parsedMessage = messageParser.parse(message);
+                        
+                        int gameId = parsedMessage.getGameId();
+                        Game game = gameMap.get(gameId);
+                        game.executeMessage(parsedMessage);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             }
-        }
+        }).start();
     }
 
     public BlockingQueue<Message> getSendMessageQueue() {

@@ -7,11 +7,23 @@ exception GameException {
 
 struct GameTr {
     1: i32 id,
-    2: string metagameId,
+    2: i32 metagameId,
     3: i32 duration,
     4: byte state,
     5: i32 creatorId,
-    6: string startTime,
+    6: string server,
+    7: string startTime,
+    8: string createTime,
+    9: string updateTime,
+}
+
+struct MetagameTr {
+    1: i32 id,
+    2: string code,
+    3: string name,
+    4: i32 duration,
+    5: byte state,
+    6: string types,
     7: string createTime,
     8: string updateTime,
 }
@@ -46,6 +58,15 @@ service GameDataService {
      * @param gameId: 游戏ID
      */
     list<UserTr> getGameUsers(1: i32 gameId),
+}
+
+service MetagameDataService {
+
+    /*
+     * 获取元游戏列表
+     * @param metagameId: 元游戏ID
+     */
+    list<MetagameTr> getMetagame(1: list<i32> metagameIdList),
 }
     
 service UserDataService {

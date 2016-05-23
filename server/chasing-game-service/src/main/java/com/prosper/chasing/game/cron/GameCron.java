@@ -26,9 +26,9 @@ import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 
 @Component
 public class GameCron {
-    
+
     private Logger log = LoggerFactory.getLogger(getClass());
-    
+
     @Autowired
     ThriftClient thriftClient;
     @Autowired
@@ -39,19 +39,25 @@ public class GameCron {
     ExecutorService executorService;
     @Autowired
     GameManage gameManage;
-    
+
     @Scheduled(cron="${cron.create.game}")
     public void createGame() {
         try {
-            GameDataService.Client gameDataServiceClient = thriftClient.getGameDataServiceClient();
+            final GameDataService.Client gameDataServiceClient = thriftClient.getGameDataServiceClient();
             List<GameTr> gameTrList = gameDataServiceClient.ClaimGame(config.serverIp, config.serverPort, 100);
-            
+
             final CountDownLatch countDownLatch = new CountDownLatch(gameTrList.size());
             for (final GameTr gameTr: gameTrList) {
                 executorService.execute(new Runnable() {
                     @Override
                     public void run() {
-                        gameManage.createGame(gameTr);
+                        try {
+                            gameManage.createGame(gameTr);
+                            gameTr.setState((byte)GameState.PROCESSING);
+                            gameDataServiceClient.updateGame(gameTr);
+                        } catch (Exception e) {
+                            log.error("create game failed", e);
+                        }
                         countDownLatch.countDown();
                     }
                 });

@@ -59,7 +59,7 @@ public class GameWebSocketService implements WebSocketService {
     public void executeData(ByteBuf in, Map<String, Object> customValueMap) {
         try {
             int userId = (Integer)customValueMap.get("userId");
-            int gameId = (Integer)customValueMap.get("gameId");;
+            int gameId = (Integer)customValueMap.get("gameId");
 
             // get ip from zk by game id
             byte[] serverBytes = zkClient.get(config.gameZKName + "/" + gameId, true);

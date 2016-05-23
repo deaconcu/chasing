@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,7 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Component
 public class JsonUtil {
 
-	private ObjectMapper objectMapper = new ObjectMapper();
+	private static ObjectMapper objectMapper = new ObjectMapper();
 
 	/**
 	 * 将字符串转化为对象
@@ -23,9 +24,10 @@ public class JsonUtil {
 	 * @param type 需要验证的数据种类
 	 * @return
 	 */
-	public <T> T getObject(String s, Class<T> classType) {
+	public static <T> T getObject(String s, Class<T> classType) {
 		T t = null;
 		try {
+		    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 			t = objectMapper.readValue(s, classType); 
 		} catch (Exception e) {
 			throw new RuntimeException("parse object from string failed", e);
@@ -33,13 +35,13 @@ public class JsonUtil {
 		return t;
 	}
 
-	public Map<String, Object> getMap(String s) throws JsonParseException, JsonMappingException, IOException {
+	public static Map<String, Object> getMap(String s) throws JsonParseException, JsonMappingException, IOException {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> map = objectMapper.readValue(s, Map.class);
 		return map;
 	}
 	
-	public JsonNode getJson(String result) {
+	public static JsonNode getJson(String result) {
 		try {
 			return objectMapper.readTree(result);
 		} catch (Exception e) {
@@ -47,7 +49,7 @@ public class JsonUtil {
 		}
 	}
 	
-	public String getString(Object o) {
+	public static String getString(Object o) {
 		try {
 			return objectMapper.writeValueAsString(o);
 		} catch (JsonProcessingException e) {
@@ -55,12 +57,9 @@ public class JsonUtil {
 		}
 	}
 	
-	public ObjectMapper getObjectMapper() {
+	public static ObjectMapper getObjectMapper() {
 		return objectMapper;
 	}
 
-	public void setObjectMapper(ObjectMapper objectMapper) {
-		this.objectMapper = objectMapper;
-	}
 }
 

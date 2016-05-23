@@ -1,17 +1,14 @@
-package com.prosper.chasing.game.base;
+package com.prosper.chasing.http.anotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.TYPE)
+/**
+ * 标注某一个controller需要登录校验
+ */
+@Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface MetaGameAnno {
-
-    /**
-     * 标注当前游戏metagame code
-     */
-    String value();
-    
+public @interface NeedLogin {
 }

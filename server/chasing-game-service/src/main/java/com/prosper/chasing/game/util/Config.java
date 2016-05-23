@@ -30,11 +30,14 @@ public class Config {
     @Value("${zookeeper.addrs}")
     public String zookeeperAddrs;
     
-    @Value("${gameServer.list.zkName}")
+    @Value("${zkName.gameServer.serverList}")
     public String gameServerZKName;
 
-    @Value("${gameDataServer.list.zkName}")
+    @Value("${zkName.gameDataServer.serverList}")
     public String gameDataServerZKName;
+    
+    @Value("${zkName.game}")
+    public String gameZkName;
     
 		
 }

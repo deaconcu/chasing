@@ -7,8 +7,8 @@ import com.prosper.chasing.game.base.MetaGameAnno;
 import com.prosper.chasing.game.base.User;
 import com.prosper.chasing.game.message.Message;
 
+@MetaGameAnno("tale")
 @Component
-@MetaGameAnno("chasing")
 public class ChasingGame extends Game {
 
     @Override

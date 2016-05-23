@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.interfaces.data.GameDataService;
+import com.prosper.chasing.common.interfaces.data.MetagameDataService;
 import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserDataService;
 import com.prosper.chasing.common.interfaces.game.GameService;
@@ -24,9 +25,10 @@ public class ThriftClient {
     private static String gameDataServerZkName = "/gameDataServer/serverList"; 
     private static String gameServerZkName = "/gameServer/serverList"; 
     private static String gameDataServiceRegisterName = "GameDataServiceImpl";
-    private static String userDataServiceRegisterName = "userDataServiceImpl";
-    private static String propDataServiceRegisterName = "propDataServiceImpl";
-    private static String gameServiceRegisterName = "gameServiceImpl";
+    private static String metagameDataServiceRegisterName = "MetagameDataServiceImpl";
+    private static String userDataServiceRegisterName = "UserDataServiceImpl";
+    private static String propDataServiceRegisterName = "PropDataServiceImpl";
+    private static String gameServiceRegisterName = "GameServiceImpl";
 
     @Autowired
     private ZkClient zkClient;
@@ -40,6 +42,21 @@ public class ThriftClient {
             TBinaryProtocol protocol = new TBinaryProtocol(transport);
             TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameDataServiceRegisterName);
             GameDataService.Client service = new GameDataService.Client(mp);
+            return service;
+        } catch (TTransportException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public MetagameDataService.Client getMetagameDataServiceClient() {
+        try {
+            Pair<String, Integer> ipAndPort = getServiceAddr(gameDataServerZkName);
+            TTransport transport = new TSocket(ipAndPort.getX(), ipAndPort.getY());
+            transport.open();
+
+            TBinaryProtocol protocol = new TBinaryProtocol(transport);
+            TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, metagameDataServiceRegisterName);
+            MetagameDataService.Client service = new MetagameDataService.Client(mp);
             return service;
         } catch (TTransportException e) {
             throw new RuntimeException(e);

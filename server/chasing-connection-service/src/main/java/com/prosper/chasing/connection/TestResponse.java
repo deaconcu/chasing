@@ -1,36 +1,33 @@
 package com.prosper.chasing.connection;
 
-import io.netty.channel.Channel;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
+import java.util.HashMap;
 import java.util.Map;
 
-public class TestResponse extends Thread {
+import javax.annotation.PostConstruct;
 
-    private Map<Long, Channel> channelMap;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-    public void setChannelMap(Map<Long, Channel> channelMap) {
-        this.channelMap = channelMap;
-    }
+@Component
+public class TestResponse {
 
-    @Override
+    @Autowired
+    GameWebSocketService gameWebSocketService;
+    
+    @PostConstruct
     public void run() {
         while(true) {
-            System.out.println("check");
-            if (!channelMap.isEmpty()) {
-                System.out.println("no empty");
-                for (Long id: channelMap.keySet()) {
-                    Channel channel = channelMap.get(id);
-                    System.out.println(channel);
-                    channel.writeAndFlush(new TextWebSocketFrame("test success"));
-                }
-            }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+            byte[] bytes = new byte[]{0,0,0,1};
+            ByteBuf in = Unpooled.copiedBuffer(bytes);
+            
+            Map<String, Object> customValueMap = new HashMap<>();
+            customValueMap.put("gameId", 1);
+            customValueMap.put("userId", 46);
+            
+            gameWebSocketService.executeData(in, customValueMap);
         }
     }
 

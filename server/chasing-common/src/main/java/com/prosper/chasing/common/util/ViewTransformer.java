@@ -5,8 +5,6 @@ import java.util.List;
 
 public class ViewTransformer<X, Y> {
     
-    private static JsonUtil jsonUtil = new JsonUtil();
-    
     public static <X, Y> List<Y> transferList(List<X> list, Class<Y> clazz) {
         List<Y> convertedList = new LinkedList<Y>();
         for (X x: list) {
@@ -16,8 +14,8 @@ public class ViewTransformer<X, Y> {
     }
     
     public static <X, Y> Y transferObject(X x, Class<Y> clazz) {
-        String s = jsonUtil.getString(x);
-        Y y = jsonUtil.getObject(s, clazz);
+        String s = JsonUtil.getString(x);
+        Y y = JsonUtil.getObject(s, clazz);
         return y;
     }
 

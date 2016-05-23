@@ -30,7 +30,7 @@ import com.prosper.chasing.game.util.Config;
     @PropertySource(value = "file:config/app.properties", ignoreResourceNotFound=true)
 })
 @ComponentScan(basePackages = {
-        "com.prosper.chasing.common.client",
+        "com.prosper.chasing.common.bean.client",
         "com.prosper.chasing.game"
 })
 @RuntimeSpringBeans(mode = "gameServer")
@@ -62,7 +62,9 @@ public class GameServerBeans {
     
     @Bean
     public ExecutorService executorService() {
-        return Executors.newCachedThreadPool();
+        // TODO
+//        return Executors.newCachedThreadPool();
+        return Executors.newFixedThreadPool(1);
     }
 
 }

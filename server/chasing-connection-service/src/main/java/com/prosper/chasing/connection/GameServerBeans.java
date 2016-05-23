@@ -55,10 +55,10 @@ public class GameServerBeans {
         return new ZkClient(config.zookeeperAddrs);
     }
     
-    @Bean
-    public ThriftRPCServer thriftRPCServer(Config config) {
-        return new ThriftRPCServer(config.appPackage, config.rpcPort);
-    }
+//    @Bean
+//    public ThriftRPCServer thriftRPCServer(Config config) {
+//        return new ThriftRPCServer(config.appPackage, config.rpcPort);
+//    }
     
     @Bean
     public NettyWebSocketServer webSocketServer(Config config, WebSocketService webSocketService) {

@@ -3,7 +3,7 @@ package com.prosper.chasing.game.base;
 public class GameInfo {
 
     private Integer id;
-    private String metagameId;
+    private Integer metagameId;
     private int duration;
     private int state;
     private int creatorId;
@@ -42,12 +42,6 @@ public class GameInfo {
     public void setId(Integer id) {
         this.id = id;
     }
-    public String getMetagameId() {
-        return metagameId;
-    }
-    public void setMetagameId(String metagameId) {
-        this.metagameId = metagameId;
-    }
     public int getCreatorId() {
         return creatorId;
     }
@@ -65,6 +59,12 @@ public class GameInfo {
     }
     public void setServer(String server) {
         this.server = server;
+    }
+    public Integer getMetagameId() {
+        return metagameId;
+    }
+    public void setMetagameId(Integer metagameId) {
+        this.metagameId = metagameId;
     }
     
     
