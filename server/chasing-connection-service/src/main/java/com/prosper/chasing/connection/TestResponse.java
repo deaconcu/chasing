@@ -17,7 +17,7 @@ public class TestResponse {
     @Autowired
     GameWebSocketService gameWebSocketService;
     
-    @PostConstruct
+//    @PostConstruct
     public void run() {
         while(true) {
             byte[] bytes = new byte[]{0,0,0,1};

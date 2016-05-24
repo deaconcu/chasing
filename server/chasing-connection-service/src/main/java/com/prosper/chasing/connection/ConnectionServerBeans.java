@@ -34,7 +34,7 @@ import com.prosper.chasing.common.boot.RuntimeSpringBeans;
         "com.prosper.chasing.connection"
 })
 @RuntimeSpringBeans(mode = "connectionServer")
-public class GameServerBeans {
+public class ConnectionServerBeans {
 
     @Bean(name="propertySources")
     public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
@@ -61,13 +61,13 @@ public class GameServerBeans {
 //    }
     
     @Bean
+    public ExecutorService executorService() {
+        return Executors.newCachedThreadPool();
+    }
+    
+    @Bean
     public NettyWebSocketServer webSocketServer(Config config, WebSocketService webSocketService) {
         return new NettyWebSocketServer(config.serverPort, false, webSocketService);
     }
     
-    @Bean
-    public ExecutorService executorService() {
-        return Executors.newCachedThreadPool();
-    }
-
 }
