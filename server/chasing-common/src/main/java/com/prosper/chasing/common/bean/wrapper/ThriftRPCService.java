@@ -9,7 +9,7 @@ import org.apache.thrift.TProcessor;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface RPCService {
+public @interface ThriftRPCService {
     
     Class<? extends TProcessor> processorClass();
 

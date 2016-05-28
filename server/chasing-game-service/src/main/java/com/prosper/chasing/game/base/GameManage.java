@@ -12,6 +12,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.zookeeper.CreateMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.bean.client.ThriftClient;
 import com.prosper.chasing.common.bean.client.ZkClient;
+import com.prosper.chasing.common.interfaces.connection.ConnectionService.AsyncClient;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.GameTr;
 import com.prosper.chasing.common.interfaces.data.MetagameDataService;
@@ -98,11 +100,10 @@ public class GameManage {
         try {
             // create game
             GameInfo gameInfo = ViewTransformer.transferObject(gameTr, GameInfo.class);
-            MetagameDataService.Client metaGameDataServiceClient = thriftClient.getMetagameDataServiceClient();
             
             List<Integer> metagameIdList = new LinkedList<Integer>();
             metagameIdList.add(gameInfo.getMetagameId());
-            List<MetagameTr> metagameTrList = metaGameDataServiceClient.getMetagame(metagameIdList);
+            List<MetagameTr> metagameTrList = new ThriftClient.MetagameDataServiceClient().getMetagame(metagameIdList);
             
             String metagameCode = metagameTrList.get(0).getCode();
             
@@ -119,14 +120,12 @@ public class GameManage {
 
             // load game info, user and prop
             game.setGameInfo(gameInfo);
-            GameDataService.Client gameDataServiceClient = thriftClient.getGameDataServiceClient();
-            PropDataService.Client propDataServiceClient = thriftClient.getPropDataServiceClient();
-            List<UserTr> userTrList = gameDataServiceClient.getGameUsers(gameInfo.getId());
+            List<UserTr> userTrList = thriftClient.gameDataServiceClient.getGameUsers(gameInfo.getId());
             List<User> userList = ViewTransformer.transferList(userTrList, User.class);
 
             Map<Integer, User> userMap = new HashMap<>();
             for (User user: userList) {
-                List<UserPropTr> propList = propDataServiceClient.getUserProp(user.getId());
+                List<UserPropTr> propList = thriftClient.propDataServiceClient.getUserProp(user.getId());
                 Map<Integer, Prop> propMap = new HashMap<>();
                 for (UserPropTr propTr: propList) {
                     Prop prop = new Prop();
@@ -186,6 +185,41 @@ public class GameManage {
                         int gameId = parsedMessage.getGameId();
                         Game game = gameMap.get(gameId);
                         game.executeMessage(parsedMessage);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+    }
+    
+    @PostConstruct
+    public void sendData() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    try {
+                        Message message = sendMessageQueue.take();
+                        final int userId = message.getUserId();
+
+                        String addr = new String(zkClient.get(config.userZkName + "/" + userId, true));
+                        String ipAndPort[] = addr.split(":");
+                        String ip = ipAndPort[0];
+                        int port = Integer.parseInt(ipAndPort[1]);
+                        
+                        AsyncClient asyncClient = thriftClient.getConnectionServiceAsyncClient(ip, port);
+                        
+                        asyncClient.executeData(userId, message.getContent(), new AsyncMethodCallback<Object>() {
+                            @Override
+                            public void onComplete(Object response) {
+                                log.info("response success, user id:" + userId);
+                            }
+                            @Override
+                            public void onError(Exception exception) {
+                                log.info("response failed, user id:" + userId);
+                            }
+                        });
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

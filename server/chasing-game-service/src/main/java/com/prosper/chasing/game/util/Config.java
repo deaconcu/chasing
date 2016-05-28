@@ -38,6 +38,9 @@ public class Config {
     
     @Value("${zkName.game}")
     public String gameZkName;
+
+    @Value("${zkName.user}")
+    public String userZkName;
     
 		
 }

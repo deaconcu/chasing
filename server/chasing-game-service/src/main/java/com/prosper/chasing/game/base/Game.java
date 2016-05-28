@@ -91,6 +91,9 @@ public abstract class Game {
         byteBuilder.append(actionChange.getUserId());
         
         Action action = actionChange.getAction();
+        if (action == null) {
+            return;
+        }
         if (action instanceof PropAction) {
             PropAction propAction = (PropAction) action;
             byteBuilder.append(1);
@@ -150,6 +153,9 @@ public abstract class Game {
         actionByteBuilder.append(actionChange.getUserId());
         
         Action action = actionChange.getAction();
+        if (action == null) {
+            return;
+        }
         if (action instanceof PropAction) {
             PropAction propAction = (PropAction) action;
             actionByteBuilder.append(1);
@@ -213,7 +219,7 @@ public abstract class Game {
                 
                 ByteBuilder byteBuilder =  new ByteBuilder();
                 User changedUser = userMap.get(changedUserId);
-                byteBuilder.append(2);
+                byteBuilder.append(changedUser.getId());
                 byteBuilder.append(changedUser.getPosition().getX());
                 byteBuilder.append(changedUser.getPosition().getY());
                 
@@ -238,7 +244,13 @@ public abstract class Game {
         // TODO check if could move
         Position position = new Position(0, 0);
         user.setPosition(position);
-        return null;
+        
+        ActionChange actionChange = new ActionChange();
+        actionChange.setUserId(message.getUserId());
+        actionChange.setAction(null);
+        
+        actionChange.putChange(message.getUserId(), new PositionChange());
+        return actionChange;
     }
     
     /**

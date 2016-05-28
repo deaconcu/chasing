@@ -1,5 +1,6 @@
 package com.prosper.chasing.game.base;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +20,18 @@ public class ActionChange {
      * 造成的变化
      */
     private Map<Integer, List<FieldChange>> changeMap;
+    
+    public ActionChange() {
+        changeMap = new HashMap<>();
+    }
+    
+    public void putChange(Integer userId, FieldChange fieldChange) {
+        List<FieldChange> changeList = changeMap.get(userId);
+        if (changeList == null) {
+            changeMap.put(userId, changeList);
+        }
+        changeList.add(fieldChange);
+    }
     
     public static int getActionType(Action action) {
         if (action instanceof PropAction) {
@@ -81,6 +94,8 @@ public class ActionChange {
     public static class PositionChange extends FieldChange {
         public int name;
         public int value;
+        public PositionChange() {
+        }
         public PositionChange(int name, int value) {
             this.name = name;
             this.value = value;

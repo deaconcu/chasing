@@ -8,7 +8,7 @@ public class PositionMessage extends Message {
     private float longtitude;
     
     public PositionMessage(Message message) {
-        
+        super(message);
     }
 
     public float getLatitude() {

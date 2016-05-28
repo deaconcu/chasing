@@ -70,4 +70,9 @@ public class ConnectionServerBeans {
         return new NettyWebSocketServer(config.serverPort, false, webSocketService);
     }
     
+    @Bean
+    public ThriftRPCServer thriftRPCServer(Config config) {
+        return new ThriftRPCServer(config.appPackage, config.rpcPort);
+    }
+    
 }

@@ -43,6 +43,7 @@ import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 
 import java.lang.reflect.Constructor;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -84,6 +85,15 @@ public class NettyWebSocketServer implements ApplicationListener<ContextRefreshe
         this.service = service;
         channelMap = new ConcurrentHashMap<>();
     }
+    
+    public void sendData(Integer key, ByteBuffer data) {
+        Channel channel = channelMap.get(key);
+        if (channel != null && channel.isActive()) {
+            channel.writeAndFlush(data);
+        } else {
+            log.info("channel is not active, channel key:" + Integer.toString(key));
+        }
+    }
 
     @Override
     public void onApplicationEvent(final ContextRefreshedEvent event) {
@@ -109,9 +119,9 @@ public class NettyWebSocketServer implements ApplicationListener<ContextRefreshe
                 .option(ChannelOption.SO_BACKLOG, 128)  // 设置最大等待数
                 .childOption(ChannelOption.SO_KEEPALIVE, true);
 
-                ChannelFuture f = b.bind(port).sync();
-                f.channel().closeFuture().sync();
-            } finally {
+                ChannelFuture f = b.bind(port);
+//                f.channel().closeFuture().sync();
+            } catch (Exception e) {
                 workerGroup.shutdownGracefully();
                 bossGroup.shutdownGracefully();
             }
@@ -267,7 +277,7 @@ public class NettyWebSocketServer implements ApplicationListener<ContextRefreshe
                 return "ws://" + location;
             }
         }
-
+        
     }
 
 }

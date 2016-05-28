@@ -6,14 +6,14 @@ import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.prosper.chasing.common.bean.wrapper.RPCService;
+import com.prosper.chasing.common.bean.wrapper.ThriftRPCService;
 import com.prosper.chasing.common.interfaces.data.MetagameDataService;
 import com.prosper.chasing.common.interfaces.data.MetagameTr;
 import com.prosper.chasing.common.util.ViewTransformer;
 import com.prosper.chasing.data.service.GameService;
 
 @Component
-@RPCService(processorClass = MetagameDataService.Processor.class)
+@ThriftRPCService(processorClass = MetagameDataService.Processor.class)
 public class MetagameDataServiceImpl implements MetagameDataService.Iface {
     
     @Autowired

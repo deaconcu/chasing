@@ -11,6 +11,12 @@ public class Message {
     public Message() {
     }
     
+    public Message(Message message) {
+        this.gameId = message.getGameId();
+        this.userId = message.getUserId();
+        this.content = message.getContent();
+    }
+    
     public Message(int gameId, int userId, ByteBuffer content) {
         this.gameId = gameId;
         this.userId = userId;

@@ -2,6 +2,7 @@ package com.prosper.chasing.connection;
 
 import java.util.Map;
 
+import org.apache.zookeeper.CreateMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -52,6 +53,9 @@ public class GameWebSocketService implements WebSocketService {
         channelInfo.putCustomValue("userId", userId);
         channelInfo.putCustomValue("gameId", gameId);
         channelInfo.setKey(userId);
+        
+        byte[] addrBytes = (config.serverIp + ":" + config.rpcPort).getBytes();
+        zkClient.createNode(config.userZKName + "/" + Integer.toString(userId), addrBytes, CreateMode.EPHEMERAL, true);
         return channelInfo;
     }
 
@@ -71,10 +75,7 @@ public class GameWebSocketService implements WebSocketService {
             String host = hostPort[0];
             int port = Integer.parseInt(hostPort[1]);
 
-            GameService.Client client = thriftClient.getGameServiceClient(host, port);
-            if (client != null) {
-                client.executeData(gameId, userId, in.nioBuffer());
-            }
+            thriftClient.gameServiceClient.executeData(host, port, gameId, userId, in.nioBuffer());
         } catch (Exception e) {
             e.printStackTrace();
         }

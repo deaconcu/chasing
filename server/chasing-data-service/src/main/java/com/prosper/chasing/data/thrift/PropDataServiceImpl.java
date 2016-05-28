@@ -6,7 +6,7 @@ import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.prosper.chasing.common.bean.wrapper.RPCService;
+import com.prosper.chasing.common.bean.wrapper.ThriftRPCService;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserPropTr;
@@ -15,7 +15,7 @@ import com.prosper.chasing.data.bean.UserProp;
 import com.prosper.chasing.data.service.PropService;
 
 @Component
-@RPCService(processorClass = PropDataService.Processor.class)
+@ThriftRPCService(processorClass = PropDataService.Processor.class)
 public class PropDataServiceImpl implements PropDataService.Iface {
     
     @Autowired

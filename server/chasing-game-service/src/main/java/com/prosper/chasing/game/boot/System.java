@@ -23,5 +23,6 @@ public class System {
         zkClient.createNode(config.gameServerZKName + "/" + config.serverIp + ":" + config.rpcPort, null, CreateMode.EPHEMERAL, false);
         
         zkClient.createPath(config.gameZkName, CreateMode.PERSISTENT);
+        zkClient.createPath(config.userZkName, CreateMode.PERSISTENT);
     }
 }

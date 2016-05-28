@@ -6,13 +6,13 @@ import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.prosper.chasing.common.bean.wrapper.RPCService;
+import com.prosper.chasing.common.bean.wrapper.ThriftRPCService;
 import com.prosper.chasing.common.interfaces.game.GameException;
 import com.prosper.chasing.common.interfaces.game.GameService;
 import com.prosper.chasing.game.base.GameManage;
 
 @Component
-@RPCService(processorClass = GameService.Processor.class)
+@ThriftRPCService(processorClass = GameService.Processor.class)
 public class GameServiceImpl implements GameService.Iface {
     
     @Autowired

@@ -37,5 +37,8 @@ public class Config {
     
     @Value("${zkName.game}")
     public String gameZKName;
+    
+    @Value("${zkName.user}")
+    public String userZKName;
 		
 }

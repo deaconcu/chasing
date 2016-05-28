@@ -12,12 +12,6 @@ import com.prosper.chasing.game.message.Message;
 public class ChasingGame extends Game {
 
     @Override
-    public void executeMessage(Message message) {
-        // TODO Auto-generated method stub
-        
-    }
-
-    @Override
     public void onChange(User user) {
         // TODO Auto-generated method stub
         

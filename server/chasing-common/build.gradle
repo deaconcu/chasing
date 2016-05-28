@@ -23,4 +23,5 @@ dependencies {
     compile 'junit:junit:4.11'
     compile 'redis.clients:jedis:2.8.0'
     compile 'io.netty:netty-all:4.0.34.Final'
+    compile 'org.apache.commons:commons-pool2:2.4.2'
 }

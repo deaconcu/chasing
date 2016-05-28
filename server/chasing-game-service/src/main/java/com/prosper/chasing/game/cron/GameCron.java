@@ -45,6 +45,7 @@ public class GameCron {
         try {
             final GameDataService.Client gameDataServiceClient = thriftClient.getGameDataServiceClient();
             List<GameTr> gameTrList = gameDataServiceClient.ClaimGame(config.serverIp, config.serverPort, 100);
+            gameDataServiceClient.getInputProtocol().getTransport().close();
 
             final CountDownLatch countDownLatch = new CountDownLatch(gameTrList.size());
             for (final GameTr gameTr: gameTrList) {
