@@ -1,6 +1,7 @@
 package com.prosper.chasing.game.base;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +29,7 @@ public class ActionChange {
     public void putChange(Integer userId, FieldChange fieldChange) {
         List<FieldChange> changeList = changeMap.get(userId);
         if (changeList == null) {
+            changeList = new LinkedList<FieldChange>();
             changeMap.put(userId, changeList);
         }
         changeList.add(fieldChange);

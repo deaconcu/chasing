@@ -76,11 +76,12 @@ public class ThriftTransportPool {
                 TTransport transport = null;
                 if (type == Type.tSocket) {
                     transport =  new TSocket(ip, port);
+                    transport.open();
                 } else if (type == Type.tNonblockingSocket){
-                    transport = new TNonblockingSocket(ip, port, 5000);
+                    TNonblockingSocket tNonblockingSocket = new TNonblockingSocket(ip, port);
+                    transport = (TTransport) tNonblockingSocket;
                 }
                 if (transport != null) {
-                    transport.open();
                     return transport;
                 }
                 throw new RuntimeException("transport create error");

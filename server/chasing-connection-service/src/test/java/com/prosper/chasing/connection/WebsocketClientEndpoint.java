@@ -11,6 +11,7 @@ import javax.websocket.ClientEndpointConfig;
 import javax.websocket.CloseReason;
 import javax.websocket.ContainerProvider;
 import javax.websocket.OnClose;
+import javax.websocket.OnError;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
@@ -60,10 +61,15 @@ public class WebsocketClientEndpoint {
      * @param message The text message
      */
     @OnMessage
-    public void onMessage(ByteBuffer buffer) {
+    public void onMessage(ByteBuffer b, Session session) {
         if (this.messageHandler != null) {
-            this.messageHandler.handleMessage(buffer);
+            this.messageHandler.handleMessage(b);
         }
+    }
+    
+    @OnError
+    public void onError(Throwable t) {
+        t.printStackTrace();
     }
 
     /**

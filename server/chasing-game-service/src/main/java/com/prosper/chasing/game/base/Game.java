@@ -224,9 +224,11 @@ public abstract class Game {
                 byteBuilder.append(changedUser.getPosition().getY());
                 
                 Map<Integer, Integer> stateMap = changedUser.getStateMap();
-                for (Integer stateId: stateMap.keySet()) {
-                    byteBuilder.append(stateId);
-                    byteBuilder.append(stateMap.get(stateId));
+                if (stateMap != null) {
+                    for (Integer stateId: stateMap.keySet()) {
+                        byteBuilder.append(stateId);
+                        byteBuilder.append(stateMap.get(stateId));
+                    }
                 }
                 message.setContent(ByteBuffer.wrap(byteBuilder.getBytes()));
                 gameManage.sendData(message);

@@ -14,7 +14,7 @@ public class TestApp {
             // add listener
             clientEndPoint.addMessageHandler(new WebsocketClientEndpoint.MessageHandler() {
                 public void handleMessage(ByteBuffer buffer) {
-                    System.out.println("get data:" + buffer.array());
+                    System.out.println("get data:" + buffer);
                 }
             });
 

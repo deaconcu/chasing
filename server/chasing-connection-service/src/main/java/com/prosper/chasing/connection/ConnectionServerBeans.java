@@ -15,9 +15,12 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import redis.clients.jedis.Jedis;
 
+import com.prosper.chasing.common.bean.ThriftTransportPool;
+import com.prosper.chasing.common.bean.client.ThriftClient;
 import com.prosper.chasing.common.bean.client.ZkClient;
 import com.prosper.chasing.common.bean.wrapper.NettyWebSocketServer;
 import com.prosper.chasing.common.bean.wrapper.ThriftRPCServer;
+import com.prosper.chasing.common.bean.wrapper.ThriftRPCServer.Type;
 import com.prosper.chasing.common.bean.wrapper.WebSocketService;
 import com.prosper.chasing.common.boot.RuntimeSpringBeans;
 
@@ -72,7 +75,17 @@ public class ConnectionServerBeans {
     
     @Bean
     public ThriftRPCServer thriftRPCServer(Config config) {
-        return new ThriftRPCServer(config.appPackage, config.rpcPort);
+        return new ThriftRPCServer(config.appPackage, config.rpcPort, Type.Nonblock);
+    }
+    
+    @Bean
+    public ThriftClient thriftClient() {
+        return new ThriftClient();
+    }
+    
+    @Bean
+    public ThriftTransportPool thriftTransportPool() {
+        return new ThriftTransportPool();
     }
     
 }

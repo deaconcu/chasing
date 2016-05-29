@@ -89,7 +89,13 @@ public class NettyWebSocketServer implements ApplicationListener<ContextRefreshe
     public void sendData(Integer key, ByteBuffer data) {
         Channel channel = channelMap.get(key);
         if (channel != null && channel.isActive()) {
-            channel.writeAndFlush(data);
+            ChannelFuture future = channel.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data)));
+            try {
+                future.await();
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         } else {
             log.info("channel is not active, channel key:" + Integer.toString(key));
         }

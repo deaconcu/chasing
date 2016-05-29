@@ -162,7 +162,7 @@ public class ThriftClient {
         @Override
         public List<UserPropTr> getUserProp(int userId) throws TException {
             TTransport transport = null;
-            Pair<String, Integer> ipAndPort = getServiceAddr(gameServerZkName);
+            Pair<String, Integer> ipAndPort = getServiceAddr(gameDataServerZkName);
             try {
                 transport = thriftTransportPool.borrowObject(ipAndPort.getX(), ipAndPort.getY());
                 TBinaryProtocol protocol = new TBinaryProtocol(transport);
@@ -220,8 +220,8 @@ public class ThriftClient {
             try {
                 transport = thriftTransportPool.borrowObject(ip, port);
                 TBinaryProtocol protocol = new TBinaryProtocol(transport);
-                TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameServiceRegisterName);
-                GameService.Client service = new GameService.Client(mp);
+//                TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameServiceRegisterName);
+                GameService.Client service = new GameService.Client(protocol);
                 
                 service.executeData(gameId, userId, message);
             } catch (TTransportException e) {
@@ -245,24 +245,6 @@ public class ThriftClient {
             this.port = port;
         }
         
-//        public void executeData(int userId, ByteBuffer message) throws TException {
-//            TTransport transport = null;
-//            try {
-//                transport = thriftTransportPool.borrowObject(ip, port);
-//                TBinaryProtocol protocol = new TBinaryProtocol(transport);
-//                ConnectionService.AsyncClient service = new ConnectionService.AsyncClient(
-//                        new TBinaryProtocol.Factory(), new TAsyncClientManager(), transport);
-//                
-//                service.executeData(userId, message);
-//            } catch (TTransportException e) {
-//                throw new RuntimeException(e);
-//            } finally {
-//                if (transport != null) {
-//                    thriftTransportPool.returnObject(ip, port, transport);
-//                }
-//            }
-//        }
-
         @Override
         public void executeData(int userId, ByteBuffer message, AsyncMethodCallback resultHandler) throws TException {
             TTransport transport = null;
@@ -272,12 +254,13 @@ public class ThriftClient {
                 ConnectionService.AsyncClient service = new ConnectionService.AsyncClient(
                         new TBinaryProtocol.Factory(), new TAsyncClientManager(), tNonblockingSocket);
                 
+//                service.setTimeout(2);
                 service.executeData(userId, message, resultHandler);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             } finally {
                 if (transport != null) {
-                    thriftTransportPool.returnObject(ip, port, transport);
+                    thriftTransportPool.returnObject(ip, port, Type.tNonblockingSocket, transport);
                 }
             }
             

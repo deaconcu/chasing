@@ -2,14 +2,16 @@ package com.prosper.chasing.common.bean.wrapper;
 
 import java.lang.reflect.Constructor;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
+import org.apache.thrift.server.TThreadedSelectorServer;
+import org.apache.thrift.transport.TNonblockingServerSocket;
+import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.slf4j.Logger;
@@ -30,10 +32,16 @@ public class ThriftRPCServer implements ApplicationListener<ContextRefreshedEven
     private ApplicationContext applicationContext;
     private String basePackage;
     private int port;
+    private Type type;
 
-    public ThriftRPCServer(String basePackage, int port) {
+    public enum Type {
+        block, Nonblock
+    }
+
+    public ThriftRPCServer(String basePackage, int port, Type type) {
         this.basePackage = basePackage;
         this.port = port;
+        this.type = type;
     }
 
     @Override
@@ -59,13 +67,23 @@ public class ThriftRPCServer implements ApplicationListener<ContextRefreshedEven
                 Constructor<? extends TProcessor> constructor = clazz.getConstructor(serviceInterface);
                 constructor.newInstance(beanObject);
 
-                TServerTransport serverTransport = new TServerSocket(port);
-                final TServer server = new TThreadPoolServer(
-                        new TThreadPoolServer.Args(serverTransport)
-                        .processor(constructor.newInstance(beanObject))
-                        .protocolFactory(new TBinaryProtocol.Factory())
-                        .minWorkerThreads(2).maxWorkerThreads(5));
-                
+                final TServer server;
+                if (type == Type.Nonblock) {
+                    TNonblockingServerTransport serverTransport = new TNonblockingServerSocket(port);
+                    server = new TThreadedSelectorServer(
+                            new TThreadedSelectorServer.Args(serverTransport)
+                            .processor(constructor.newInstance(beanObject))
+                            .protocolFactory(new TBinaryProtocol.Factory()));
+
+                } else {
+                    TServerTransport serverTransport = new TServerSocket(port);
+                    server = new TThreadPoolServer(
+                            new TThreadPoolServer.Args(serverTransport)
+                            .processor(constructor.newInstance(beanObject))
+                            .protocolFactory(new TBinaryProtocol.Factory())
+                            .minWorkerThreads(2).maxWorkerThreads(5));
+                }
+
                 log.info("starting server on port " + port + " ...");
                 new Thread(new Runnable() {
                     @Override
@@ -100,12 +118,22 @@ public class ThriftRPCServer implements ApplicationListener<ContextRefreshedEven
                     processor.registerProcessor(beanClass.getSimpleName(), constructor.newInstance(beanObject));
                     log.info("add RPC service:" + beanClass.getSimpleName());
                 }
-                TServerTransport serverTransport = new TServerSocket(port);
-                final TServer server = new TThreadPoolServer(
-                        new TThreadPoolServer.Args(serverTransport)
-                        .processor(processor)
-                        .protocolFactory(new TBinaryProtocol.Factory())
-                        .minWorkerThreads(2).maxWorkerThreads(5));
+                
+                final TServer server;
+                if (type == Type.Nonblock) {
+                    TNonblockingServerTransport serverTransport = new TNonblockingServerSocket(port);
+                    server = new TThreadedSelectorServer(
+                            new TThreadedSelectorServer.Args(serverTransport)
+                            .processor(processor)
+                            .protocolFactory(new TBinaryProtocol.Factory()));
+                } else {
+                    TServerTransport serverTransport = new TServerSocket(port);
+                    server = new TThreadPoolServer(
+                            new TThreadPoolServer.Args(serverTransport)
+                            .processor(processor)
+                            .protocolFactory(new TBinaryProtocol.Factory())
+                            .minWorkerThreads(2).maxWorkerThreads(5));
+                }
 
                 log.info("starting server on port " + port + " ...");
                 new Thread(new Runnable() {

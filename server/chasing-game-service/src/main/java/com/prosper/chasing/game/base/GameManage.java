@@ -121,6 +121,7 @@ public class GameManage {
 
             // load game info, user and prop
             game.setGameInfo(gameInfo);
+            game.setGameManage(this);
             List<UserTr> userTrList = thriftClient.gameDataServiceClient().getGameUsers(gameInfo.getId());
             List<User> userList = ViewTransformer.transferList(userTrList, User.class);
 
@@ -217,7 +218,7 @@ public class GameManage {
                             }
                             @Override
                             public void onError(Exception exception) {
-                                log.info("response failed, user id:" + userId);
+                                log.info("response failed, user id:" + userId, exception);
                             }
                         });
                     } catch (Exception e) {

@@ -32,6 +32,7 @@ import redis.clients.jedis.Jedis;
 
 import com.prosper.chasing.common.bean.client.ZkClient;
 import com.prosper.chasing.common.bean.wrapper.ThriftRPCServer;
+import com.prosper.chasing.common.bean.wrapper.ThriftRPCServer.Type;
 import com.prosper.chasing.common.boot.RuntimeSpringBeans;
 import com.prosper.chasing.data.util.Config;
 
@@ -107,7 +108,7 @@ public class RPCBeans {
     
     @Bean
     public ThriftRPCServer thriftRPCServer(Config config) {
-        return new ThriftRPCServer(config.appPackage, config.rpcPort);
+        return new ThriftRPCServer(config.appPackage, config.rpcPort, Type.block);
     }
 
 }
