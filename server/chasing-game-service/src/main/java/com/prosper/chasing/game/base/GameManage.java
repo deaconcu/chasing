@@ -23,6 +23,7 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.bean.client.ThriftClient;
+import com.prosper.chasing.common.bean.client.ThriftClient.ConnectionServiceAsyncClient;
 import com.prosper.chasing.common.bean.client.ZkClient;
 import com.prosper.chasing.common.interfaces.connection.ConnectionService.AsyncClient;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
@@ -103,7 +104,7 @@ public class GameManage {
             
             List<Integer> metagameIdList = new LinkedList<Integer>();
             metagameIdList.add(gameInfo.getMetagameId());
-            List<MetagameTr> metagameTrList = new ThriftClient.MetagameDataServiceClient().getMetagame(metagameIdList);
+            List<MetagameTr> metagameTrList = thriftClient.metagameDataServiceClient().getMetagame(metagameIdList);
             
             String metagameCode = metagameTrList.get(0).getCode();
             
@@ -120,12 +121,12 @@ public class GameManage {
 
             // load game info, user and prop
             game.setGameInfo(gameInfo);
-            List<UserTr> userTrList = thriftClient.gameDataServiceClient.getGameUsers(gameInfo.getId());
+            List<UserTr> userTrList = thriftClient.gameDataServiceClient().getGameUsers(gameInfo.getId());
             List<User> userList = ViewTransformer.transferList(userTrList, User.class);
 
             Map<Integer, User> userMap = new HashMap<>();
             for (User user: userList) {
-                List<UserPropTr> propList = thriftClient.propDataServiceClient.getUserProp(user.getId());
+                List<UserPropTr> propList = thriftClient.propDataServiceClient().getUserProp(user.getId());
                 Map<Integer, Prop> propMap = new HashMap<>();
                 for (UserPropTr propTr: propList) {
                     Prop prop = new Prop();
@@ -208,8 +209,7 @@ public class GameManage {
                         String ip = ipAndPort[0];
                         int port = Integer.parseInt(ipAndPort[1]);
                         
-                        AsyncClient asyncClient = thriftClient.getConnectionServiceAsyncClient(ip, port);
-                        
+                        ConnectionServiceAsyncClient asyncClient = thriftClient.connectionServiceAsyncClient(ip, port);
                         asyncClient.executeData(userId, message.getContent(), new AsyncMethodCallback<Object>() {
                             @Override
                             public void onComplete(Object response) {

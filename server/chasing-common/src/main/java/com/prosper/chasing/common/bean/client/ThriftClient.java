@@ -5,14 +5,17 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.thrift.TException;
+import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.thrift.async.TAsyncClientManager;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TMultiplexedProtocol;
+import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.prosper.chasing.common.bean.ThriftTransportPool;
+import com.prosper.chasing.common.bean.ThriftTransportPool.Type;
 import com.prosper.chasing.common.bean.wrapper.NettyWebSocketServer;
 import com.prosper.chasing.common.interfaces.connection.ConnectionService;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
@@ -40,11 +43,36 @@ public class ThriftClient {
     @Autowired
     private ThriftTransportPool thriftTransportPool;
     
+    public GameDataServiceClient gameDataServiceClient() {
+        return new GameDataServiceClient();
+    }
+    
+    public MetagameDataServiceClient metagameDataServiceClient() {
+        return new MetagameDataServiceClient(); 
+    }
+    
+    public PropDataServiceClient propDataServiceClient() {
+        return new PropDataServiceClient();
+    }
+    
+    public UserDataServiceClient UserDataServiceClient() {
+        return new UserDataServiceClient();
+    }
+    
+    public GameServiceClient gameServiceClient(String ip, int port) {
+        return new GameServiceClient(ip, port);
+    }
+    
+    public ConnectionServiceAsyncClient connectionServiceAsyncClient(String ip, int port) {
+        return new ConnectionServiceAsyncClient(ip, port);
+    }
+    
     @Autowired
     private ZkClient zkClient;
     
-    public class GameDataServiceClient {
+    public class GameDataServiceClient implements GameDataService.Iface {
         
+        @Override
         public List<GameTr> ClaimGame(String ip, int port, int count) throws TException {
             TTransport transport = null;
             Pair<String, Integer> ipAndPort = getServiceAddr(gameDataServerZkName);
@@ -64,6 +92,7 @@ public class ThriftClient {
             }
         }
 
+        @Override
         public void updateGame(GameTr gameTr) throws TException {
             TTransport transport = null;
             Pair<String, Integer> ipAndPort = getServiceAddr(gameDataServerZkName);
@@ -83,6 +112,7 @@ public class ThriftClient {
             }
         }
 
+        @Override
         public List<UserTr> getGameUsers(int gameId) throws TException {
             TTransport transport = null;
             Pair<String, Integer> ipAndPort = getServiceAddr(gameDataServerZkName);
@@ -103,8 +133,9 @@ public class ThriftClient {
         }
     }
     
-    public class MetagameDataServiceClient {
+    public class MetagameDataServiceClient implements MetagameDataService.Iface {
         
+        @Override
         public List<MetagameTr> getMetagame(List<Integer> metagameIdList) throws TException {
             TTransport transport = null;
             Pair<String, Integer> ipAndPort = getServiceAddr(gameDataServerZkName);
@@ -126,8 +157,9 @@ public class ThriftClient {
 
     }
     
-    public class PropDataServiceClient {
+    public class PropDataServiceClient implements PropDataService.Iface {
         
+        @Override
         public List<UserPropTr> getUserProp(int userId) throws TException {
             TTransport transport = null;
             Pair<String, Integer> ipAndPort = getServiceAddr(gameServerZkName);
@@ -147,6 +179,7 @@ public class ThriftClient {
             }
         }
 
+        @Override
         public void updateUserProp(int userId, List<UserPropTr> usedUserPropList)
                 throws TException {
             // TODO Auto-generated method stub
@@ -155,27 +188,37 @@ public class ThriftClient {
 
     }
     
-    public class UserDataServiceClient {
+    public class UserDataServiceClient implements UserDataService.Iface {
         
+        @Override
         public UserTr getUser(int userId) throws TException {
             // TODO Auto-generated method stub
             return null;
         }
 
+        @Override
         public void updateUser(UserTr user) throws TException {
             // TODO Auto-generated method stub
             
         }
     }
     
-    public class GameServiceClient {
+    public class GameServiceClient implements GameService.Iface {
         
-        public void executeData(String ip, int port, int gameId, int userId, ByteBuffer message) 
+        private String ip;
+        private int port;
+        
+        public GameServiceClient(String ip, int port) {
+            this.ip = ip;
+            this.port = port;
+        }
+        
+        @Override
+        public void executeData(int gameId, int userId, ByteBuffer message) 
                 throws GameException, TException {
             TTransport transport = null;
-            Pair<String, Integer> ipAndPort = getServiceAddr(gameDataServerZkName);
             try {
-                transport = thriftTransportPool.borrowObject(ipAndPort.getX(), ipAndPort.getY());
+                transport = thriftTransportPool.borrowObject(ip, port);
                 TBinaryProtocol protocol = new TBinaryProtocol(transport);
                 TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameServiceRegisterName);
                 GameService.Client service = new GameService.Client(mp);
@@ -185,31 +228,59 @@ public class ThriftClient {
                 throw new RuntimeException(e);
             } finally {
                 if (transport != null) {
-                    thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);
+                    thriftTransportPool.returnObject(ip, port, transport);
                 }
             }
         }
 
     }
     
-    public class ConnectionServiceClient {
+    public class ConnectionServiceAsyncClient implements ConnectionService.AsyncIface {
         
-        public void executeData(String ip, int port, int userId, ByteBuffer message) throws TException {
+        private String ip;
+        private int port;
+        
+        public ConnectionServiceAsyncClient(String ip, int port) {
+            this.ip = ip;
+            this.port = port;
+        }
+        
+//        public void executeData(int userId, ByteBuffer message) throws TException {
+//            TTransport transport = null;
+//            try {
+//                transport = thriftTransportPool.borrowObject(ip, port);
+//                TBinaryProtocol protocol = new TBinaryProtocol(transport);
+//                ConnectionService.AsyncClient service = new ConnectionService.AsyncClient(
+//                        new TBinaryProtocol.Factory(), new TAsyncClientManager(), transport);
+//                
+//                service.executeData(userId, message);
+//            } catch (TTransportException e) {
+//                throw new RuntimeException(e);
+//            } finally {
+//                if (transport != null) {
+//                    thriftTransportPool.returnObject(ip, port, transport);
+//                }
+//            }
+//        }
+
+        @Override
+        public void executeData(int userId, ByteBuffer message, AsyncMethodCallback resultHandler) throws TException {
             TTransport transport = null;
             try {
-                transport = thriftTransportPool.borrowObject(ip, port);
-                TBinaryProtocol protocol = new TBinaryProtocol(transport);
+                transport = thriftTransportPool.borrowObject(ip, port, Type.tNonblockingSocket);
+                TNonblockingSocket tNonblockingSocket = (TNonblockingSocket) transport;
                 ConnectionService.AsyncClient service = new ConnectionService.AsyncClient(
-                        new TBinaryProtocol.Factory(), new TAsyncClientManager(), transport);
+                        new TBinaryProtocol.Factory(), new TAsyncClientManager(), tNonblockingSocket);
                 
-                service.executeData(userId, message);
-            } catch (TTransportException e) {
+                service.executeData(userId, message, resultHandler);
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             } finally {
                 if (transport != null) {
                     thriftTransportPool.returnObject(ip, port, transport);
                 }
             }
+            
         }
 
     }

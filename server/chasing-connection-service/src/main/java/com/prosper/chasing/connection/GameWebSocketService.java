@@ -75,7 +75,7 @@ public class GameWebSocketService implements WebSocketService {
             String host = hostPort[0];
             int port = Integer.parseInt(hostPort[1]);
 
-            thriftClient.gameServiceClient.executeData(host, port, gameId, userId, in.nioBuffer());
+            thriftClient.gameServiceClient(host, port).executeData(gameId, userId, in.nioBuffer());
         } catch (Exception e) {
             e.printStackTrace();
         }

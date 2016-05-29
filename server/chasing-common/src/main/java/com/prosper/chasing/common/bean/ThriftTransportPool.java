@@ -8,35 +8,47 @@ import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 
 public class ThriftTransportPool {
 
+    public enum Type {
+        tSocket, tNonblockingSocket
+    }
+    
     private Map<String, ObjectPool<TTransport>> poolMap;
 
     public ThriftTransportPool() {
         poolMap = new HashMap<String, ObjectPool<TTransport>>();
     }
-
+    
     public TTransport borrowObject(String ip, Integer port) {
-        String addr = ip + ":" + port;
-        if (!poolMap.containsKey(addr)) {
-            ObjectPool<TTransport> transportPool = new GenericObjectPool<>(new TTransportFactory(ip, port));
-            poolMap.put(addr, transportPool);
+        return borrowObject(ip, port, Type.tSocket);
+    }
+
+    public TTransport borrowObject(String ip, Integer port, Type type) {
+        String key = ip + ":" + port + ":" + type.name();
+        if (!poolMap.containsKey(key)) {
+            ObjectPool<TTransport> transportPool = new GenericObjectPool<>(new TTransportFactory(ip, port, type));
+            poolMap.put(key, transportPool);
         } 
         try {
-            return poolMap.get(addr).borrowObject();
+            return poolMap.get(key).borrowObject();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
     
     public void returnObject(String ip, Integer port, TTransport transport) {
-        String addr = ip + ":" + port;
+        returnObject(ip, port, Type.tSocket, transport);
+    }
+    
+    public void returnObject(String ip, Integer port, Type type, TTransport transport) {
+        String addr = ip + ":" + port + ":" + type.name();
         if (!poolMap.containsKey(addr)) {
-            ObjectPool<TTransport> transportPool = new GenericObjectPool<>(new TTransportFactory(ip, port));
+            ObjectPool<TTransport> transportPool = new GenericObjectPool<>(new TTransportFactory(ip, port, type));
             poolMap.put(addr, transportPool);
         } 
         try {
@@ -50,19 +62,29 @@ public class ThriftTransportPool {
         
         private String ip;
         private Integer port;
+        private Type type;
         
-        public TTransportFactory(String ip, Integer port) {
+        public TTransportFactory(String ip, Integer port, Type type) {
             this.ip = ip;
             this.port = port;
+            this.type = type;
         }
 
         @Override
         public TTransport create() {
             try {
-                TTransport transport =  new TSocket(ip, port);
-                transport.open();
-                return transport;
-            } catch (TTransportException e) {
+                TTransport transport = null;
+                if (type == Type.tSocket) {
+                    transport =  new TSocket(ip, port);
+                } else if (type == Type.tNonblockingSocket){
+                    transport = new TNonblockingSocket(ip, port, 5000);
+                }
+                if (transport != null) {
+                    transport.open();
+                    return transport;
+                }
+                throw new RuntimeException("transport create error");
+            } catch (Exception e) {
                 throw new RuntimeException("create transport failed", e);
             }
         }

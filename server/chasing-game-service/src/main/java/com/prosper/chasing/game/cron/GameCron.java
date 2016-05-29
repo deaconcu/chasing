@@ -13,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.bean.client.ThriftClient;
+import com.prosper.chasing.common.bean.client.ThriftClient.GameDataServiceClient;
 import com.prosper.chasing.common.bean.client.ZkClient;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.GameTr;
@@ -43,9 +44,8 @@ public class GameCron {
     @Scheduled(cron="${cron.create.game}")
     public void createGame() {
         try {
-            final GameDataService.Client gameDataServiceClient = thriftClient.getGameDataServiceClient();
+            final GameDataServiceClient gameDataServiceClient = thriftClient.gameDataServiceClient();
             List<GameTr> gameTrList = gameDataServiceClient.ClaimGame(config.serverIp, config.serverPort, 100);
-            gameDataServiceClient.getInputProtocol().getTransport().close();
 
             final CountDownLatch countDownLatch = new CountDownLatch(gameTrList.size());
             for (final GameTr gameTr: gameTrList) {
