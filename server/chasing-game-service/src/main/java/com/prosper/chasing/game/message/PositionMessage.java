@@ -2,12 +2,12 @@ package com.prosper.chasing.game.message;
 
 import com.prosper.chasing.game.base.Position;
 
-public class PositionMessage extends Message {
+public class PositionMessage extends UserMessage {
 
     private float latitude;
     private float longtitude;
     
-    public PositionMessage(Message message) {
+    public PositionMessage(UserMessage message) {
         super(message);
     }
 

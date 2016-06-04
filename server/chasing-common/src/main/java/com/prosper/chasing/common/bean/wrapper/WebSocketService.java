@@ -17,5 +17,10 @@ public interface WebSocketService {
      * 处理tcp数据包
      */
     public void executeData(ByteBuf in, Map<String, Object> customValueMap);
+
+    /**
+     * 关闭连接
+     */
+    public void Close(Map<String, Object> customValueMap);
     
 }

@@ -1,8 +1,8 @@
 package com.prosper.chasing.game.message;
 
-public class SkillMessage extends Message {
+public class SkillMessage extends UserMessage {
 
-    public SkillMessage(Message message) {
+    public SkillMessage(UserMessage message) {
 
     }
 

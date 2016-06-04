@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import com.prosper.chasing.game.base.Game;
 import com.prosper.chasing.game.base.MetaGameAnno;
 import com.prosper.chasing.game.base.User;
-import com.prosper.chasing.game.message.Message;
+import com.prosper.chasing.game.message.UserMessage;
 
 @MetaGameAnno("tale")
 @Component

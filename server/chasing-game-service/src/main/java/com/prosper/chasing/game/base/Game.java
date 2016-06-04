@@ -1,15 +1,12 @@
 package com.prosper.chasing.game.base;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.interfaces.game.GameException;
 import com.prosper.chasing.game.base.ActionChange.Action;
@@ -17,14 +14,20 @@ import com.prosper.chasing.game.base.ActionChange.FieldChange;
 import com.prosper.chasing.game.base.ActionChange.PositionChange;
 import com.prosper.chasing.game.base.ActionChange.PropAction;
 import com.prosper.chasing.game.base.ActionChange.SkillAction;
+import com.prosper.chasing.game.base.ActionChange.BuffChange;
 import com.prosper.chasing.game.base.ActionChange.StateChange;
+import com.prosper.chasing.game.base.User.UserState;
 import com.prosper.chasing.game.message.Message;
+import com.prosper.chasing.game.message.QuitCompleteMessage;
+import com.prosper.chasing.game.message.UserMessage;
 import com.prosper.chasing.game.message.PositionMessage;
 import com.prosper.chasing.game.message.PropMessage;
+import com.prosper.chasing.game.message.QuitMessage;
 import com.prosper.chasing.game.message.SkillMessage;
 import com.prosper.chasing.game.prop.BaseProp;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant.GameLoadingState;
+import com.prosper.chasing.common.util.CommonConstant.GameState;
 import com.prosper.chasing.common.util.JsonUtil;
 
 public abstract class Game {
@@ -46,26 +49,32 @@ public abstract class Game {
      * 处理进入的消息
      */
     public void executeMessage(Message message) {
-        ActionChange syncMessage = null;
-        if (message instanceof PositionMessage) {
+        ActionChange actionChange = null;
+        if (message instanceof QuitMessage) {
+            QuitMessage quitMessage = (QuitMessage) message;
+            actionChange = executeQuitMessage(quitMessage);
+        } else if (message instanceof PositionMessage) {
             PositionMessage positionMessage = (PositionMessage) message;
-            syncMessage = executePositionMessage(positionMessage);
+            actionChange = executePositionMessage(positionMessage);
         } else if (message instanceof PropMessage) {
             PropMessage propMessage = (PropMessage) message;
-            syncMessage = executePropMessage(propMessage);
+            actionChange = executePropMessage(propMessage);
         } else if (message instanceof SkillMessage){
             SkillMessage skillMessage = (SkillMessage) message;
-            syncMessage = executeSkillMessage(skillMessage);
+            actionChange = executeSkillMessage(skillMessage);
+        } else if (message instanceof QuitCompleteMessage){
+            QuitCompleteMessage quitCompleteMessage = (QuitCompleteMessage) message;
+            actionChange = executeQuitCompleteMessage(quitCompleteMessage);
         } else {
             log.warn("undifined message type:" + message.getClass().getName());
         }
-        sync(message, syncMessage);
+        sync(message, actionChange);
     }
-    
+
     /**
      * 同步变化
      */
-    private void sync(Message message, ActionChange actionChange) {
+    private void sync(UserMessage message, ActionChange actionChange) {
         sendSyncMessage(message, actionChange);
         sendTargetActionMessage(message, actionChange);
         sendSourceActionMessage(message, actionChange);
@@ -80,10 +89,10 @@ public abstract class Game {
      * action:actionType(4bit)|actionResult(4bit)|actionItemId(4bit)
      * result:toUserId(4bit)|fieldResultSize(4bit)|fieldChange[]
      * positionChange: fieldType(4bit)|name(4bit)|value(4bit)
-     * stateChange: fieldType(4bit)|stateId(4bit)|action(4bit)
+     * buffChange: fieldType(4bit)|buffId(4bit)|action(4bit)
      */
-    private void sendSourceActionMessage(Message message, ActionChange actionChange) {
-        Message sendMessage = new Message();
+    private void sendSourceActionMessage(UserMessage message, ActionChange actionChange) {
+        UserMessage sendMessage = new UserMessage();
         sendMessage.setUserId(message.getUserId());
         
         ByteBuilder byteBuilder =  new ByteBuilder();
@@ -123,10 +132,10 @@ public abstract class Game {
                     PositionChange positionChange = (PositionChange) fieldChange;
                     byteBuilder.append(positionChange.name);
                     byteBuilder.append(positionChange.value);
-                } else if (fieldChange instanceof StateChange) {
-                    StateChange stateChange = (StateChange) fieldChange;
-                    byteBuilder.append(stateChange.stateId);
-                    byteBuilder.append(stateChange.action);
+                } else if (fieldChange instanceof BuffChange) {
+                    BuffChange buffChange = (BuffChange) fieldChange;
+                    byteBuilder.append(buffChange.buffId);
+                    byteBuilder.append(buffChange.action);
                 } else {
                     throw new RuntimeException("unknown field change");
                 }
@@ -148,7 +157,7 @@ public abstract class Game {
      * positionChange: fieldType(4bit)|name(4bit)|value(4bit)
      * stateChange: fieldType(4bit)|stateId(4bit)|action(4bit)
      */
-    private void sendTargetActionMessage(Message message, ActionChange actionChange) {
+    private void sendTargetActionMessage(UserMessage message, ActionChange actionChange) {
         ByteBuilder actionByteBuilder =  new ByteBuilder();
         actionByteBuilder.append(actionChange.getUserId());
         
@@ -177,7 +186,7 @@ public abstract class Game {
         
         Map<Integer, List<FieldChange>> changeMap = actionChange.getChangeMap();
         for (Integer userId :changeMap.keySet()) {
-            Message sendMessage = new Message();
+            UserMessage sendMessage = new UserMessage();
             sendMessage.setUserId(userId);
             
             ByteBuilder byteBuilder =  new ByteBuilder();
@@ -191,9 +200,9 @@ public abstract class Game {
                     PositionChange positionChange = (PositionChange) fieldChange;
                     byteBuilder.append(positionChange.name);
                     byteBuilder.append(positionChange.value);
-                } else if (fieldChange instanceof StateChange) {
-                    StateChange stateChange = (StateChange) fieldChange;
-                    byteBuilder.append(stateChange.stateId);
+                } else if (fieldChange instanceof BuffChange) {
+                    BuffChange stateChange = (BuffChange) fieldChange;
+                    byteBuilder.append(stateChange.buffId);
                     byteBuilder.append(stateChange.action);
                 } else {
                     throw new RuntimeException("unknown field change");
@@ -207,14 +216,14 @@ public abstract class Game {
     /**
      * 发送需要同步的用户数据
      * 消息格式如下
-     * messageType(4bit)|userId(4bit)|positionX(4bit)|positionY(4bit)|stateSize(4bit)|state[]
-     * state: stateId(4bit)|count(4bit)
+     * messageType(4bit)|userId(4bit)|positionX(4bit)|positionY(4bit)|buffSize(4bit)|buff[]|state
+     * state: buffId(4bit)|count(4bit)
      */
-    private void sendSyncMessage(Message message, ActionChange actionChange) {
+    private void sendSyncMessage(UserMessage message, ActionChange actionChange) {
         for (int userId: userMap.keySet()) {
             Map<Integer, List<FieldChange>> changeMap = actionChange.getChangeMap();
             for (Integer changedUserId :changeMap.keySet()) {
-                Message sendMessage = new Message();
+                UserMessage sendMessage = new UserMessage();
                 sendMessage.setUserId(userId);
                 
                 ByteBuilder byteBuilder =  new ByteBuilder();
@@ -223,22 +232,58 @@ public abstract class Game {
                 byteBuilder.append(changedUser.getPosition().getX());
                 byteBuilder.append(changedUser.getPosition().getY());
                 
-                Map<Integer, Integer> stateMap = changedUser.getStateMap();
-                if (stateMap != null) {
-                    for (Integer stateId: stateMap.keySet()) {
-                        byteBuilder.append(stateId);
-                        byteBuilder.append(stateMap.get(stateId));
+                Map<Integer, Integer> buffMap = changedUser.getBuffMap();
+                if (buffMap != null) {
+                    for (Integer buffId: buffMap.keySet()) {
+                        byteBuilder.append(buffId);
+                        byteBuilder.append(buffMap.get(buffId));
                     }
                 }
+                byteBuilder.append(changedUser.getState());
                 message.setContent(ByteBuffer.wrap(byteBuilder.getBytes()));
                 gameManage.sendData(message);
             }
         }
     }
-
+    
+    /**
+     * 处理退出消息
+     */
+    private ActionChange executeQuitMessage(QuitMessage message) {
+        // 将user状态置为删除
+        User user = getUser(message.getUserId(), true);
+        int sourceState = user.getState();
+        int targetState = UserState.QUITING;
+        user.setState(targetState);
+        
+        // 插入用户待同步队列，如果插入失败，回滚初始状态
+        if (!gameManage.addUserForDataDB(user)) {
+            user.setState(sourceState);
+        }
+        
+        // 添加一条退出的变更消息
+        ActionChange actionChange = new ActionChange();
+        actionChange.setUserId(message.getUserId());
+        actionChange.setAction(null);
+        actionChange.putChange(message.getUserId(), new StateChange(sourceState, targetState));
+        
+        // 判断是否全部用户都已退出游戏，如果是，将游戏状态置为完成
+        boolean allQuit = true;
+        for (User userInGame: userMap.values()) {
+            if (userInGame.getState() == UserState.ACTIVE) {
+                allQuit = false;
+                break;
+            }
+        }
+        
+        if (allQuit) {
+            state = GameState.FINISHED;
+        }
+        return actionChange;
+    }
+    
     /**
      * 处理位置消息
-     * @return 
      */
     public ActionChange executePositionMessage(PositionMessage message) {
         User user = getUser(message.getUserId(), true);
@@ -257,10 +302,9 @@ public abstract class Game {
     
     /**
      * 处理使用道具消息
-     * @return 
      */
     public ActionChange executePropMessage(PropMessage message) {
-        ActionChange syncMessage = new ActionChange();
+        ActionChange actionChange = new ActionChange();
         
         User user = getUser(message.getUserId(), true);
         User toUser = getUser(message.getToUserId(), false);
@@ -269,23 +313,27 @@ public abstract class Game {
         user.checkProp(propId, 1);
         
         PropAction action = new ActionChange.PropAction();
-        syncMessage.setAction(action);
+        actionChange.setAction(action);
         action.propId = propId;
         
         BaseProp baseProp = BaseProp.getProp(propId);
         baseProp.testUse(user, toUser, userMap, action);
         
         if(action.opCode == 0) {
-            baseProp.use(user, toUser, userMap, syncMessage);
+            baseProp.use(user, toUser, userMap, actionChange);
         }
-        return syncMessage;
+        return actionChange;
     }
     
     /**
      * 处理使用技能消息
-     * @return 
      */
     public ActionChange executeSkillMessage(SkillMessage message) {
+        return null;
+    }
+    
+    private ActionChange executeQuitCompleteMessage(QuitCompleteMessage quitCompleteMessage) {
+        // TODO Auto-generated method stub
         return null;
     }
     

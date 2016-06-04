@@ -4,10 +4,21 @@ import java.util.Map;
 
 public class User {
     
+    public static class UserState {
+        public static int ACTIVE = 1;   // 活动状态
+        public static int QUITING = 2;  // 正在退出
+        public static int QUIT = 3;     // 已退出
+    }
+    
     /**
      * 用户id
      */
     private int id;
+    
+    /**
+     * game id
+     */
+    private int gameId;
     
     /**
      * 用户位置
@@ -25,9 +36,19 @@ public class User {
     private Map<Integer, Prop> usedPropMap;
     
     /**
-     * 状态
+     * Buff Map
      */
-    private Map<Integer, Integer> stateMap; 
+    private Map<Integer, Integer> buffMap;
+    
+    /**
+     * 用户状态 @see #User.UserState
+     */
+    private int state;
+    
+    /**
+     * 使用状态是否
+     */
+    private int dataChanged;
     
     public Position getPosition() {
         return position;
@@ -75,12 +96,28 @@ public class User {
         this.usedPropMap = usedPropMap;
     }
 
-    public Map<Integer, Integer> getStateMap() {
-        return stateMap;
+    public Map<Integer, Integer> getBuffMap() {
+        return buffMap;
     }
 
-    public void setStateMap(Map<Integer, Integer> stateMap) {
-        this.stateMap = stateMap;
+    public void setBuffMap(Map<Integer, Integer> buffMap) {
+        this.buffMap = buffMap;
+    }
+
+    public int getState() {
+        return state;
+    }
+
+    public void setState(int state) {
+        this.state = state;
+    }
+
+    public int getGameId() {
+        return gameId;
+    }
+
+    public void setGameId(int gameId) {
+        this.gameId = gameId;
     }
 
 }

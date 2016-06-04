@@ -233,6 +233,7 @@ public class NettyWebSocketServer implements ApplicationListener<ContextRefreshe
 
             // Check for closing frame
             if (frame instanceof CloseWebSocketFrame) {
+                service.Close(ctx.attr(customValueKey).get());
                 handshaker.close(ctx.channel(), (CloseWebSocketFrame) frame.retain());
                 return;
             }

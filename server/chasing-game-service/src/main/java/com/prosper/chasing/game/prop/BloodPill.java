@@ -12,9 +12,9 @@ public class BloodPill extends BaseProp {
 
     @Override
     public void use(User user, User toUser, Map<Integer, User> userMap, ActionChange syncMessage) {
-        user.getStateMap().put(1, 1);
+        user.getBuffMap().put(1, 1);
         List<FieldChange> fieldChangeList = new LinkedList<FieldChange>();
-        fieldChangeList.add(new StateChange(1, 1));
+        fieldChangeList.add(new BuffChange(1, 1));
         syncMessage.getChangeMap().put(toUser.getId(), fieldChangeList);
     }
     

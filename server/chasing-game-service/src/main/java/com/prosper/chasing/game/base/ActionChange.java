@@ -93,6 +93,9 @@ public class ActionChange {
     public static class FieldChange {
     }
     
+    /**
+     * 位置变化
+     */
     public static class PositionChange extends FieldChange {
         public int name;
         public int value;
@@ -104,12 +107,27 @@ public class ActionChange {
         }
     }
     
-    public static class StateChange extends FieldChange {
-        public int stateId;
+    /**
+     * Buff变化
+     */
+    public static class BuffChange extends FieldChange {
+        public int buffId;
         public int action;
-        public StateChange(int action, int stateId) {
+        public BuffChange(int action, int buffId) {
             this.action = action;
-            this.stateId = stateId;
+            this.buffId = buffId;
+        }
+    }
+    
+    /**
+     * 状态变化
+     */
+    public static class StateChange extends FieldChange {
+        public int sourceState;
+        public int targetState;
+        public StateChange(int sourceState, int targetState) {
+            this.sourceState = sourceState;
+            this.targetState = targetState;
         }
     }
 }

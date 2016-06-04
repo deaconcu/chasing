@@ -35,7 +35,7 @@ public class ThriftRPCServer implements ApplicationListener<ContextRefreshedEven
     private Type type;
 
     public enum Type {
-        block, Nonblock
+        TThreadPoolServer, TThreadedSelectorServer, TNonblockingServer
     }
 
     public ThriftRPCServer(String basePackage, int port, Type type) {
@@ -68,10 +68,17 @@ public class ThriftRPCServer implements ApplicationListener<ContextRefreshedEven
                 constructor.newInstance(beanObject);
 
                 final TServer server;
-                if (type == Type.Nonblock) {
+                if (type == Type.TThreadedSelectorServer) {
                     TNonblockingServerTransport serverTransport = new TNonblockingServerSocket(port);
                     server = new TThreadedSelectorServer(
                             new TThreadedSelectorServer.Args(serverTransport)
+                            .processor(constructor.newInstance(beanObject))
+                            .protocolFactory(new TBinaryProtocol.Factory()));
+
+                } else if (type == Type.TNonblockingServer) {
+                    TNonblockingServerTransport serverTransport = new TNonblockingServerSocket(port);
+                    server = new TNonblockingServer(
+                            new TNonblockingServer.Args(serverTransport)
                             .processor(constructor.newInstance(beanObject))
                             .protocolFactory(new TBinaryProtocol.Factory()));
 
@@ -120,7 +127,7 @@ public class ThriftRPCServer implements ApplicationListener<ContextRefreshedEven
                 }
                 
                 final TServer server;
-                if (type == Type.Nonblock) {
+                if (type == Type.TThreadedSelectorServer) {
                     TNonblockingServerTransport serverTransport = new TNonblockingServerSocket(port);
                     server = new TThreadedSelectorServer(
                             new TThreadedSelectorServer.Args(serverTransport)

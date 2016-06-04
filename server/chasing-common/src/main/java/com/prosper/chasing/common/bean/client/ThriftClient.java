@@ -24,6 +24,7 @@ import com.prosper.chasing.common.interfaces.data.MetagameDataService;
 import com.prosper.chasing.common.interfaces.data.MetagameTr;
 import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserDataService;
+import com.prosper.chasing.common.interfaces.data.WrapperService;
 import com.prosper.chasing.common.interfaces.data.UserPropTr;
 import com.prosper.chasing.common.interfaces.data.UserTr;
 import com.prosper.chasing.common.interfaces.game.GameException;
@@ -31,47 +32,52 @@ import com.prosper.chasing.common.interfaces.game.GameService;
 import com.prosper.chasing.common.util.Pair;
 
 public class ThriftClient {
-    
+
     private static String gameDataServerZkName = "/gameDataServer/serverList"; 
     private static String gameServerZkName = "/gameServer/serverList"; 
     private static String gameDataServiceRegisterName = "GameDataServiceImpl";
     private static String metagameDataServiceRegisterName = "MetagameDataServiceImpl";
     private static String userDataServiceRegisterName = "UserDataServiceImpl";
     private static String propDataServiceRegisterName = "PropDataServiceImpl";
+    private static String wrapperDataServiceRegisterName = "WrapperServiceImpl";
     private static String gameServiceRegisterName = "GameServiceImpl";
-    
+
     @Autowired
     private ThriftTransportPool thriftTransportPool;
-    
+
     public GameDataServiceClient gameDataServiceClient() {
         return new GameDataServiceClient();
     }
-    
+
     public MetagameDataServiceClient metagameDataServiceClient() {
         return new MetagameDataServiceClient(); 
     }
-    
+
     public PropDataServiceClient propDataServiceClient() {
         return new PropDataServiceClient();
     }
-    
+
     public UserDataServiceClient UserDataServiceClient() {
         return new UserDataServiceClient();
     }
     
+    public WrapperServiceClient wrapperServiceClient() {
+        return new WrapperServiceClient();
+    }
+
     public GameServiceClient gameServiceClient(String ip, int port) {
         return new GameServiceClient(ip, port);
     }
-    
+
     public ConnectionServiceAsyncClient connectionServiceAsyncClient(String ip, int port) {
         return new ConnectionServiceAsyncClient(ip, port);
     }
-    
+
     @Autowired
     private ZkClient zkClient;
-    
+
     public class GameDataServiceClient implements GameDataService.Iface {
-        
+
         @Override
         public List<GameTr> ClaimGame(String ip, int port, int count) throws TException {
             TTransport transport = null;
@@ -81,7 +87,7 @@ public class ThriftClient {
                 TBinaryProtocol protocol = new TBinaryProtocol(transport);
                 TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameDataServiceRegisterName);
                 GameDataService.Client service = new GameDataService.Client(mp);
-                
+
                 return service.ClaimGame(ip, port, count);
             } catch (TTransportException e) {
                 throw new RuntimeException(e);
@@ -101,7 +107,7 @@ public class ThriftClient {
                 TBinaryProtocol protocol = new TBinaryProtocol(transport);
                 TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameDataServiceRegisterName);
                 GameDataService.Client service = new GameDataService.Client(mp);
-                
+
                 service.updateGame(gameTr);
             } catch (TTransportException e) {
                 throw new RuntimeException(e);
@@ -121,7 +127,7 @@ public class ThriftClient {
                 TBinaryProtocol protocol = new TBinaryProtocol(transport);
                 TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameDataServiceRegisterName);
                 GameDataService.Client service = new GameDataService.Client(mp);
-                
+
                 return service.getGameUsers(gameId);
             } catch (TTransportException e) {
                 throw new RuntimeException(e);
@@ -132,9 +138,9 @@ public class ThriftClient {
             }
         }
     }
-    
+
     public class MetagameDataServiceClient implements MetagameDataService.Iface {
-        
+
         @Override
         public List<MetagameTr> getMetagame(List<Integer> metagameIdList) throws TException {
             TTransport transport = null;
@@ -144,7 +150,7 @@ public class ThriftClient {
                 TBinaryProtocol protocol = new TBinaryProtocol(transport);
                 TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, metagameDataServiceRegisterName);
                 MetagameDataService.Client service = new MetagameDataService.Client(mp);
-                
+
                 return service.getMetagame(metagameIdList);
             } catch (TTransportException e) {
                 throw new RuntimeException(e);
@@ -156,9 +162,9 @@ public class ThriftClient {
         }
 
     }
-    
+
     public class PropDataServiceClient implements PropDataService.Iface {
-        
+
         @Override
         public List<UserPropTr> getUserProp(int userId) throws TException {
             TTransport transport = null;
@@ -168,7 +174,7 @@ public class ThriftClient {
                 TBinaryProtocol protocol = new TBinaryProtocol(transport);
                 TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, propDataServiceRegisterName);
                 PropDataService.Client service = new PropDataService.Client(mp);
-                
+
                 return service.getUserProp(userId);
             } catch (TTransportException e) {
                 throw new RuntimeException(e);
@@ -187,9 +193,9 @@ public class ThriftClient {
 
 
     }
-    
+
     public class UserDataServiceClient implements UserDataService.Iface {
-        
+
         @Override
         public UserTr getUser(int userId) throws TException {
             // TODO Auto-generated method stub
@@ -199,20 +205,43 @@ public class ThriftClient {
         @Override
         public void updateUser(UserTr user) throws TException {
             // TODO Auto-generated method stub
-            
+
         }
     }
-    
+
+    public class WrapperServiceClient implements WrapperService.Iface {
+
+        @Override
+        public void updateUserProp(UserTr user, List<UserPropTr> usedUserPropList) throws TException {
+            TTransport transport = null;
+            Pair<String, Integer> ipAndPort = getServiceAddr(gameDataServerZkName);
+            try {
+                transport = thriftTransportPool.borrowObject(ipAndPort.getX(), ipAndPort.getY());
+                TBinaryProtocol protocol = new TBinaryProtocol(transport);
+                TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, wrapperDataServiceRegisterName);
+                WrapperService.Client service = new WrapperService.Client(mp);
+
+                service.updateUserProp(user, usedUserPropList);
+            } catch (TTransportException e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (transport != null) {
+                    thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);
+                }
+            }
+        }
+    }
+
     public class GameServiceClient implements GameService.Iface {
-        
+
         private String ip;
         private int port;
-        
+
         public GameServiceClient(String ip, int port) {
             this.ip = ip;
             this.port = port;
         }
-        
+
         @Override
         public void executeData(int gameId, int userId, ByteBuffer message) 
                 throws GameException, TException {
@@ -220,9 +249,9 @@ public class ThriftClient {
             try {
                 transport = thriftTransportPool.borrowObject(ip, port);
                 TBinaryProtocol protocol = new TBinaryProtocol(transport);
-//                TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameServiceRegisterName);
+                //                TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameServiceRegisterName);
                 GameService.Client service = new GameService.Client(protocol);
-                
+
                 service.executeData(gameId, userId, message);
             } catch (TTransportException e) {
                 throw new RuntimeException(e);
@@ -234,17 +263,17 @@ public class ThriftClient {
         }
 
     }
-    
+
     public class ConnectionServiceAsyncClient implements ConnectionService.AsyncIface {
-        
+
         private String ip;
         private int port;
-        
+
         public ConnectionServiceAsyncClient(String ip, int port) {
             this.ip = ip;
             this.port = port;
         }
-        
+
         @Override
         public void executeData(int userId, ByteBuffer message, AsyncMethodCallback resultHandler) throws TException {
             TTransport transport = null;
@@ -253,8 +282,8 @@ public class ThriftClient {
                 TNonblockingSocket tNonblockingSocket = (TNonblockingSocket) transport;
                 ConnectionService.AsyncClient service = new ConnectionService.AsyncClient(
                         new TBinaryProtocol.Factory(), new TAsyncClientManager(), tNonblockingSocket);
-                
-//                service.setTimeout(2);
+
+                //                service.setTimeout(2);
                 service.executeData(userId, message, resultHandler);
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -263,11 +292,11 @@ public class ThriftClient {
                     thriftTransportPool.returnObject(ip, port, Type.tNonblockingSocket, transport);
                 }
             }
-            
+
         }
 
     }
-    
+
     private Pair<String, Integer> getServiceAddr(String serverListZKName) {
         List<String> addrList = zkClient.getChild(serverListZKName, true);
         if (addrList.size() < 1) {
@@ -281,7 +310,7 @@ public class ThriftClient {
             return new Pair<String, Integer>(ipAndPort[0], Integer.parseInt(ipAndPort[1]));
         }
     }
-    
+
 }
 
 

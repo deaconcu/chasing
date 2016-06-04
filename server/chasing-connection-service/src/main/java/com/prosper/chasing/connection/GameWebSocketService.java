@@ -29,6 +29,9 @@ public class GameWebSocketService implements WebSocketService {
     @Autowired
     private Config config;
 
+    /* (non-Javadoc)
+     * @see com.prosper.chasing.common.bean.wrapper.WebSocketService#executeHttpRequest(io.netty.handler.codec.http.FullHttpRequest)
+     */
     @Override
     public ChannelInfo executeHttpRequest(FullHttpRequest req) {
         // TODO check if session id exist and get game id and user id by session id
@@ -53,8 +56,11 @@ public class GameWebSocketService implements WebSocketService {
         channelInfo.putCustomValue("userId", userId);
         channelInfo.putCustomValue("gameId", gameId);
         channelInfo.setKey(userId);
-        
+
         byte[] addrBytes = (config.serverIp + ":" + config.rpcPort).getBytes();
+
+        // 在zookeeper写入当前用户所在的连接服务器
+        // TODO 需要考虑节点已存在的情况
         zkClient.createNode(config.userZKName + "/" + Integer.toString(userId), addrBytes, CreateMode.EPHEMERAL, true);
         return channelInfo;
     }
@@ -76,6 +82,27 @@ public class GameWebSocketService implements WebSocketService {
             int port = Integer.parseInt(hostPort[1]);
 
             thriftClient.gameServiceClient(host, port).executeData(gameId, userId, in.nioBuffer());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void Close(Map<String, Object> customValueMap) {
+        try {
+            int userId = (Integer)customValueMap.get("userId");
+            int gameId = (Integer)customValueMap.get("gameId");
+
+            byte[] serverBytes = zkClient.get(config.gameZKName + "/" + gameId, true);
+            if (serverBytes == null) {
+                return;
+            }
+            String server = new String(serverBytes);
+            String[] hostPort = server.split(":");
+            String host = hostPort[0];
+            int port = Integer.parseInt(hostPort[1]);
+            thriftClient.gameServiceClient(host, port).executeData(gameId, userId, null);
+            zkClient.delete(config.userZKName + "/" + Integer.toString(userId), -1);
         } catch (Exception e) {
             e.printStackTrace();
         }

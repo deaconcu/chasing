@@ -11,6 +11,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.annotation.PostConstruct;
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane.SystemMenuBar;
 
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.zookeeper.CreateMode;
@@ -34,7 +35,11 @@ import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserPropTr;
 import com.prosper.chasing.common.interfaces.data.UserTr;
 import com.prosper.chasing.common.util.ViewTransformer;
+import com.prosper.chasing.game.base.User.UserState;
 import com.prosper.chasing.game.message.Message;
+import com.prosper.chasing.game.message.QuitCompleteMessage;
+import com.prosper.chasing.game.message.SystemMessage;
+import com.prosper.chasing.game.message.UserMessage;
 import com.prosper.chasing.game.message.MessageParser;
 import com.prosper.chasing.game.util.Config;
 
@@ -46,8 +51,13 @@ public class GameManage {
     private static String gameImplScanPackage = "com.prosper.chasing.game.base.impl";
     private Map<String, Class<? extends Game>> gameClassMap = new HashMap<>();
     private Map<Integer, Game> gameMap = new HashMap<>();
+
+    // 进入的消息队列
     private BlockingQueue<Message> recieveMessageQueue;
-    private BlockingQueue<Message> sendMessageQueue;
+    // 发送的消息队列
+    private BlockingQueue<UserMessage> sendMessageQueue;
+    // 退出时需要写回到数据库的用户队列
+    private BlockingQueue<User> userQueue;
 
     @Autowired
     private ThriftClient thriftClient;
@@ -59,7 +69,7 @@ public class GameManage {
     private Config config;
 
     /**
-     * 初始化游戏管理，主要实现把现有的游戏类加载到一个map里
+     * 初始化游戏管理，主要实现把现有的游戏类加载到game class map里
      */
     public GameManage() {
         ClassPathScanningCandidateComponentProvider rpcServiceScanner =
@@ -88,7 +98,7 @@ public class GameManage {
                 }
             }
         }
-        
+
         recieveMessageQueue = new LinkedBlockingQueue<>();
         sendMessageQueue = new LinkedBlockingQueue<>();
     }
@@ -101,13 +111,13 @@ public class GameManage {
         try {
             // create game
             GameInfo gameInfo = ViewTransformer.transferObject(gameTr, GameInfo.class);
-            
+
             List<Integer> metagameIdList = new LinkedList<Integer>();
             metagameIdList.add(gameInfo.getMetagameId());
             List<MetagameTr> metagameTrList = thriftClient.metagameDataServiceClient().getMetagame(metagameIdList);
-            
+
             String metagameCode = metagameTrList.get(0).getCode();
-            
+
             Class<? extends Game> gameClass = gameClassMap.get(metagameCode);
             if (gameClass == null) {
                 log.error("metagame implement is not exist:" + metagameCode);
@@ -131,16 +141,19 @@ public class GameManage {
                 Map<Integer, Prop> propMap = new HashMap<>();
                 for (UserPropTr propTr: propList) {
                     Prop prop = new Prop();
+                    prop.setId(propTr.getPropId());
                     prop.setCount(propTr.getCount());
                     propMap.put(propTr.getPropId(), prop);
                 }
                 user.setPropMap(propMap);
+                user.setState(UserState.ACTIVE);
+                user.setGameId(game.getGameInfo().getId());
                 userMap.put(user.getId(), user);
             }
             game.setUserMap(userMap);
             // put game into map
             gameMap.put(gameInfo.getId(), game);
-            
+
             String serverAddr = config.serverIp + ":" + config.rpcPort;
             zkClient.createNode(config.gameZkName + "/" + gameInfo.getId(), 
                     serverAddr.getBytes(), CreateMode.PERSISTENT, true);
@@ -151,26 +164,31 @@ public class GameManage {
 
     /**
      * 接收游戏消息
+     * @return true 添加成功
+     * @return false 添加失败
      */
-    public void recieveData(int gameId, int userId, ByteBuffer message) {
-        try {
-            recieveMessageQueue.put(new Message(gameId, userId, message));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    public boolean recieveData(Message message) {
+        return recieveMessageQueue.offer(message);
     }
-    
+
     /**
      * 发送游戏消息
+     * @return true 添加成功
+     * @return false 添加失败
      */
-    public void sendData(Message message) {
-        try {
-            sendMessageQueue.put(message);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    public boolean sendData(UserMessage message) {
+        return sendMessageQueue.offer(message);
     }
-    
+
+    /**
+     * 添加需要同步的用户
+     * @return true 添加成功
+     * @return false 添加失败
+     */
+    public boolean addUserForDataDB(User user) {
+        return userQueue.offer(user);
+    }
+
     /**
      * 执行游戏消息
      */
@@ -182,11 +200,21 @@ public class GameManage {
                 while(true) {
                     try {
                         Message message = recieveMessageQueue.take();
-                        Message parsedMessage = messageParser.parse(message);
-                        
-                        int gameId = parsedMessage.getGameId();
-                        Game game = gameMap.get(gameId);
-                        game.executeMessage(parsedMessage);
+                        Integer gameId = null;
+                        if (message instanceof UserMessage) {
+                            UserMessage userMessage = messageParser.parseUserMessage((UserMessage) message);
+                            gameId = userMessage.getGameId();
+                        } else if (message instanceof SystemMessage) {
+                            SystemMessage systemMessage = (SystemMessage) message;
+                            gameId = systemMessage.getGameId();
+                        }
+
+                        if (gameId != null) {
+                            Game game = gameMap.get(gameId);
+                            game.executeMessage(message);
+                        } else {
+                            log.warn("message type not supported");
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -194,7 +222,10 @@ public class GameManage {
             }
         }).start();
     }
-    
+
+    /**
+     * 将发送消息队列的数据发送到connection server
+     */
     @PostConstruct
     public void sendData() {
         new Thread(new Runnable() {
@@ -202,14 +233,14 @@ public class GameManage {
             public void run() {
                 while(true) {
                     try {
-                        Message message = sendMessageQueue.take();
+                        UserMessage message = sendMessageQueue.take();
                         final int userId = message.getUserId();
 
                         String addr = new String(zkClient.get(config.userZkName + "/" + userId, true));
                         String ipAndPort[] = addr.split(":");
                         String ip = ipAndPort[0];
                         int port = Integer.parseInt(ipAndPort[1]);
-                        
+
                         ConnectionServiceAsyncClient asyncClient = thriftClient.connectionServiceAsyncClient(ip, port);
                         asyncClient.executeData(userId, message.getContent(), new AsyncMethodCallback<Object>() {
                             @Override
@@ -229,12 +260,49 @@ public class GameManage {
         }).start();
     }
 
-    public BlockingQueue<Message> getSendMessageQueue() {
+    /**
+     * 将需要同步的用户数据写回到数据库
+     */
+    @PostConstruct
+    public void writeUser() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    User user = null;
+                    try {
+                        user = userQueue.take();
+                        // TODO try 3 times
+                        UserTr userTr = ViewTransformer.transferObject(user, UserTr.class);
+                        Map<Integer, Prop> propMap = user.getPropMap();
+                        List<UserPropTr> propList = new LinkedList<>();
+                        for (Prop prop: propMap.values()) {
+                            UserPropTr userPropTr = new UserPropTr();
+                            userPropTr.setPropId(prop.getId());
+                            userPropTr.setCount(prop.getCount());
+                            propList.add(userPropTr);
+                        }
+                        
+                        thriftClient.wrapperServiceClient().updateUserProp(userTr, propList);
+                        user.setState(UserState.QUIT);
+                    } catch(Exception e) {
+                        if (user != null) {
+                            user.setState(UserState.ACTIVE);
+                        }
+                    }
+                    recieveData(new QuitCompleteMessage(user.getGameId(), user.getId()));
+                }
+            }
+        }).start();
+    }
+
+
+    public BlockingQueue<UserMessage> getSendMessageQueue() {
         return sendMessageQueue;
     }
 
-    public void setSendMessageQueue(BlockingQueue<Message> sendMessageQueue) {
+    public void setSendMessageQueue(BlockingQueue<UserMessage> sendMessageQueue) {
         this.sendMessageQueue = sendMessageQueue;
     }
-    
+
 }

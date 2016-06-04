@@ -78,7 +78,7 @@ service UserDataService {
    
     /*
      * 更新用户信息
-     * @param userId: 用户ID
+     * @param user: 用户
      */
     void updateUser(1: UserTr user),
 }
@@ -95,5 +95,14 @@ service PropDataService {
      * @param usedUserPropList: 使用过的用户道具
      */
     void updateUserProp(1: i32 userId, 2: list<UserPropTr> usedUserPropList)
+}
+
+service WrapperService {
+    /*
+     * 更新用户信息和道具信息
+     * @param user: 用户
+     * @param usedUserPropList: 使用过的用户道具
+     */
+    void updateUserProp(1: UserTr user, 2: list<UserPropTr> usedUserPropList)
 }
 

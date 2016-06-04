@@ -60,7 +60,7 @@ public class GameServerBeans {
     
     @Bean
     public ThriftRPCServer thriftRPCServer(Config config) {
-        return new ThriftRPCServer(config.appPackage, config.rpcPort, Type.block);
+        return new ThriftRPCServer(config.appPackage, config.rpcPort, Type.TNonblockingServer);
     }
     
     @Bean

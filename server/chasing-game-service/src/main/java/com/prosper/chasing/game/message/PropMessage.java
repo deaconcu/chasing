@@ -2,7 +2,7 @@ package com.prosper.chasing.game.message;
 
 import java.nio.ByteBuffer;
 
-public class PropMessage extends Message {
+public class PropMessage extends UserMessage {
     
     public static int USE_SELF = -1;
     
@@ -16,7 +16,7 @@ public class PropMessage extends Message {
      */
     private int toUserId;
 
-    public PropMessage(Message message) {
+    public PropMessage(UserMessage message) {
         ByteBuffer content = message.getContent();
         this.propId = content.getInt();
         this.toUserId = content.getInt();

@@ -75,7 +75,7 @@ public class ConnectionServerBeans {
     
     @Bean
     public ThriftRPCServer thriftRPCServer(Config config) {
-        return new ThriftRPCServer(config.appPackage, config.rpcPort, Type.Nonblock);
+        return new ThriftRPCServer(config.appPackage, config.rpcPort, Type.TThreadedSelectorServer);
     }
     
     @Bean
