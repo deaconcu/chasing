@@ -8,9 +8,9 @@ bin
 log
 !client/unity/chasing-client/
 client/unity/chasing-client/*
+client/unity/chasing-client/**/*.meta
 !client/unity/chasing-client/Assets
 client/unity/chasing-client/Assets/*
-client/unity/chasing-client/Assets/**/*.meta
 !client/unity/chasing-client/Assets/gameScene
 !client/unity/chasing-client/Assets/systemScene
 !client/unity/chasing-client/Assets/script
