@@ -164,6 +164,19 @@ public class GameService {
     public List<Game> getGame(int state, int page, int pageLength) {
         return gameMapper.selectListByStatePage(state, pageLength, pageLength * (page - 1));
     }
+    
+    /**
+     * 获取某个用户加入的游戏
+     */
+    public List<Game> getGameByUser(int userId) {
+        GameUser gameUser = gameUserMapper.selectOneByUserId(userId);
+        if (gameUser == null) {
+            return new LinkedList<Game>();
+        }
+        List<Integer> gameIds = new LinkedList<>();
+        gameIds.add(gameUser.getGameId());
+        return gameMapper.selectListByIds(gameIds);
+    }
 
     /**
      * 创建一个新游戏
@@ -287,7 +300,5 @@ public class GameService {
         metagameType.setUpdateTime(CommonUtil.getTime(new Date()));
         metagameTypeMapper.update(metagameType);
     }
-
-    
 
 }

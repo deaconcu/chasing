@@ -96,6 +96,7 @@ public class GameController {
     @RequestMapping(value="/games",method=RequestMethod.GET)
     public Object getGames (
             @RequestParam(value="ids", required=false) String ids,
+            @RequestParam(value="userId", required=false) Integer userId,
             @RequestParam(value="page", defaultValue="1") int page,
             @RequestParam(value="pageLength", defaultValue="50") int pageLength){
         if (ids != null && !"".equals(ids)) {
@@ -109,12 +110,13 @@ public class GameController {
                 }
             }
             return gameMapper.selectListByIds(idList);
+        } else if (userId != null){
+            return gameService.getGameByUser(userId);
         } else {
             return gameMapper.selectListByPage(pageLength, pageLength * (page - 1));
         }
     }
     
-    @NeedLogin
     @RequestMapping(value="/games",method=RequestMethod.POST)
     public Object addGame(
             HttpServletRequest request, @RequestBody String body){

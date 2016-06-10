@@ -21,7 +21,7 @@ public class MessageParser {
         if (type == QUIT_MESSAGE) {
             return new QuitMessage(userMessage);
         } else if (type == POSITION_MESSAGE) {
-            return new PropMessage(userMessage);
+            return new PositionMessage(userMessage);
         } else if (type == PROP_MESSAGE) {
             return new PropMessage(userMessage);
         } else if (type == SKILL_MESSAGE) {

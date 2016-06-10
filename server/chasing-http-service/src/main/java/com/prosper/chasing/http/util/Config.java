@@ -3,7 +3,7 @@ package com.prosper.chasing.http.util;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-@Component("httpConfig")
+@Component
 public class Config {
 
 	@Value("${db.mysql.ip}")

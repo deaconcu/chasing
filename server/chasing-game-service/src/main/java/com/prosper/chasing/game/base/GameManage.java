@@ -13,6 +13,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import javax.annotation.PostConstruct;
 import javax.swing.plaf.basic.BasicInternalFrameTitlePane.SystemMenuBar;
 
+import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.zookeeper.CreateMode;
 import org.slf4j.Logger;
@@ -35,9 +36,11 @@ import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserPropTr;
 import com.prosper.chasing.common.interfaces.data.UserTr;
 import com.prosper.chasing.common.util.ViewTransformer;
+import com.prosper.chasing.common.util.CommonConstant.GameState;
 import com.prosper.chasing.game.base.User.UserState;
 import com.prosper.chasing.game.message.Message;
 import com.prosper.chasing.game.message.QuitCompleteMessage;
+import com.prosper.chasing.game.message.ReplyMessage;
 import com.prosper.chasing.game.message.SystemMessage;
 import com.prosper.chasing.game.message.UserMessage;
 import com.prosper.chasing.game.message.MessageParser;
@@ -55,8 +58,8 @@ public class GameManage {
     // 进入的消息队列
     private BlockingQueue<Message> recieveMessageQueue;
     // 发送的消息队列
-    private BlockingQueue<UserMessage> sendMessageQueue;
-    // 退出时需要写回到数据库的用户队列
+    private BlockingQueue<ReplyMessage> ReplyMessageQueue;
+    // 需要写回到数据库的用户队列
     private BlockingQueue<User> userQueue;
 
     @Autowired
@@ -100,7 +103,8 @@ public class GameManage {
         }
 
         recieveMessageQueue = new LinkedBlockingQueue<>();
-        sendMessageQueue = new LinkedBlockingQueue<>();
+        ReplyMessageQueue = new LinkedBlockingQueue<>();
+        userQueue = new LinkedBlockingQueue<>();
     }
 
     /**
@@ -148,9 +152,8 @@ public class GameManage {
                 user.setPropMap(propMap);
                 user.setState(UserState.ACTIVE);
                 user.setGameId(game.getGameInfo().getId());
-                userMap.put(user.getId(), user);
             }
-            game.setUserMap(userMap);
+            game.loadUser(userList);
             // put game into map
             gameMap.put(gameInfo.getId(), game);
 
@@ -159,6 +162,21 @@ public class GameManage {
                     serverAddr.getBytes(), CreateMode.PERSISTENT, true);
         } catch (Exception e) {
             log.error("create game failed", e);
+        }
+    }
+    
+    /**
+     * 完成游戏
+     */
+    public void finishGame(int gameId) {
+        Game game = gameMap.get(gameId);
+        GameInfo gameInfo = game.getGameInfo();
+        GameTr gameTr = ViewTransformer.transferObject(gameInfo, GameTr.class);
+        try {
+            thriftClient.gameDataServiceClient().updateGame(gameTr);
+            gameMap.remove(gameId);
+        } catch (TException e) {
+            log.error("finish game failed, game id:" + gameId, e);
         }
     }
 
@@ -176,8 +194,8 @@ public class GameManage {
      * @return true 添加成功
      * @return false 添加失败
      */
-    public boolean sendData(UserMessage message) {
-        return sendMessageQueue.offer(message);
+    public boolean replyData(ReplyMessage message) {
+        return ReplyMessageQueue.offer(message);
     }
 
     /**
@@ -200,18 +218,21 @@ public class GameManage {
                 while(true) {
                     try {
                         Message message = recieveMessageQueue.take();
+                        Message parsedMessage = null;
                         Integer gameId = null;
                         if (message instanceof UserMessage) {
                             UserMessage userMessage = messageParser.parseUserMessage((UserMessage) message);
                             gameId = userMessage.getGameId();
+                            parsedMessage = userMessage;
                         } else if (message instanceof SystemMessage) {
                             SystemMessage systemMessage = (SystemMessage) message;
                             gameId = systemMessage.getGameId();
+                            parsedMessage = systemMessage;
                         }
 
                         if (gameId != null) {
                             Game game = gameMap.get(gameId);
-                            game.executeMessage(message);
+                            game.executeMessage(parsedMessage);
                         } else {
                             log.warn("message type not supported");
                         }
@@ -227,13 +248,13 @@ public class GameManage {
      * 将发送消息队列的数据发送到connection server
      */
     @PostConstruct
-    public void sendData() {
+    public void replyData() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while(true) {
                     try {
-                        UserMessage message = sendMessageQueue.take();
+                        ReplyMessage message = ReplyMessageQueue.take();
                         final int userId = message.getUserId();
 
                         String addr = new String(zkClient.get(config.userZkName + "/" + userId, true));
@@ -284,25 +305,15 @@ public class GameManage {
                         }
                         
                         thriftClient.wrapperServiceClient().updateUserProp(userTr, propList);
-                        user.setState(UserState.QUIT);
+                        recieveData(new QuitCompleteMessage(user.getGameId(), user.getId()));
                     } catch(Exception e) {
                         if (user != null) {
                             user.setState(UserState.ACTIVE);
                         }
                     }
-                    recieveData(new QuitCompleteMessage(user.getGameId(), user.getId()));
                 }
             }
         }).start();
-    }
-
-
-    public BlockingQueue<UserMessage> getSendMessageQueue() {
-        return sendMessageQueue;
-    }
-
-    public void setSendMessageQueue(BlockingQueue<UserMessage> sendMessageQueue) {
-        this.sendMessageQueue = sendMessageQueue;
     }
 
 }

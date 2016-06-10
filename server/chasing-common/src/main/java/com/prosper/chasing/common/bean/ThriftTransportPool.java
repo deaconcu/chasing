@@ -17,13 +17,13 @@ public class ThriftTransportPool {
     public enum Type {
         tSocket, tNonblockingSocket
     }
-    
+
     private Map<String, ObjectPool<TTransport>> poolMap;
 
     public ThriftTransportPool() {
         poolMap = new HashMap<String, ObjectPool<TTransport>>();
     }
-    
+
     public TTransport borrowObject(String ip, Integer port) {
         return borrowObject(ip, port, Type.tSocket);
     }
@@ -31,7 +31,8 @@ public class ThriftTransportPool {
     public TTransport borrowObject(String ip, Integer port, Type type) {
         String key = ip + ":" + port + ":" + type.name();
         if (!poolMap.containsKey(key)) {
-            ObjectPool<TTransport> transportPool = new GenericObjectPool<>(new TTransportFactory(ip, port, type));
+            GenericObjectPool<TTransport> transportPool = new GenericObjectPool<>(new TTransportFactory(ip, port, type));
+//            transportPool.setTestOnBorrow(true);
             poolMap.put(key, transportPool);
         } 
         try {
@@ -40,11 +41,27 @@ public class ThriftTransportPool {
             throw new RuntimeException(e);
         }
     }
+
+    public void removeObject(String ip, Integer port, TTransport transport) {
+        removeObject(ip, port, Type.tSocket, transport);
+    }
     
+    public void removeObject(String ip, Integer port, Type type, TTransport transport) {
+        try {
+            String addr = ip + ":" + port + ":" + type.name();
+            if (poolMap.containsKey(addr)) {
+                transport.close();
+                poolMap.get(addr).invalidateObject(transport);
+            } 
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void returnObject(String ip, Integer port, TTransport transport) {
         returnObject(ip, port, Type.tSocket, transport);
     }
-    
+
     public void returnObject(String ip, Integer port, Type type, TTransport transport) {
         String addr = ip + ":" + port + ":" + type.name();
         if (!poolMap.containsKey(addr)) {
@@ -59,11 +76,11 @@ public class ThriftTransportPool {
     }
 
     public class TTransportFactory extends BasePooledObjectFactory<TTransport> {
-        
+
         private String ip;
         private Integer port;
         private Type type;
-        
+
         public TTransportFactory(String ip, Integer port, Type type) {
             this.ip = ip;
             this.port = port;
@@ -89,25 +106,22 @@ public class ThriftTransportPool {
                 throw new RuntimeException("create transport failed", e);
             }
         }
-        
+
         @Override
         public void destroyObject(PooledObject<TTransport> pooledObject) {
             if (pooledObject.getObject().isOpen()) {
                 pooledObject.getObject().close();
             }
         }
-        
+
         @Override  
         public boolean validateObject(PooledObject<TTransport> pooledObject) {  
             try { 
                 TTransport transport = pooledObject.getObject();
-                if (transport instanceof TSocket) {  
-                    TSocket thriftSocket = (TSocket) transport;  
-                    if (thriftSocket.isOpen()) {  
-                        return true;  
-                    } else {  
-                        return false;  
-                    }  
+                if (transport instanceof TSocket || transport instanceof TNonblockingSocket) {  
+                    TSocket tSocket = (TSocket) transport;
+                    //                    tSocket.getSocket().getOutputStream().write(1);
+                    return true;  
                 } else {  
                     return false;  
                 }  

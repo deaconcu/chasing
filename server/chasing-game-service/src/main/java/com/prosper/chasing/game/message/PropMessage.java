@@ -17,6 +17,7 @@ public class PropMessage extends UserMessage {
     private int toUserId;
 
     public PropMessage(UserMessage message) {
+        super(message);
         ByteBuffer content = message.getContent();
         this.propId = content.getInt();
         this.toUserId = content.getInt();

@@ -2,20 +2,14 @@ package com.prosper.chasing.game.base;
 
 public class Position {
     
-    private int x;
-    private int y;
+    public int x;
+    public int y;
+    public int z;
 
-    public Position(int x, int y) {
+    public Position(int x, int y, int z) {
         this.x = x;
         this.y = y;
-    }
-    
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
+        this.z = z;
     }
     
 }

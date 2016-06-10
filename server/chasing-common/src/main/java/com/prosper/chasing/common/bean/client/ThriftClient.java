@@ -90,7 +90,9 @@ public class ThriftClient {
 
                 return service.ClaimGame(ip, port, count);
             } catch (TTransportException e) {
-                throw new RuntimeException(e);
+                thriftTransportPool.removeObject(ip, port, transport);
+                transport = null;
+                return null;
             } finally {
                 if (transport != null) {
                     thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);
@@ -110,7 +112,8 @@ public class ThriftClient {
 
                 service.updateGame(gameTr);
             } catch (TTransportException e) {
-                throw new RuntimeException(e);
+                thriftTransportPool.removeObject(ipAndPort.getX(), ipAndPort.getY(), transport);
+                transport = null;
             } finally {
                 if (transport != null) {
                     thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);
@@ -130,7 +133,9 @@ public class ThriftClient {
 
                 return service.getGameUsers(gameId);
             } catch (TTransportException e) {
-                throw new RuntimeException(e);
+                thriftTransportPool.removeObject(ipAndPort.getX(), ipAndPort.getY(), transport);
+                transport = null;
+                return null;
             } finally {
                 if (transport != null) {
                     thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);
@@ -153,7 +158,9 @@ public class ThriftClient {
 
                 return service.getMetagame(metagameIdList);
             } catch (TTransportException e) {
-                throw new RuntimeException(e);
+                thriftTransportPool.removeObject(ipAndPort.getX(), ipAndPort.getY(), transport);
+                transport = null;
+                return null;
             } finally {
                 if (transport != null) {
                     thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);
@@ -177,7 +184,9 @@ public class ThriftClient {
 
                 return service.getUserProp(userId);
             } catch (TTransportException e) {
-                throw new RuntimeException(e);
+                thriftTransportPool.removeObject(ipAndPort.getX(), ipAndPort.getY(), transport);
+                transport = null;
+                return null;
             } finally {
                 if (transport != null) {
                     thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);
@@ -223,7 +232,8 @@ public class ThriftClient {
 
                 service.updateUserProp(user, usedUserPropList);
             } catch (TTransportException e) {
-                throw new RuntimeException(e);
+                thriftTransportPool.removeObject(ipAndPort.getX(), ipAndPort.getY(), transport);
+                transport = null;
             } finally {
                 if (transport != null) {
                     thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);
@@ -254,7 +264,8 @@ public class ThriftClient {
 
                 service.executeData(gameId, userId, message);
             } catch (TTransportException e) {
-                throw new RuntimeException(e);
+                thriftTransportPool.removeObject(ip, port, transport);
+                transport = null;
             } finally {
                 if (transport != null) {
                     thriftTransportPool.returnObject(ip, port, transport);
@@ -286,7 +297,8 @@ public class ThriftClient {
                 //                service.setTimeout(2);
                 service.executeData(userId, message, resultHandler);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                thriftTransportPool.removeObject(ip, port, transport);
+                transport = null;
             } finally {
                 if (transport != null) {
                     thriftTransportPool.returnObject(ip, port, Type.tNonblockingSocket, transport);

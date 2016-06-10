@@ -21,9 +21,16 @@ public class TestApp {
             ByteBuffer buffer = ByteBuffer.allocate(12);
             buffer.putInt(1);
             buffer.putInt(1);
-            buffer.putInt(1);
+            buffer.putInt(2);
             buffer.flip();
             clientEndPoint.sendMessage(buffer);
+            
+//            buffer = ByteBuffer.allocate(12);
+//            buffer.putInt(1);
+//            buffer.putInt(1);
+//            buffer.putInt(2);
+//            buffer.flip();
+//            clientEndPoint.sendMessage(buffer);
 
             // wait 5 seconds for messages from websocket
             Thread.sleep(50000);

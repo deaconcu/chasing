@@ -11,10 +11,4 @@ import com.prosper.chasing.game.message.UserMessage;
 @Component
 public class ChasingGame extends Game {
 
-    @Override
-    public void onChange(User user) {
-        // TODO Auto-generated method stub
-        
-    }
-
 }
