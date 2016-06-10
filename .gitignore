@@ -2,9 +2,10 @@
 *.classpath
 *.project
 *.log
-build
-bin
-log
+.gradle/
+build/
+bin/
+log/
 !client/unity/chasing-client/
 client/unity/chasing-client/*
 !client/unity/chasing-client/Assets
