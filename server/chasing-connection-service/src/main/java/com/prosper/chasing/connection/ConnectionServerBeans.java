@@ -18,9 +18,11 @@ import redis.clients.jedis.Jedis;
 import com.prosper.chasing.common.bean.ThriftTransportPool;
 import com.prosper.chasing.common.bean.client.ThriftClient;
 import com.prosper.chasing.common.bean.client.ZkClient;
+import com.prosper.chasing.common.bean.wrapper.NettyUDPServer;
 import com.prosper.chasing.common.bean.wrapper.NettyWebSocketServer;
 import com.prosper.chasing.common.bean.wrapper.ThriftRPCServer;
 import com.prosper.chasing.common.bean.wrapper.ThriftRPCServer.Type;
+import com.prosper.chasing.common.bean.wrapper.UDPService;
 import com.prosper.chasing.common.bean.wrapper.WebSocketService;
 import com.prosper.chasing.common.boot.RuntimeSpringBeans;
 
@@ -69,8 +71,8 @@ public class ConnectionServerBeans {
     }
     
     @Bean
-    public NettyWebSocketServer webSocketServer(Config config, WebSocketService webSocketService) {
-        return new NettyWebSocketServer(config.serverPort, false, webSocketService);
+    public NettyUDPServer webUDPServer(Config config, UDPService UDPService) {
+        return new NettyUDPServer(config.serverPort, UDPService);
     }
     
     @Bean

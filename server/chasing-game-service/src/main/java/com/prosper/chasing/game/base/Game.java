@@ -237,6 +237,7 @@ public abstract class Game {
                 byteBuilder.append(changedUser.getId());
                 byteBuilder.append(changedUser.getPosition().x);
                 byteBuilder.append(changedUser.getPosition().y);
+                byteBuilder.append(changedUser.getPosition().z);
                 
                 Map<Integer, Integer> buffMap = changedUser.getBuffMap();
                 if (buffMap != null) {

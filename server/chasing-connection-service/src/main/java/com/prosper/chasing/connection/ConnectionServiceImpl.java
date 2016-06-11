@@ -20,7 +20,10 @@ public class ConnectionServiceImpl implements ConnectionService.Iface {
 
     @Override
     public void executeData(int userId, ByteBuffer message) throws TException {
-        server.sendData(userId, message.array());
+        int length = message.remaining();
+        byte[] data = new byte[length];
+        message.get(data);
+        server.sendData(userId, data);
     }
 
 }

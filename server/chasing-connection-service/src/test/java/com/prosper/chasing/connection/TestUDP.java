@@ -1,8 +1,9 @@
-package com.prosper.chasing.common.bean.wrapper;
+package com.prosper.chasing.connection;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -10,8 +11,16 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.util.AttributeKey;
+import io.netty.util.CharsetUtil;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.FutureListener;
 
+import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,31 +29,39 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 
-import com.sun.corba.se.impl.orbutil.closure.Future;
-
-public class NettyUDPServer implements ApplicationListener<ContextRefreshedEvent>{
-
-    private Logger log = LoggerFactory.getLogger(getClass());
-
-    private final AttributeKey<Map<String, Object>> customValueKey = AttributeKey.valueOf("customValueKey");
-
-    private int port;
-    private Map<Integer, InetSocketAddress> sourceMap;
-    private UDPService service;
-    private Channel channel;
-
-    public NettyUDPServer(int port, UDPService service) {
-        this.port = port;
-        this.service = service;
-        sourceMap = new ConcurrentHashMap<>();
+public class TestUDP {
+    
+    Channel channel;
+    
+    public static void main(String[] args) {
+        TestUDP testUDP = new TestUDP();
+        testUDP.start();
+        
+        ByteBuffer buffer = ByteBuffer.allocate(36);
+        byte[] sessionBytes = "test-session-key".getBytes();
+        buffer.put(sessionBytes);
+        buffer.putInt(2);
+        buffer.putInt(1);
+        buffer.putInt(1);
+        buffer.putInt(1);
+        buffer.putInt(1);
+        buffer.flip();
+        byte[] data = buffer.array();
+        
+        testUDP.sendData("127.0.0.1", 8201, data);
+        System.out.printf("udp server send data\n");
     }
 
-    public void sendData(Integer key, byte[] data) {
-        channel.writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer(data), sourceMap.get(key)));
+    public void sendData(String ip, int port, byte[] data) {
+        InetSocketAddress address = new InetSocketAddress(ip, port);
+        try {
+            channel.writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer(data), address)).sync();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    @Override
-    public void onApplicationEvent(final ContextRefreshedEvent event) {
+    public void start() {
         try {
             EventLoopGroup group = new NioEventLoopGroup();
             try {
@@ -53,8 +70,8 @@ public class NettyUDPServer implements ApplicationListener<ContextRefreshedEvent
                 .channel(NioDatagramChannel.class)
 //                .option(ChannelOption.SO_BROADCAST, true)
                 .handler(new UDPServerHandler());
-                channel = b.bind(port).sync().channel();
-                log.info("starting udp server on port " + port + " ...");
+
+                channel = b.bind(8101).sync().channel();
             } finally {
 //                group.shutdownGracefully();
             }
@@ -67,13 +84,10 @@ public class NettyUDPServer implements ApplicationListener<ContextRefreshedEvent
         
         @Override
         public void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
-            int key = service.executeData(packet.content());
-            String sourceIp = packet.sender().getAddress().getHostAddress();
-            int port = packet.sender().getPort();
-            
-            InetSocketAddress address = new InetSocketAddress(sourceIp, port);
-            sourceMap.put(key, address);
             System.out.printf("%s received %s%n", ctx.channel(), packet.content());
+            int length = packet.content().readableBytes();
+            byte[] data = new byte[length];
+            packet.content().readBytes(data);
         }
     
         @Override

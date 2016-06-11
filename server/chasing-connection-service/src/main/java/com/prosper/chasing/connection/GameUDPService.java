@@ -1,7 +1,6 @@
 package com.prosper.chasing.connection;
 
-import java.nio.charset.Charset;
-import java.util.Map;
+import java.nio.ByteBuffer;
 
 import org.apache.zookeeper.CreateMode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,15 +8,10 @@ import org.springframework.stereotype.Component;
 
 import redis.clients.jedis.Jedis;
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaders;
 
 import com.prosper.chasing.common.bean.client.ThriftClient;
 import com.prosper.chasing.common.bean.client.ZkClient;
-import com.prosper.chasing.common.bean.wrapper.ChannelInfo;
 import com.prosper.chasing.common.bean.wrapper.UDPService;
-import com.prosper.chasing.common.bean.wrapper.WebSocketService;
-import com.prosper.chasing.common.interfaces.game.GameService;
 
 @Component
 public class GameUDPService implements UDPService {
@@ -53,7 +47,18 @@ public class GameUDPService implements UDPService {
             String host = hostPort[0];
             int port = Integer.parseInt(hostPort[1]);
 
-            thriftClient.gameServiceClient(host, port).executeData(gameId, userId, in.nioBuffer());
+            int length = in.readableBytes();
+            ByteBuffer buffer = ByteBuffer.allocate(length);
+            in.readBytes(buffer);
+            buffer.flip();
+            
+            byte[] addrBytes = (config.serverIp + ":" + config.rpcPort).getBytes();
+
+            // 在zookeeper写入当前用户所在的连接服务器
+            // TODO 需要考虑节点已存在的情况
+            zkClient.createNode(config.userZKName + "/" + Integer.toString(userId), addrBytes, CreateMode.EPHEMERAL, true);
+            
+            thriftClient.gameServiceClient(host, port).executeData(gameId, userId, buffer);
             return userId;
         } catch (Exception e) {
             e.printStackTrace();

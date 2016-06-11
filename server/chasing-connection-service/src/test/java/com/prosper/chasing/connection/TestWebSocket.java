@@ -4,7 +4,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 
-public class TestApp {
+public class TestWebSocket {
 
     public static void main(String[] args) {
         try {
