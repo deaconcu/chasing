@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System;
 
 public class NetworkService
 {
@@ -13,13 +14,13 @@ public class NetworkService
     private static NetworkService instance;
 
     private string serverIp = "127.0.0.1";
-    private int serverPort = 8321;
+    private int serverPort = 8201;
 
-    UdpClient udpClient;
+    private UdpClient udpClient;
 
     public NetworkService()
     {
-        UdpClient udpClient = new UdpClient(11000);
+        this.udpClient = new UdpClient(11000);
     }
 
     public static NetworkService getInstance()
@@ -29,6 +30,7 @@ public class NetworkService
 
     public void send(byte[] message)
     {
+        Debug.Log("write log");
         udpClient.Send(message, message.Length, serverIp, serverPort);
     }
 
@@ -44,6 +46,11 @@ public class NetworkService
         while (udpClient.Available > 0)
         {
             dataList.AddLast(udpClient.Receive(ref RemoteIpEndPoint));
+        }
+
+        foreach(byte[] data in dataList)
+        {
+            Debug.Log(BitConverter.ToString(data));
         }
         return dataList;
     }

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Text;
 
 public class GameService
 {
@@ -133,7 +134,12 @@ public class GameService
 
     public byte[] sendRunAction()
     {
-        // todo
-        return null;
+        byte[] sessionByte = Encoding.ASCII.GetBytes("test-session-key");
+        byte[] content = new byte[] {0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+
+        byte[] message = new byte[sessionByte.Length + content.Length];
+        System.Buffer.BlockCopy(sessionByte, 0, message, 0, sessionByte.Length);
+        System.Buffer.BlockCopy(content, 0, message, sessionByte.Length, content.Length);
+        return message;
     }
 }
