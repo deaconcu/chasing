@@ -36,6 +36,7 @@ public class BeanExecutor implements ApplicationListener<ContextRefreshedEvent>,
                 throw new RuntimeException("bean is not exist");
             }
             
+            @SuppressWarnings("unchecked")
             Class<String>[] argClasses = new Class[functionArgs.length];
             Arrays.fill(argClasses, String.class);
             Method method = bean.getClass().getDeclaredMethod(functionName, argClasses);

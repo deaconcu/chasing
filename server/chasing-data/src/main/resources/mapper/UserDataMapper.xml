@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper 
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.prosper.chasing.data.mapper.UserDataMapper">
+
+	<resultMap id="userDataMap" type="UserData">
+		<result property="id" column="pk_id" />
+		<result property="distance" column="name" />
+		<result property="road" column="email" />
+		<result property="hill" column="phone" />
+		<result property="river" column="register_time" />
+		<result property="createTime" column="create_time" />
+		<result property="updateTime" column="update_time" />
+	</resultMap>
+
+	<select id="selectOne" parameterType="Map" resultMap="userDataMap">
+		SELECT * 
+		FROM t_user_data
+		WHERE pk_id = #{id}
+	</select>
+	
+	<select id="selectListByPage" parameterType="Map" resultMap="userDataMap">
+        SELECT * 
+        FROM t_user_data
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+    <select id="selectListByIds" parameterType="Map" resultMap="userDataMap">
+        SELECT * 
+        FROM t_user_data
+        WHERE pk_id IN
+	    <foreach item="item" index="index" collection="ids" open="(" separator="," close=")">
+	        #{item}
+	    </foreach>
+    </select>
+    <insert id="insert" parameterType="UserData" useGeneratedKeys="true" keyProperty="id" keyColumn="pk_id">
+		INSERT INTO t_user_data
+		SET pk_id = #{id},
+		    distance = #{distance},
+		    road = #{road},
+		    hill = #{hill},
+            river = #{river},
+            create_time = #{createTime},
+            update_time = #{updateTime}
+	</insert>
+
+	<update id="update" parameterType="UserData">
+		UPDATE t_user_data
+		SET distance = #{distance},
+            road = #{road},
+            hill = #{hill},
+            river = #{river},
+            create_time = #{createTime},
+            update_time = #{updateTime}
+		WHERE pk_id = #{id}
+	</update>
+
+	<delete id="delete" parameterType="Map">
+		delete from t_user_data
+		where pk_id = #{id}
+	</delete>
+	
+</mapper>

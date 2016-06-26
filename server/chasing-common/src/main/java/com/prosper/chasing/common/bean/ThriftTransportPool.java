@@ -126,7 +126,7 @@ public class ThriftTransportPool {
                     return false;  
                 }  
             } catch (Exception e) {  
-                return false;  
+                return false;
             }  
         }
 

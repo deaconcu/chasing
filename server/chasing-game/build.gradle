@@ -1,0 +1,18 @@
+dependencies {
+    compile project(":chasing-common")
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+        tar(MavenPublication) {
+            artifact distTar
+        }
+    }
+}

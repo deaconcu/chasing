@@ -10,6 +10,7 @@ public class DisruptorQueue {
     
     private Producer producer;
     
+    @SuppressWarnings("unchecked")
     public DisruptorQueue(int capacity, EventHandler<QueueObject> eventHandler) {
         QueueObjectFactory factory = new QueueObjectFactory();
         

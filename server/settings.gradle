@@ -1,1 +1,1 @@
-include "chasing-connection-service", "chasing-game-service", "chasing-http-service", "chasing-data-service", "chasing-common"
+include "chasing-connection", "chasing-game", "chasing-api", "chasing-data", "chasing-common"

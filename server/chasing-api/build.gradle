@@ -1,0 +1,34 @@
+configurations {
+    compile.exclude module: "spring-boot-starter-tomcat"
+    compile.exclude module: 'slf4j-log4j12'
+}
+
+dependencies {
+    compile project(":chasing-common")
+    compile project(":chasing-data-service")
+}
+
+jar {
+    from("shell") {
+        into 'bin'
+    }
+    from("lib") {
+        into 'lib'
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+        tar(MavenPublication) {
+            artifact distTar
+        }
+    }
+}
+

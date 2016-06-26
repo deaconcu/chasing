@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper 
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.prosper.chasing.data.mapper.FriendMapper">
+
+	<resultMap id="friendMap" type="Friend">
+		<result property="id" column="pk_id" />
+		<result property="userId" column="fk_user_id" />
+		<result property="friendUserId" column="fk_friend_user_id" />
+		<result property="state" column="state" />
+		<result property="createTime" column="create_time" />
+	</resultMap>
+
+	<select id="selectOne" parameterType="Map" resultMap="friendMap">
+		SELECT * 
+		FROM t_friend
+		WHERE pk_id = #{id}
+	</select>
+	
+	<select id="selectOneByUserFriend" parameterType="Map" resultMap="friendMap">
+        SELECT * 
+        FROM t_friend
+        WHERE fk_user_id = #{userId}
+          AND fk_friend_user_id = #{friendUserId}
+    </select>
+	
+	<select id="selectListByPage" parameterType="Map" resultMap="friendMap">
+        SELECT * 
+        FROM t_friend
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+    
+    <select id="selectListByIds" parameterType="Map" resultMap="friendMap">
+        SELECT * 
+        FROM t_friend
+        WHERE pk_id IN
+	    <foreach item="item" index="index" collection="ids" open="(" separator="," close=")">
+	        #{item}
+	    </foreach>
+    </select>
+    
+    <select id="selectListByUserStatePage" parameterType="Map" resultMap="friendMap">
+        SELECT * 
+        FROM t_friend
+        WHERE fk_user_id = #{userId}
+          AND state = #{state}
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+    
+    <select id="selectListByFriendStatePage" parameterType="Map" resultMap="friendMap">
+        SELECT * 
+        FROM t_friend
+        WHERE fk_friend_user_id = #{friendUserId}
+          AND state = #{state}
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+    
+    <insert id="insert" parameterType="Friend" useGeneratedKeys="true" keyProperty="id" keyColumn="pk_id">
+		INSERT INTO t_friend
+		SET fk_user_id = #{userId},
+		    fk_friend_user_id = #{friendUserId},
+		    state = #{state},
+		    create_time = #{createTime}
+	</insert>
+
+	<update id="update" parameterType="Friend">
+		UPDATE t_friend
+		SET fk_user_id = #{userId},
+            fk_friend_user_id = #{friendUserId},
+            state = #{state},
+            create_time = #{createTime}
+		WHERE pk_id = #{id}
+	</update>
+
+	<delete id="delete" parameterType="Map">
+		delete from t_friend
+		where pk_id = #{id}
+	</delete>
+	
+</mapper>
