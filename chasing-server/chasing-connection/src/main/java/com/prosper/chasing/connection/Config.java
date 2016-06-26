@@ -17,7 +17,7 @@ public class Config {
     @Value("${server.ip}")
     public String serverIp;
     
-    @Value("${server.port}")
+    @Value("${udp.port}")
     public int serverPort;
     
     @Value("${redis.ip}")

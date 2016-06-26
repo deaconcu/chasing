@@ -1,6 +1,11 @@
 #!/bin/bash
-if [ -z "$INSTANCE_NAME" ]; then
-    echo "instance_name is not provided"
+if [[ ( $1 = "start" || $1 = "stop" || $1 = "restart" ) && ( -z "$INSTANCE_NAME" ) ]]; then
+    echo "instance_name is not provided, exit"
+    exit 1
+fi
+
+if [ $1 = "list" ] && [ -z "$MODE" ]; then
+    echo "mode is not provided, exit"
     exit 1
 fi
 
@@ -20,7 +25,7 @@ case $1 in
     else
         echo "$INSTANCE_NAME is already running"
     fi
-    ;;  
+    ;;
     stop)
     if [ -f $PID_FILE ]; then
         PID=$(cat $PID_FILE);
@@ -54,4 +59,7 @@ case $1 in
         echo "$INSTANCE_NAME started"
     fi
     ;;
-esac                      
+    list)
+        ls $PID_PATH | sed -e 's/\..*$//' | sed -e "s/^$MODE-//"
+    ;;
+esac

@@ -31,14 +31,13 @@ import com.prosper.chasing.common.boot.RuntimeSpringBeans;
 @EnableScheduling
 @PropertySources({
     @PropertySource("classpath:app.properties"),
-    @PropertySource(value = "classpath:app.properties", ignoreResourceNotFound=true),
-    @PropertySource(value = "file:config/app.properties", ignoreResourceNotFound=true)
+    @PropertySource(value = "file:etc/chasing-connection.properties", ignoreResourceNotFound=true)
 })
 @ComponentScan(basePackages = {
         "com.prosper.chasing.common.bean.client",
         "com.prosper.chasing.connection"
 })
-@RuntimeSpringBeans(mode = "connectionServer")
+@RuntimeSpringBeans(mode = "connection-server")
 public class ConnectionServerBeans {
 
     @Bean(name="propertySources")

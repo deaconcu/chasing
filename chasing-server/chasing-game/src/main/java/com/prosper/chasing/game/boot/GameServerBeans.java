@@ -29,14 +29,13 @@ import com.prosper.chasing.game.util.Config;
 @EnableScheduling
 @PropertySources({
     @PropertySource("classpath:app.properties"),
-    @PropertySource(value = "classpath:app.properties", ignoreResourceNotFound=true),
-    @PropertySource(value = "file:config/app.properties", ignoreResourceNotFound=true)
+    @PropertySource(value = "file:etc/chasing-game.properties", ignoreResourceNotFound=true)
 })
 @ComponentScan(basePackages = {
         "com.prosper.chasing.common.bean.client",
         "com.prosper.chasing.game"
 })
-@RuntimeSpringBeans(mode = "gameServer")
+@RuntimeSpringBeans(mode = "game-server")
 public class GameServerBeans {
 
     @Bean(name="propertySources")

@@ -43,8 +43,7 @@ import com.prosper.chasing.http.util.Config;
 @EnableScheduling
 @PropertySources({
     @PropertySource("classpath:app.properties"),
-    @PropertySource(value = "classpath:app.properties", ignoreResourceNotFound=true),
-    @PropertySource(value = "file:config/app.properties", ignoreResourceNotFound=true)
+    @PropertySource(value = "file:etc/chasing-api.properties", ignoreResourceNotFound=true)
 })
 @ComponentScan(basePackages = {
         "com.prosper.chasing.common.bean.client",
@@ -57,7 +56,7 @@ import com.prosper.chasing.http.util.Config;
         "com.prosper.chasing.http.validation",
         "com.prosper.chasing.http.aspect"
 })
-@RuntimeSpringBeans(mode = "httpServer", withWeb = true)
+@RuntimeSpringBeans(mode = "api-server", withWeb = true)
 public class HttpBeans {
 
     @Bean(name="dataSource")

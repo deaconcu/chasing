@@ -19,6 +19,7 @@ public class DefaultSpringApplication extends Application {
     @Override
     public void execute(String[] args) {
         String mode = System.getProperty("mode");
+        MDC.put("logFileName", mode);
         
         if (mode == null) {
             throw new RuntimeException("no mode name provided");
@@ -50,8 +51,6 @@ public class DefaultSpringApplication extends Application {
         if (beanClass == null) {
             throw new RuntimeException("cannot find class match with mode provided, mode:" + mode);
         }
-        
-        MDC.put("logFileName", mode);
         new SpringApplicationBuilder(beanClass).web(withWeb).showBanner(false).run();
     }
 

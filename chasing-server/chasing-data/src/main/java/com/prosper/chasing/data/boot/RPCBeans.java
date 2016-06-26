@@ -46,7 +46,7 @@ import com.prosper.chasing.data.util.Config;
         "com.prosper.chasing.common.bean.client",
         "com.prosper.chasing.data"
 })
-@RuntimeSpringBeans(mode = "RPCServer")
+@RuntimeSpringBeans(mode = "data-server")
 public class RPCBeans {
 
     @Bean(name="propertySources")

@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-	<property name="logpath" value="log" />
-
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
 		<encoder>
 			<pattern>%date{YYYY-MM-dd HH:mm:ss} %level [%thread] [%file:%line] %msg%n</pattern>
@@ -45,7 +43,6 @@
 
 	<root level="INFO">
 		<appender-ref ref="FILE-THREAD" />
-		<appender-ref ref="STDOUT" />
 	</root>
 
 </configuration>
