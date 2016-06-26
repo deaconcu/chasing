@@ -3,6 +3,8 @@ package com.prosper.chasing.connection;
 import java.nio.ByteBuffer;
 
 import org.apache.zookeeper.CreateMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +17,8 @@ import com.prosper.chasing.common.bean.wrapper.UDPService;
 
 @Component
 public class GameUDPService implements UDPService {
+    
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private ThriftClient thriftClient;
@@ -61,7 +65,7 @@ public class GameUDPService implements UDPService {
             thriftClient.gameServiceClient(host, port).executeData(gameId, userId, buffer);
             return userId;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("execute message failed", e);
             return 0;
         }
     }

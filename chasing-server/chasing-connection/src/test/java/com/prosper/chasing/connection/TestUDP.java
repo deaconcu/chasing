@@ -48,7 +48,7 @@ public class TestUDP {
         buffer.flip();
         byte[] data = buffer.array();
         
-        testUDP.sendData("127.0.0.1", 8201, data);
+        testUDP.sendData("120.27.112.99", 8201, data);
         System.out.printf("udp server send data\n");
     }
 
