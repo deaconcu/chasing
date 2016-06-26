@@ -6,7 +6,7 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-
+PROJECT_NAME=chasing-api
 PID_DIR=run
 CONFIG_DIR=etc
 LOG_DIR=log
@@ -29,9 +29,9 @@ fi
 
 
 echo "get package ..."
-wget http://120.27.112.99:8081/artifactory/libs-release-local/com/prosper/chasing-connection-service/$VERSION-release/chasing-connection-service-$VERSION-release.tgz
+wget http://120.27.112.99:8081/artifactory/libs-release-local/com/prosper/$PROJECT_NAME/$VERSION-release/$PROJECT_NAME-$VERSION-release.tgz
 
-PACKAGE_NAME=chasing-connection-service-$VERSION-release.tgz
+PACKAGE_NAME=$PROJECT_NAME-$VERSION-release.tgz
 if [ ! -f $PACKAGE_NAME ]; then
     echo "get package failed, exit";
     exit 1
