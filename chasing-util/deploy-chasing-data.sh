@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 X_HOME=`dirname "$0"`
 VERSION=$1
 if [ -z "$VERSION" ]; then
