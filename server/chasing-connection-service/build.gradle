@@ -1,4 +1,0 @@
-dependencies {
-    compile project(":chasing-common") 
-    compile 'io.netty:netty-all:4.0.34.Final'
-}
