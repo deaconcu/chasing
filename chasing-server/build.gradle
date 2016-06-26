@@ -19,19 +19,7 @@ subprojects {
         compile 'org.apache.thrift:libthrift:0.9.3'
         testCompile 'junit:junit:4.8.2'
     }
-    
-    tasks.withType(Tar){
-        compression = Compression.GZIP
-        archiveName = baseName + "-" + version + "." + extension
-        //def file = configurations.runtime.filter { it.name.contains ('raptor-core') }.singleFile
-        //from ({ zipTree(file).matching{include "bin/*.sh"} }) {
-        //    into baseName + "-" + version
-        //}
-        from ("shell") {
-            into baseName + "-" + version +"/bin"
-        }
-    }
-    
+        
     tasks.withType(JavaCompile) {  
         options.encoding = "UTF-8"  
     }

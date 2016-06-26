@@ -47,4 +47,5 @@ fi
 tar xzf $PACKAGE_NAME --strip-components=1 
 rm -f $PACKAGE_NAME
 
+chmod +x BIN_DIR/*
 echo "start application ..."

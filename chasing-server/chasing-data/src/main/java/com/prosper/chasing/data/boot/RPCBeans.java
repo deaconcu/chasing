@@ -40,14 +40,13 @@ import com.prosper.chasing.data.util.Config;
 @EnableScheduling
 @PropertySources({
     @PropertySource("classpath:app.properties"),
-    @PropertySource(value="classpath:application.properties", ignoreResourceNotFound=true),
-    @PropertySource(value="file:config/application.properties", ignoreResourceNotFound=true)
+    @PropertySource(value="file:etc/chasing-data.properties", ignoreResourceNotFound=true)
 })
 @ComponentScan(basePackages = {
         "com.prosper.chasing.common.bean.client",
         "com.prosper.chasing.data"
 })
-@RuntimeSpringBeans(mode = "dataRPCServer")
+@RuntimeSpringBeans(mode = "RPCServer")
 public class RPCBeans {
 
     @Bean(name="propertySources")

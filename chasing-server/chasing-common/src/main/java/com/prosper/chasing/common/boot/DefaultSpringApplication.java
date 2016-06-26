@@ -36,13 +36,15 @@ public class DefaultSpringApplication extends Application {
             try {
                 beanClass = Class.forName(beanDefinition.getBeanClassName());
             } catch (ClassNotFoundException e) {
-                log.warn("class load failed: " + beanClass.getName());
+                log.warn("class load failed: " + beanDefinition.getBeanClassName());
+                continue;
             }
             RuntimeSpringBeans an = beanClass.getAnnotation(RuntimeSpringBeans.class);
             if (mode.equals(an.mode())) {
                 withWeb = an.withWeb();
                 break;
             }
+            beanClass = null;
         }
         
         if (beanClass == null) {

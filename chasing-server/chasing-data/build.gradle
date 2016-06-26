@@ -2,6 +2,18 @@ dependencies {
     compile project(":chasing-common")
 }
 
+tasks.withType(Tar){
+    compression = Compression.GZIP
+    archiveName = baseName + "-" + version + "." + extension
+    def file = configurations.runtime.filter { it.name.contains ('chasing-common') }.singleFile
+    from ({ zipTree(file).matching{include "bin/*.sh"} }) {
+        into baseName + "-" + version
+    }
+    from ("shell") {
+        into baseName + "-" + version +"/bin"
+    }
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {

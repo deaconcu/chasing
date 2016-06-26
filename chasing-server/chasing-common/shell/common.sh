@@ -1,50 +1,57 @@
 #!/bin/bash
-if [ -z "$SERVICE_NAME" -o -z "$MODE" ]; then
-    echo "service_name or mode is null"
+if [ -z "$INSTANCE_NAME" ]; then
+    echo "instance_name is not provided"
     exit 1
 fi
 
 cd $PROJECT_HOME
+CLASSPATH="$LIB_PATH/*"
 JVMARGS_DEFAULT="-Dlogpath=$LOG_PATH -Dlogback.configurationFile=$CONFIG_PATH/logback.xml -Dfile.encoding=UTF-8"
 
 case $1 in
     start)
-    echo "Starting $SERVICE_NAME ..."
+    echo "Starting $INSTANCE_NAME ..."
     if [ ! -f $PID_FILE ]; then
-        nohup java $JVMOPTS $JVMARGS_DEFAULT $JVMARGS $MODE -classpath "$CLASSPATH" $MAIN_CLASS >>$LOG_PATH/system.log 2>&1 &
+        echo "execute command:"
+        echo "java $JVMOPTS $JVMARGS_DEFAULT $JVMARGS -classpath "$CLASSPATH" $MAIN_CLASS >>$LOG_PATH/system.log 2>&1 &" 
+        nohup java $JVMOPTS $JVMARGS_DEFAULT $JVMARGS -classpath "$CLASSPATH" $MAIN_CLASS >>$LOG_PATH/system.log 2>&1 &
         echo $! > $PID_FILE
-        echo "$SERVICE_NAME started"
+        echo "$INSTANCE_NAME started"
     else
-        echo "$SERVICE_NAME is already running"
+        echo "$INSTANCE_NAME is already running"
     fi
     ;;  
     stop)
     if [ -f $PID_FILE ]; then
         PID=$(cat $PID_FILE);
-        echo "$SERVICE_NAME stoping ..."
+        echo "$INSTANCE_NAME stoping ..."
         kill -9 $PID;
-        echo "$SERVICE_NAME stopped"
+        echo "$INSTANCE_NAME stopped"
         rm $PID_FILE
     else
-        echo "$SERVICE_NAME is not running ..."
+        echo "$INSTANCE_NAME is not running ..."
     fi
     ;;
     restart)
     if [ -f $PID_FILE ]; then
         PID=$(cat $PID_FILE);
-        echo "$SERVICE_NAME stopping ...";
+        echo "$INSTANCE_NAME stopping ...";
         kill -9 $PID;
-        echo "$SERVICE_NAME stopped";
+        echo "$INSTANCE_NAME stopped";
         rm $PID_FILE
-        echo "$SERVICE_NAME starting ..."
-        nohup java $JVMOPTS $JVMARGS_DEFAULT $JVMARGS $MODE -classpath "$CLASSPATH" $MAIN_CLASS >>$LOG_PATH/system.log 2>&1 &
+        echo "$INSTANCE_NAME starting ..."
+        echo "execute command:"
+        echo "java $JVMOPTS $JVMARGS_DEFAULT $JVMARGS -classpath "$CLASSPATH" $MAIN_CLASS >>$LOG_PATH/system.log 2>&1 &" 
+        nohup java $JVMOPTS $JVMARGS_DEFAULT $JVMARGS -classpath "$CLASSPATH" $MAIN_CLASS >>$LOG_PATH/system.log 2>&1 &
         echo $! > $PID_FILE
-        echo "$SERVICE_NAME started"
+        echo "$INSTANCE_NAME started"
     else
-        echo "$SERVICE_NAME is not running"
-        nohup java $JVMOPTS $JVMARGS_DEFAULT $JVMARGS $MOD -classpath "$CLASSPATH" $MAIN_CLASS >>$LOG_PATH/system.log 2>&1 &
+        echo "$INSTANCE_NAME is not running"
+        echo "execute command:"
+        echo "java $JVMOPTS $JVMARGS_DEFAULT $JVMARGS -classpath "$CLASSPATH" $MAIN_CLASS >>$LOG_PATH/system.log 2>&1 &" 
+        nohup java $JVMOPTS $JVMARGS_DEFAULT $JVMARGS -classpath "$CLASSPATH" $MAIN_CLASS >>$LOG_PATH/system.log 2>&1 &
         echo $! > $PID_FILE
-        echo "$SERVICE_NAME started"
+        echo "$INSTANCE_NAME started"
     fi
     ;;
 esac                      

@@ -27,6 +27,15 @@ dependencies {
     compile 'com.lmax:disruptor:3.3.4'
 }
 
+jar {
+    from("shell") {
+        into 'bin'
+    }
+    from("lib") {
+        into 'lib'
+    }
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {

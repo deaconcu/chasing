@@ -8,12 +8,15 @@ dependencies {
     compile project(":chasing-data")
 }
 
-jar {
-    from("shell") {
-        into 'bin'
+tasks.withType(Tar){
+    compression = Compression.GZIP
+    archiveName = baseName + "-" + version + "." + extension
+    def file = configurations.runtime.filter { it.name.contains ('chasing-common') }.singleFile
+    from ({ zipTree(file).matching{include "bin/*.sh"} }) {
+        into baseName + "-" + version
     }
-    from("lib") {
-        into 'lib'
+    from ("shell") {
+        into baseName + "-" + version +"/bin"
     }
 }
 
