@@ -5,7 +5,7 @@ configurations {
 
 dependencies {
     compile project(":chasing-common")
-    compile project(":chasing-data-service")
+    compile project(":chasing-data")
 }
 
 jar {
