@@ -275,7 +275,7 @@ public class MoveController : CurvyController
             //IsSwitching == true;
         }
 
-        if (Input.GetKey("w"))
+        if (!Input.GetKey("w"))
         {
             if (IsSwitching)
             {

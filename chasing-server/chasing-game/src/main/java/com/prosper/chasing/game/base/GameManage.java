@@ -92,7 +92,7 @@ public class GameManage {
                 continue;
             }
             MetaGameAnno anno = gameClass.getAnnotation(MetaGameAnno.class);
-            if (anno != null && anno.value() != null && !anno.value().equals("")) {
+            if (anno != null && anno.value() != null && !anno.value().equals("")) {                 
                 String metagameCode = anno.value();
                 Object object = gameClassMap.get(metagameCode);
                 if (object != null) {
