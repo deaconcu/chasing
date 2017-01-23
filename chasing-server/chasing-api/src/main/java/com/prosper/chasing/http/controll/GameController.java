@@ -1,7 +1,9 @@
 package com.prosper.chasing.http.controll;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.prosper.chasing.data.bean.CacheGame;
 import com.prosper.chasing.data.bean.Game;
 import com.prosper.chasing.data.bean.GameUser;
 import com.prosper.chasing.data.bean.Metagame;
@@ -24,6 +27,7 @@ import com.prosper.chasing.data.service.GameService;
 import com.prosper.chasing.http.anotation.NeedLogin;
 import com.prosper.chasing.http.validation.Validation;
 
+@NeedLogin
 @RestController
 public class GameController {
 
@@ -117,15 +121,57 @@ public class GameController {
         }
     }
     
-    @RequestMapping(value="/games",method=RequestMethod.POST)
-    public Object addGame(
+    /**
+     * 根据用户id或者游戏id获取游戏信息
+     */
+    @RequestMapping(value="/cache/games",method=RequestMethod.GET)
+    public Object getGameInCache(
+    		HttpServletRequest request, 
+    		@RequestParam(value="gameId", required=false) String gameId){
+    	if (gameId != null && !"".equals(gameId)) {
+    		return gameService.getGameInCacheByGameId(gameId);
+        } else {
+        	int userId = Integer.parseInt(request.getHeader("userId"));
+        	return gameService.getGameInCacheByUserId(userId);
+        }
+    }
+    
+    /**
+     * 创建多人游戏时使用
+     */
+    @RequestMapping(value="/cache/games",method=RequestMethod.POST)
+    public Object addGameInCache(
             HttpServletRequest request, @RequestBody String body){
-        Game game = validation.getObject(body, Game.class, new String[]{"metagameId", "duration"});
+    	CacheGame cacheGame = validation.getObject(body, CacheGame.class, new String[]{"metagameId", "duration"});
         int userId = Integer.parseInt(request.getHeader("userId"));
-        gameService.addGame(game, userId);
+        String gameId = gameService.createGameInCache(cacheGame, userId);
+        Map<String, String> response = new HashMap<String, String>();
+        response.put("gameId", gameId);
+        return response;
+    }
+    
+    @RequestMapping(value="/cache/gameUsers",method=RequestMethod.GET)
+    public Object getGameUserInCache (@RequestParam(value="gameId", required=false) String gameId){
+        return gameService.getGameUserInCache(gameId);
+    }
+    
+    @RequestMapping(value="/cache/gameUsers",method=RequestMethod.POST)
+    public Object addGameUserInCache(
+            HttpServletRequest request, @RequestBody String body){
+        CacheGame CacheGame = validation.getObject(body, CacheGame.class, new String[]{"gameId"});
+        int userId = Integer.parseInt(request.getHeader("userId"));
+        gameService.addGameUserInCache(CacheGame.getId(), userId);
+        return null;
+    }
+    
+    @RequestMapping(value="/cache/gameUsers",method=RequestMethod.DELETE)
+    public Object deleteGameUserInCache(HttpServletRequest request, @RequestParam(value="gameId") String gameId){
+        int userId = Integer.parseInt(request.getHeader("userId"));
+        gameService.deleteGameUserInCache(gameId, userId);
         return null;
     }
 
+    @Deprecated
     @RequestMapping(value="/games",method=RequestMethod.PUT)
     public Object updateGame(HttpServletRequest request, @RequestBody String body){
         Game game = validation.getObject(body, Game.class, new String[]{"id", "metagameId", "duration"});
@@ -133,11 +179,13 @@ public class GameController {
         return null;
     }
     
+    @Deprecated
     @RequestMapping(value="/gameUsers",method=RequestMethod.GET)
     public Object getGameUsers (@RequestParam(value="gameId", required=false) Integer gameId){
         return gameService.getGameUser(gameId);
     }
     
+    @Deprecated
     @RequestMapping(value="/gameUsers",method=RequestMethod.POST)
     public Object addGameUser(
             HttpServletRequest request, @RequestBody String body){
@@ -147,6 +195,7 @@ public class GameController {
         return null;
     }
     
+    @Deprecated
     @RequestMapping(value="/gameUsers",method=RequestMethod.DELETE)
     public Object deleteGameUser(HttpServletRequest request, @RequestParam(value="gameId") int gameId){
         int userId = Integer.parseInt(request.getHeader("userId"));

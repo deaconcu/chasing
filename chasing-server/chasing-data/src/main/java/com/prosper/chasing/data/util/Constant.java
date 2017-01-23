@@ -9,6 +9,9 @@ public class Constant {
     
     public static class CacheName {
         public static final String session = "c_session_";
+        public static final String game = "c_game_";
+        public static final String gameUser = "c_game_user_";
+        public static final String userGame = "c_user_game_";
     }
 	
 	public static class OpCode {

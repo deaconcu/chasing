@@ -6,6 +6,7 @@
 build/
 bin/
 log/
+chasing-client/
 !chasing-client/unity/chasing-client/
 chasing-client/unity/chasing-client/*
 !chasing-client/unity/chasing-client/Assets

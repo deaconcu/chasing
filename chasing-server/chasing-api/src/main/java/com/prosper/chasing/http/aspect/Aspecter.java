@@ -24,10 +24,9 @@ import com.prosper.chasing.common.util.CommonUtil;
 import com.prosper.chasing.data.exception.ExceptionHandlerMap;
 import com.prosper.chasing.data.exception.NeedAuthorizationException;
 import com.prosper.chasing.data.mapper.UserMapper;
+import com.prosper.chasing.data.util.Constant;
 import com.prosper.chasing.http.anotation.NeedLogin;
 import com.prosper.chasing.http.util.CommonConfig;
-import com.prosper.chasing.http.util.Constant.CacheName;
-import com.prosper.chasing.http.util.Constant.OpCode;
 
 @Aspect
 @Component
@@ -61,7 +60,7 @@ public class Aspecter {
 
                 String userId = request.getHeader("userId");
                 String postSessionId = request.getHeader("sessionId");
-                String sessionId = jedis.get(CacheName.session + userId);
+                String sessionId = jedis.get(Constant.CacheName.session + userId);
                 if (sessionId == null || !sessionId.equals(postSessionId)) {
                     throw new NeedAuthorizationException();
                 }
@@ -75,7 +74,7 @@ public class Aspecter {
             }
 
             response.put("cost", (double)(System.currentTimeMillis() - startTime) / 1000);
-            response.put("code", OpCode.SUCCESS);
+            response.put("code", Constant.OpCode.SUCCESS);
         } catch (Exception e) {
             Method method = exceptionHandlerMap.getMethod(e.getClass());
             if (method != null) {
