@@ -31,6 +31,8 @@ import com.prosper.chasing.data.util.Constant.FriendType;
 public class UserService {
 
     @Autowired
+    private UserQueueService userQueueService;
+    @Autowired
     private UserMapper userMapper;
     @Autowired
     private UserDataMapper userDataMapper;
@@ -38,7 +40,7 @@ public class UserService {
     private FriendMapper friendMapper;
     @Autowired
     private Jedis jedis;
-    
+
     /**
      * 创建用户，只需要提交用户名和ip就可以
      * @param user 用户
@@ -244,16 +246,49 @@ public class UserService {
      */
     public List<Friend> getFriends(int userId, int type, int page, int pageLength) {
         if (type == FriendType.APPLYING_TO_ME) {
-            return friendMapper.selectListByFriendStatePage(userId, FriendState.APPLYING, pageLength, (page - 1) * pageLength);
+            return friendMapper.selectListByFriendStatePage(
+                    userId, FriendState.APPLYING, pageLength, (page - 1) * pageLength);
         } else if (type == FriendType.APPLYING_FROM_ME) {
-            return friendMapper.selectListByUserStatePage(userId, FriendState.APPLYING, pageLength, (page - 1) * pageLength);
+            return friendMapper.selectListByUserStatePage(
+                    userId, FriendState.APPLYING, pageLength, (page - 1) * pageLength);
         } else if (type == FriendType.APPROVED) {
-            return friendMapper.selectListByUserStatePage(userId, FriendState.APPROVED, pageLength, (page - 1) * pageLength);
+            return friendMapper.selectListByUserStatePage(
+                    userId, FriendState.APPROVED, pageLength, (page - 1) * pageLength);
         } else {
             throw new InvalidArgumentException("state is not valid");
         }
     }
-    
+
+    /**
+     * 加入系统自动创建的游戏用户队列
+     * @param userId 用户id
+     */
+    public void joinSystemUserList(Integer userId) {
+        userQueueService.addUser(0, userId);
+    }
+
+    /**
+     * 退出系统自动创建的游戏用户队列
+     * @param userId 用户id
+     */
+    public void quitSystemUserList(Integer userId) {
+        userQueueService.removeUser(0, userId);
+    }
+
+    /**
+     * 获取用户当前的游戏状态
+     * @param userId 用户id
+     */
+    public int getUserGameState(Integer userId) {
+        String userStateKey = CacheName.userState + userId.toString();
+        String userState = jedis.get(userStateKey);
+
+        if (userState == null) {
+            return 0;
+        }
+        return Integer.parseInt(userState);
+    }
+
     /**
      * 生成一个随机的sessionId;
      */

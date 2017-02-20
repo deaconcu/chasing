@@ -5,6 +5,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.prosper.chasing.data.service.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,4 +65,60 @@ public class UserController {
         return userData;
     }
 
+    @NeedLogin
+    @RequestMapping(value="/userList",method=RequestMethod.POST)
+    public Object joinUserList(HttpServletRequest request) {
+        int userId = Integer.parseInt(request.getHeader("userId"));
+        userService.joinSystemUserList(userId);
+        return null;
+    }
+
+
+    @NeedLogin
+    @RequestMapping(value="/userList",method=RequestMethod.DELETE)
+    public Object quitUserList(HttpServletRequest request){
+        int userId = Integer.parseInt(request.getHeader("userId"));
+        userService.quitSystemUserList(userId);
+        return null;
+    }
+
+    @NeedLogin
+    @RequestMapping(value="/user/gameState",method=RequestMethod.GET)
+    public Object getUserGameState(HttpServletRequest request){
+        int userId = Integer.parseInt(request.getHeader("userId"));
+        int state = userService.getUserGameState(userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("state", state);
+        return response;
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -12,6 +12,8 @@ public class Constant {
         public static final String game = "c_game_";
         public static final String gameUser = "c_game_user_";
         public static final String userGame = "c_user_game_";
+        public static final String systemUserList = "c_system_user_list_";
+        public static final String userState = "c_user_state_";  // 0:none, 1:join user list
     }
 	
 	public static class OpCode {
