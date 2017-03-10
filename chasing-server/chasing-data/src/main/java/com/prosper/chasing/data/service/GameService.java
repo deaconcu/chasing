@@ -168,14 +168,14 @@ public class GameService {
     /**
      * 获取某个用户加入的游戏
      */
-    public List<Game> getGameByUser(int userId) {
+    public Game getGameByUser(int userId) {
         GameUser gameUser = gameUserMapper.selectOneByUserId(userId);
         if (gameUser == null) {
-            return new LinkedList<Game>();
+            return null;
         }
         List<Integer> gameIds = new LinkedList<>();
         gameIds.add(gameUser.getGameId());
-        return gameMapper.selectListByIds(gameIds);
+        return gameMapper.selectListByIds(gameIds).get(0);
     }
 
     /**
@@ -274,7 +274,7 @@ public class GameService {
     public void createGameBySystem() {
         String userListKey = CacheName.systemUserList + "0";
         List<Integer> userList = new LinkedList<>();
-        if (jedis.llen(userListKey) > config.minUserCount) {
+        if (jedis.llen(userListKey) >= config.minUserCount) {
             for (int i = 0; i < config.minUserCount; i++) {
                 int userId = Integer.parseInt(jedis.lindex(userListKey, i));
                 if (!isUserInGame(userId)) {
@@ -288,8 +288,9 @@ public class GameService {
             Game game = new Game();
             game.setMetagameId(1);
             game.setCreatorId(0);
-            game.setState(GameState.CREATE);
+            game.setState(GameState.POST_START);
             game.setServer("");
+            game.setDuration(900);
             game.setCreateTime(CommonUtil.getTime(new Date()));
             game.setUpdateTime(CommonUtil.getTime(new Date()));
             gameMapper.insert(game);

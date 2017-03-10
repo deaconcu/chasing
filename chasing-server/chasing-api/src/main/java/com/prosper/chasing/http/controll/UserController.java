@@ -5,6 +5,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.prosper.chasing.data.bean.Game;
 import com.prosper.chasing.data.service.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,6 +26,8 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private GameService gameService;
     @Autowired
     private UserDataMapper userDataMapper;
     @Autowired
@@ -90,6 +93,17 @@ public class UserController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("state", state);
+        return response;
+    }
+
+    @NeedLogin
+    @RequestMapping(value="/user/game",method=RequestMethod.GET)
+    public Object getUserGame(HttpServletRequest request){
+        int userId = Integer.parseInt(request.getHeader("userId"));
+        Game game = gameService.getGameByUser(userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("game", game);
         return response;
     }
 }

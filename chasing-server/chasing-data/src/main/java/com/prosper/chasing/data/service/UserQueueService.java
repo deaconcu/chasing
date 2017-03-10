@@ -2,11 +2,13 @@ package com.prosper.chasing.data.service;
 
 import com.prosper.chasing.data.util.Constant;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 
 /**
  * Created by deacon on 2017/2/17.
  */
+@Service
 public class UserQueueService {
 
     @Autowired

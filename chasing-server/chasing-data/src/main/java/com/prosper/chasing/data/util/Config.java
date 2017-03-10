@@ -46,7 +46,7 @@ public class Config {
     @Value("${game.minGameDuration}")
     public short minGameDuration;
 
-    @Value("${game.minUserCount")
+    @Value("${game.minUserCount}")
     public short minUserCount;
-    
+
 }

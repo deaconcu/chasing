@@ -42,7 +42,7 @@
 	<logger name="org.springframework" level="INFO" />
 
 	<root level="INFO">
-		<appender-ref ref="FILE-THREAD" />
+		<appender-ref ref="STDOUT" />
 	</root>
 
 </configuration>

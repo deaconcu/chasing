@@ -60,7 +60,9 @@ public class GameUDPService implements UDPService {
 
             // 在zookeeper写入当前用户所在的连接服务器
             // TODO 需要考虑节点已存在的情况
-            zkClient.createNode(config.userZKName + "/" + Integer.toString(userId), addrBytes, CreateMode.EPHEMERAL, true);
+            zkClient.createNode(
+                    config.userZKName + "/" + Integer.toString(userId),
+                    addrBytes, CreateMode.EPHEMERAL, true);
             
             thriftClient.gameServiceClient(host, port).executeData(gameId, userId, buffer);
             return userId;

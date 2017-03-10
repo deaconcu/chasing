@@ -171,6 +171,12 @@ public class GameController {
         return null;
     }
 
+    @RequestMapping(value="/systemGames",method=RequestMethod.POST)
+    public Object createSystemGame(HttpServletRequest request){
+        gameService.createGameBySystem();
+        return null;
+    }
+
     @Deprecated
     @RequestMapping(value="/games",method=RequestMethod.PUT)
     public Object updateGame(HttpServletRequest request, @RequestBody String body){
