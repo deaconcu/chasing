@@ -5,9 +5,10 @@ import java.util.Map;
 public class User {
     
     public static class UserState {
-        public static int ACTIVE = 1;   // 活动状态
-        public static int QUITING = 2;  // 正在退出
-        public static int QUIT = 3;     // 已退出
+        public static int LOADED = 1;   // 加载完成状态
+        public static int ACTIVE = 2;   // 活动状态
+        public static int QUITING = 3;  // 正在退出
+        public static int QUIT = 4;     // 已退出
     }
     
     /**

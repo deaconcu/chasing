@@ -8,7 +8,7 @@ public class ByteBuilder {
 
     public ByteBuilder() {
         innerBytes = new byte[INIT_SIZE];
-        pos = 0;
+        pos = -1;
     }
 
     public void append(int value) {
@@ -17,6 +17,11 @@ public class ByteBuilder {
                 (byte)(value >>> 16),
                 (byte)(value >>> 8),
                 (byte)value});
+    }
+
+    public void append(byte b) {
+        byte[] bytes = new byte[]{b};
+        append(bytes);
     }
 
     public void append(byte[] bytes) {

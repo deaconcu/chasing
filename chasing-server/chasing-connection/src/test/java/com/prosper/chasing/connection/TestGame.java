@@ -1,4 +1,4 @@
-package com.prosper.chasing.game;
+package com.prosper.chasing.connection;
 
 import com.prosper.chasing.common.bean.client.ThriftClient;
 import org.junit.Test;
@@ -25,7 +25,7 @@ public class TestGame {
     private ThriftClient thriftClient;
 
     @Test
-    public void testGame() throws Exception {
+    public void testRecieve() throws Exception {
         log.info("test start");
         Thread.sleep(2000);
 

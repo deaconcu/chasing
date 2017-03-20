@@ -7,10 +7,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class MessageParser {
 
-    private static int QUIT_MESSAGE = 1;
-    private static int POSITION_MESSAGE = 2;
-    private static int PROP_MESSAGE = 3;
-    private static int SKILL_MESSAGE = 4;
+    private static int CONNECT_MESSAGE = 1;
+    private static int QUIT_MESSAGE = 2;
+    private static int POSITION_MESSAGE = 3;
+    private static int PROP_MESSAGE = 4;
+    private static int SKILL_MESSAGE = 5;
 
     /**
      * 解析消息
@@ -18,7 +19,9 @@ public class MessageParser {
     public UserMessage parseUserMessage(UserMessage userMessage) {
         ByteBuffer content = userMessage.getContent();
         int type = content.getInt();
-        if (type == QUIT_MESSAGE) {
+        if (type == CONNECT_MESSAGE) {
+            return new ConnectMessage(userMessage);
+        } else if (type == QUIT_MESSAGE) {
             return new QuitMessage(userMessage);
         } else if (type == POSITION_MESSAGE) {
             return new PositionMessage(userMessage);

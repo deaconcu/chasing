@@ -106,6 +106,7 @@ public class GameManage {
         recieveMessageQueue = new LinkedBlockingQueue<>();
         ReplyMessageQueue = new LinkedBlockingQueue<>();
         userQueue = new LinkedBlockingQueue<>();
+        log.info("game manage started");
     }
 
     /**
@@ -151,7 +152,7 @@ public class GameManage {
                     propMap.put(propTr.getPropId(), prop);
                 }
                 user.setPropMap(propMap);
-                user.setState(UserState.ACTIVE);
+                user.setState(UserState.LOADED);
                 user.setGameId(game.getGameInfo().getId());
             }
             game.loadUser(userList);
@@ -257,8 +258,9 @@ public class GameManage {
                     try {
                         ReplyMessage message = ReplyMessageQueue.take();
                         final int userId = message.getUserId();
+                        byte[] bytes = zkClient.get(config.userZkName + "/" + userId, false);
 
-                        String addr = new String(zkClient.get(config.userZkName + "/" + userId, true));
+                        String addr = new String(bytes);
                         String ipAndPort[] = addr.split(":");
                         String ip = ipAndPort[0];
                         int port = Integer.parseInt(ipAndPort[1]);

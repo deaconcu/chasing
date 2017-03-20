@@ -48,7 +48,8 @@ public class GameCron {
                         try {
                             gameManage.createGame(gameTr);
                             gameTr.setState((byte)GameState.PROCESSING);
-                            gameDataServiceClient.updateGame(gameTr);
+                            // todo restore
+                            //gameDataServiceClient.updateGame(gameTr);
                         } catch (Exception e) {
                             log.error("create game failed", e);
                         }

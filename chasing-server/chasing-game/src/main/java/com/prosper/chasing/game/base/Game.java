@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.prosper.chasing.game.message.*;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,13 +21,6 @@ import com.prosper.chasing.game.base.ActionChange.BuffChange;
 import com.prosper.chasing.game.base.ActionChange.StateChange;
 import com.prosper.chasing.game.base.User.UserState;
 import com.prosper.chasing.game.message.Message;
-import com.prosper.chasing.game.message.QuitCompleteMessage;
-import com.prosper.chasing.game.message.Message;
-import com.prosper.chasing.game.message.PositionMessage;
-import com.prosper.chasing.game.message.PropMessage;
-import com.prosper.chasing.game.message.QuitMessage;
-import com.prosper.chasing.game.message.ReplyMessage;
-import com.prosper.chasing.game.message.SkillMessage;
 import com.prosper.chasing.game.prop.BaseProp;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant.GameLoadingState;
@@ -54,7 +48,10 @@ public abstract class Game {
      */
     public void executeMessage(Message message) {
         ActionChange actionChange = null;
-        if (message instanceof QuitMessage) {
+        if (message instanceof ConnectMessage) {
+            ConnectMessage connectMessage = (ConnectMessage) message;
+            actionChange = executeConnectMessage(connectMessage);
+        } else if (message instanceof QuitMessage) {
             QuitMessage quitMessage = (QuitMessage) message;
             actionChange = executeQuitMessage(quitMessage);
         } else if (message instanceof PositionMessage) {
@@ -70,7 +67,7 @@ public abstract class Game {
             QuitCompleteMessage quitCompleteMessage = (QuitCompleteMessage) message;
             actionChange = executeQuitCompleteMessage(quitCompleteMessage);
         } else {
-            log.warn("undifined message type:" + message.getClass().getName());
+            log.warn("undefined message type:" + message.getClass().getName());
         }
         sync(actionChange);
         
@@ -92,7 +89,7 @@ public abstract class Game {
      * 发送动作发起方需要得到的消息
      * 消息格式如下
      * 成功的消息：
-     * messageType(4bit)|userId(4bit)|action|resultSize(4bit)|result[]
+     * messageType(1bit)|userId(4bit)|action|resultSize(4bit)|result[]
      * 
      * action:actionType(4bit)|actionResult(4bit)|actionItemId(4bit)
      * result:toUserId(4bit)|fieldResultSize(4bit)|fieldChange[]
@@ -157,7 +154,7 @@ public abstract class Game {
      * 发送动作接收方需要得到的消息
      * 消息格式如下
      * 成功的消息：
-     * messageType(4bit)|userId(4bit)|action|result
+     * messageType(1bit)|userId(4bit)|action|result
      * 
      * action:actionType(4bit)|actionResult(4bit)|actionItemId(4bit)
      * result:toUserId(4bit)|fieldResultSize(4bit)|fieldChange[]
@@ -223,7 +220,7 @@ public abstract class Game {
     /**
      * 发送需要同步的用户数据
      * 消息格式如下
-     * messageType(4bit)|userId(4bit)|positionX(4bit)|positionY(4bit)|buffSize(4bit)|buff[]|state
+     * messageType(1bit)|userId(4bit)|positionX(4bit)|positionY(4bit)|buffSize(4bit)|buff[]|state
      * buff: buffId(4bit)|count(4bit)
      */
     private void sendSyncMessage(ActionChange actionChange) {
@@ -233,18 +230,21 @@ public abstract class Game {
                 
                 
                 ByteBuilder byteBuilder =  new ByteBuilder();
+                byteBuilder.append((byte)3);
                 User changedUser = userMap.get(changedUserId);
                 byteBuilder.append(changedUser.getId());
                 byteBuilder.append(changedUser.getPosition().x);
                 byteBuilder.append(changedUser.getPosition().y);
-                byteBuilder.append(changedUser.getPosition().z);
-                
+
                 Map<Integer, Integer> buffMap = changedUser.getBuffMap();
                 if (buffMap != null) {
+                    byteBuilder.append((byte)buffMap.size());
                     for (Integer buffId: buffMap.keySet()) {
                         byteBuilder.append(buffId);
                         byteBuilder.append(buffMap.get(buffId));
                     }
+                } else {
+                    byteBuilder.append((byte)0);
                 }
                 byteBuilder.append(changedUser.getState());
                 
@@ -255,7 +255,28 @@ public abstract class Game {
             }
         }
     }
-    
+
+    /**
+     * 处理连接消息
+     * @param message
+     * @return
+     */
+    private ActionChange executeConnectMessage(ConnectMessage message) {
+        User user = getUser(message.getUserId(), true);
+        int sourceState = user.getState();
+
+        int targetState = UserState.ACTIVE;
+        user.setState(targetState);
+
+        // 添加一条退出的变更消息
+        ActionChange actionChange = new ActionChange();
+        actionChange.setUserId(message.getUserId());
+        actionChange.setAction(null);
+        actionChange.putChange(message.getUserId(), new StateChange(sourceState, targetState));
+
+        return actionChange;
+    }
+
     /**
      * 处理退出消息
      */

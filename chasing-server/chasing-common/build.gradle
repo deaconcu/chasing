@@ -3,7 +3,7 @@ configurations {
 }
 
 dependencies {
-    compile 'org.apache.zookeeper:zookeeper:3.4.8'	
+    compile 'org.apache.zookeeper:zookeeper:3.4.9'
     compile 'org.springframework.boot:spring-boot-starter-web:1.2.4.RELEASE'
     compile 'org.springframework.boot:spring-boot-starter-jetty:1.2.4.RELEASE'
     compile 'org.springframework.boot:spring-boot-starter-actuator:1.2.4.RELEASE'

@@ -14,7 +14,7 @@ import org.apache.zookeeper.ZooKeeper;
 
 public class ZkClient {
 
-    private static final int SESSION_TIMEOUT = 5000;  
+    private static final int SESSION_TIMEOUT = 50000;
 
     /**
      * eg:hosts = "localhost:4180,localhost:4181,localhost:4182";

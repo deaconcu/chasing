@@ -40,15 +40,16 @@ public class TestUDP {
         ByteBuffer buffer = ByteBuffer.allocate(36);
         byte[] sessionBytes = "test-session-key".getBytes();
         buffer.put(sessionBytes);
-        buffer.putInt(2);
         buffer.putInt(1);
-        buffer.putInt(1);
-        buffer.putInt(1);
-        buffer.putInt(1);
+        //buffer.putInt(1);
+        //buffer.putInt(1);
+        //buffer.putInt(1);
+        //buffer.putInt(1);
         buffer.flip();
         byte[] data = buffer.array();
         
-        testUDP.sendData("120.27.112.99", 8201, data);
+        //testUDP.sendData("120.27.112.99", 8201, data);
+        testUDP.sendData("192.168.1.17", 8201, data);
         System.out.printf("udp server send data\n");
     }
 
@@ -88,6 +89,8 @@ public class TestUDP {
             int length = packet.content().readableBytes();
             byte[] data = new byte[length];
             packet.content().readBytes(data);
+
+            System.out.print(data);
         }
     
         @Override
