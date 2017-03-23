@@ -58,6 +58,12 @@ service GameDataService {
      * @param gameId: 游戏ID
      */
     list<UserTr> getGameUsers(1: i32 gameId),
+
+    /*
+     * 获取用户进入的游戏id
+     * @param gameId: 游戏ID
+     */
+    i32 getUserGame(1: i32 userId),
 }
 
 service MetagameDataService {

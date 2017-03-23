@@ -8,6 +8,8 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -47,6 +49,7 @@ import com.prosper.chasing.common.util.CommonUtil;
 @Service
 public class GameService {
 
+    private Logger log = LoggerFactory.getLogger(this.getClass());
     @Autowired
     private UserQueueService userQueueService;
     @Autowired
@@ -272,6 +275,8 @@ public class GameService {
      * 单线程运行
      */
     public void createGameBySystem() {
+        log.info("start create game");
+
         String userListKey = CacheName.systemUserList + "0";
         List<Integer> userList = new LinkedList<>();
         if (jedis.llen(userListKey) >= config.minUserCount) {
@@ -310,6 +315,7 @@ public class GameService {
                 // remove game user from cache list
                 userQueueService.removeUser(0, userId);
             }
+            log.info("create game success, game id:" + game.getId());
         }
     }
 

@@ -2,6 +2,7 @@ package com.prosper.chasing.connection;
 
 import java.nio.ByteBuffer;
 
+import com.prosper.chasing.common.util.CommonConstant.*;
 import org.apache.zookeeper.CreateMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,10 +33,16 @@ public class GameUDPService implements UDPService {
     @Override
     public int executeData(ByteBuf in) {
         try {
-            byte[] sessionIdBuffer = new byte[16]; 
+            int userId = in.readInt();
+            String sessionCacheName = CacheName.session + userId;
+            String sessionId = jedis.get(sessionCacheName);
+
+            byte[] sessionIdBuffer = new byte[16];
             in.readBytes(sessionIdBuffer);
-            String sessionId = new String(sessionIdBuffer);
-            String info = jedis.get(sessionId);
+            String postSessionId = new String(sessionIdBuffer);
+            if (!postSessionId.equals(sessionId)) {
+                return 0;
+            }
 
             String[] infos = info.split(",");
             int userId = Integer.parseInt(infos[0]);

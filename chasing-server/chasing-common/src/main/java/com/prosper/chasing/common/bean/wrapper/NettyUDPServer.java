@@ -66,11 +66,13 @@ public class NettyUDPServer implements ApplicationListener<ContextRefreshedEvent
         @Override
         public void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
             int key = service.executeData(packet.content());
-            String sourceIp = packet.sender().getAddress().getHostAddress();
-            int port = packet.sender().getPort();
-            
-            InetSocketAddress address = new InetSocketAddress(sourceIp, port);
-            sourceMap.put(key, address);
+            if (key > 0) {
+                String sourceIp = packet.sender().getAddress().getHostAddress();
+                int port = packet.sender().getPort();
+
+                InetSocketAddress address = new InetSocketAddress(sourceIp, port);
+                sourceMap.put(key, address);
+            }
             System.out.printf("%s received %s%n", ctx.channel(), packet.content());
         }
     
