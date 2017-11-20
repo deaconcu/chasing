@@ -40,11 +40,13 @@ import com.prosper.chasing.common.boot.RuntimeSpringBeans;
 @RuntimeSpringBeans(mode = "connection-server")
 public class ConnectionServerBeans {
 
+    // 加载配置的类，在@PropertySources注解上写配置路径
     @Bean(name="propertySources")
     public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
         return new PropertySourcesPlaceholderConfigurer();
     }
 
+    // redis客户端
     @Bean
     public Jedis jedis(Config config) {
         return new Jedis(config.redisIp, config.redisPort);
@@ -53,7 +55,8 @@ public class ConnectionServerBeans {
         //        JedisCluster jc = new JedisCluster(jedisClusterNodes);
         //        return jc;
     }
-    
+
+    // zookeeper客户端
     @Bean
     public ZkClient zkClient(Config config) {
         return new ZkClient(config.zookeeperAddrs);
@@ -63,27 +66,32 @@ public class ConnectionServerBeans {
 //    public ThriftRPCServer thriftRPCServer(Config config) {
 //        return new ThriftRPCServer(config.appPackage, config.rpcPort);
 //    }
-    
+
+    //TODO 线程池，貌似没用，可以去掉
     @Bean
     public ExecutorService executorService() {
         return Executors.newCachedThreadPool();
     }
-    
+
+    // netty的udp server，使用udp service
     @Bean
     public NettyUDPServer webUDPServer(Config config, UDPService UDPService) {
         return new NettyUDPServer(config.serverPort, UDPService);
     }
-    
+
+    // thrift的rpc server, 自动扫描rpc service
     @Bean
     public ThriftRPCServer thriftRPCServer(Config config) {
         return new ThriftRPCServer(config.appPackage, config.rpcPort, Type.TThreadedSelectorServer);
     }
-    
+
+    // thrift客户端
     @Bean
     public ThriftClient thriftClient() {
         return new ThriftClient();
     }
-    
+
+    // thrift的连接池
     @Bean
     public ThriftTransportPool thriftTransportPool() {
         return new ThriftTransportPool();

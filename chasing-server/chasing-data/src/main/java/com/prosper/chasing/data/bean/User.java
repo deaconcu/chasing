@@ -12,7 +12,7 @@ public class User {
     private String registerIp;
     private String lastLoginTime;
     private String lastLoginIp;
-    
+
     public Integer getId() {
         return id;
     }
@@ -93,5 +93,4 @@ public class User {
         this.password = password;
     }
 
-    
 }

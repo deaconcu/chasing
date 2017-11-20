@@ -2,7 +2,9 @@
 *.classpath
 *.project
 *.log
+*.DS_Store
 .gradle/
+.idea/
 build/
 bin/
 log/

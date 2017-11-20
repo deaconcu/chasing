@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.annotation.PostConstruct;
@@ -22,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AssignableTypeFilter;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.bean.client.ThriftClient;
@@ -45,6 +48,7 @@ import com.prosper.chasing.game.message.SystemMessage;
 import com.prosper.chasing.game.message.UserMessage;
 import com.prosper.chasing.game.message.MessageParser;
 import com.prosper.chasing.game.util.Config;
+import redis.clients.jedis.Jedis;
 
 @Component
 public class GameManage {
@@ -70,17 +74,23 @@ public class GameManage {
     private MessageParser messageParser;
     @Autowired
     private Config config;
+    @Autowired
+    ExecutorService executorService;
+    @Autowired
+    Jedis jedis;
 
     /**
      * 初始化游戏管理，主要实现把现有的游戏类加载到game class map里
      */
     @SuppressWarnings("unchecked")
     public GameManage() {
+        // 扫描game的子类，拿到一个set
         ClassPathScanningCandidateComponentProvider rpcServiceScanner =
                 new ClassPathScanningCandidateComponentProvider(false);
         rpcServiceScanner.addIncludeFilter(new AssignableTypeFilter(Game.class));
-
         Set<BeanDefinition> gameBeanSet = rpcServiceScanner.findCandidateComponents(gameImplScanPackage);
+
+        // 把获取到的game class，写到一个map里，key为game上注解标注的名字
         for (BeanDefinition  beanDefinition: gameBeanSet) {
             String className = beanDefinition.getBeanClassName();
             Class<? extends Game> gameClass = null;
@@ -92,7 +102,7 @@ public class GameManage {
                 continue;
             }
             MetaGameAnno anno = gameClass.getAnnotation(MetaGameAnno.class);
-            if (anno != null && anno.value() != null && !anno.value().equals("")) {                 
+            if (anno != null && anno.value() != null && !anno.value().equals("")) {
                 String metagameCode = anno.value();
                 Object object = gameClassMap.get(metagameCode);
                 if (object != null) {
@@ -103,6 +113,7 @@ public class GameManage {
             }
         }
 
+        // 初始化消息队列，回答队列，用户队列
         recieveMessageQueue = new LinkedBlockingQueue<>();
         ReplyMessageQueue = new LinkedBlockingQueue<>();
         userQueue = new LinkedBlockingQueue<>();
@@ -115,15 +126,18 @@ public class GameManage {
      */
     public void createGame(GameTr gameTr) {
         try {
-            // create game
+            // 获取game的信息
             GameInfo gameInfo = ViewTransformer.transferObject(gameTr, GameInfo.class);
 
+            // 通过rpc获取meta game的信息
             List<Integer> metagameIdList = new LinkedList<Integer>();
             metagameIdList.add(gameInfo.getMetagameId());
             List<MetagameTr> metagameTrList = thriftClient.metagameDataServiceClient().getMetagame(metagameIdList);
 
+            // 获取metagame的code
             String metagameCode = metagameTrList.get(0).getCode();
 
+            // 通过metagame code或者game class，然后初始化game
             Class<? extends Game> gameClass = gameClassMap.get(metagameCode);
             if (gameClass == null) {
                 log.error("metagame implement is not exist:" + metagameCode);
@@ -134,10 +148,10 @@ public class GameManage {
             } catch (Exception e) {
                 log.error("create game failed, game class:" + Game.class.getName());
             }
-
-            // load game info, user and prop
             game.setGameInfo(gameInfo);
             game.setGameManage(this);
+
+            // 加载游戏用户
             List<UserTr> userTrList = thriftClient.gameDataServiceClient().getGameUsers(gameInfo.getId());
             List<User> userList = ViewTransformer.transferList(userTrList, User.class);
 
@@ -156,23 +170,27 @@ public class GameManage {
                 user.setGameId(game.getGameInfo().getId());
             }
             game.loadUser(userList);
-            // put game into map
+
+            // 把加载好的游戏放到map中
             gameMap.put(gameInfo.getId(), game);
 
+            // 创建zookeeper节点
             String serverAddr = config.serverIp + ":" + config.rpcPort;
-            zkClient.createNode(config.gameZkName + "/" + gameInfo.getId(), 
+            zkClient.createNode(config.gameZkName + "/" + gameInfo.getId(),
                     serverAddr.getBytes(), CreateMode.PERSISTENT, true);
+            log.info("create game success, game id:" + gameInfo.getId());
         } catch (Exception e) {
             log.error("create game failed", e);
         }
     }
-    
+
     /**
      * 完成游戏
      */
     public void finishGame(int gameId) {
         Game game = gameMap.get(gameId);
         GameInfo gameInfo = game.getGameInfo();
+        gameInfo.setState(game.getState());
         GameTr gameTr = ViewTransformer.transferObject(gameInfo, GameTr.class);
         try {
             thriftClient.gameDataServiceClient().updateGame(gameTr);
@@ -206,7 +224,42 @@ public class GameManage {
      * @return false 添加失败
      */
     public boolean addUserForDataDB(User user) {
+
         return userQueue.offer(user);
+    }
+
+    @PostConstruct
+    public void createGame() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    try {
+                        final ThriftClient.GameDataServiceClient gameDataServiceClient =
+                                thriftClient.gameDataServiceClient();
+                        List<GameTr> gameTrList =
+                                gameDataServiceClient.ClaimGame(config.serverIp, config.rpcPort, 100);
+
+                        if (gameTrList.size() > 0) {
+                            System.out.println("11111");
+                        }
+
+                        for (final GameTr gameTr : gameTrList) {
+                            try {
+                                createGame(gameTr);
+                                gameTr.setState((byte) GameState.PROCESSING);
+                                // todo restore
+                                gameDataServiceClient.updateGame(gameTr);
+                            } catch (Exception e) {
+                                log.error("create game failed", e);
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("create game failed", e);
+                    }
+                }
+            }
+        }).start();
     }
 
     /**
@@ -258,9 +311,18 @@ public class GameManage {
                     try {
                         ReplyMessage message = ReplyMessageQueue.take();
                         final int userId = message.getUserId();
+                        long begin = System.currentTimeMillis();
+
+                        // TODO temporary
+                        //String addr = jedis.get("user-" + userId);
+                        String addr = "127.0.0.1:8202";
+                        /*
                         byte[] bytes = zkClient.get(config.userZkName + "/" + userId, false);
+                        long cost = System.currentTimeMillis() - begin;
+                        log.info("cost:" + cost);
 
                         String addr = new String(bytes);
+                        */
                         String ipAndPort[] = addr.split(":");
                         String ip = ipAndPort[0];
                         int port = Integer.parseInt(ipAndPort[1]);
@@ -306,13 +368,41 @@ public class GameManage {
                             userPropTr.setCount(prop.getCount());
                             propList.add(userPropTr);
                         }
-                        
+
+                        userTr.setState((byte)1);
+                        userTr.setGameId(-1);
                         thriftClient.wrapperServiceClient().updateUserProp(userTr, propList);
+                        thriftClient.UserDataServiceClient().updateUser(userTr);
                         recieveData(new QuitCompleteMessage(user.getGameId(), user.getId()));
                     } catch(Exception e) {
                         if (user != null) {
                             user.setState(UserState.ACTIVE);
                         }
+                    }
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * 检查已完成的游戏
+     */
+    @PostConstruct
+    public void checkGame() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    for (Map.Entry<Integer, Game> gameEntry: gameMap.entrySet()) {
+                        if (gameEntry.getValue().getState() == GameState.FINISHED) {
+                            log.info("finishing game: " + gameEntry.getKey());
+                            finishGame(gameEntry.getKey());
+                        }
+                    }
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }
             }

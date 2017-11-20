@@ -38,6 +38,8 @@
         SELECT * 
         FROM t_game_user
         WHERE fk_user_id = #{userId}
+        ORDER BY pk_id desc
+        LIMIT 1
     </select>
     
     <select id="selectOneByGameUser" parameterType="Map" resultMap="gameUserMap">

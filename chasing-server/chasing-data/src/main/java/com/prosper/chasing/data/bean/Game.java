@@ -7,6 +7,7 @@ public class Game {
     private int duration;
     private int state;
     private int creatorId;
+    private String attendance;
     private String server;
     private String startTime;
     private String createTime;
@@ -66,6 +67,13 @@ public class Game {
     public void setMetagameId(Integer metagameId) {
         this.metagameId = metagameId;
     }
-    
+
+    public String getAttendance() {
+        return attendance;
+    }
+
+    public void setAttendance(String attendance) {
+        this.attendance = attendance;
+    }
     
 }

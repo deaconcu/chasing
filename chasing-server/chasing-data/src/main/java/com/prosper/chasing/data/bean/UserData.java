@@ -9,6 +9,8 @@ public class UserData {
     private int river;
     private String createTime;
     private String updateTime;
+    private Short state;
+    private int gameId;
     
     public int getId() {
         return id;
@@ -52,6 +54,20 @@ public class UserData {
     public void setUpdateTime(String updateTime) {
         this.updateTime = updateTime;
     }
-    
 
+    public Short getState() {
+        return state;
+    }
+
+    public void setState(Short state) {
+        this.state = state;
+    }
+
+    public int getGameId() {
+        return gameId;
+    }
+
+    public void setGameId(int gameId) {
+        this.gameId = gameId;
+    }
 }

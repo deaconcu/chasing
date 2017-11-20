@@ -8,6 +8,8 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -47,6 +49,7 @@ import com.prosper.chasing.common.util.CommonUtil;
 @Service
 public class GameService {
 
+    private Logger log = LoggerFactory.getLogger(this.getClass());
     @Autowired
     private UserQueueService userQueueService;
     @Autowired
@@ -61,6 +64,8 @@ public class GameService {
     private FriendMapper friendMapper;
     @Autowired
     private UserMapper userMapper;
+    @Autowired
+    private UserDataMapper userDataMapper;
     @Autowired
     private Jedis jedis;
     @Autowired
@@ -272,13 +277,17 @@ public class GameService {
      * 单线程运行
      */
     public void createGameBySystem() {
+        log.info("start create game");
+
         String userListKey = CacheName.systemUserList + "0";
         List<Integer> userList = new LinkedList<>();
+        String attendance = "";
         if (jedis.llen(userListKey) >= config.minUserCount) {
             for (int i = 0; i < config.minUserCount; i++) {
                 int userId = Integer.parseInt(jedis.lindex(userListKey, i));
                 if (!isUserInGame(userId)) {
                     userList.add(userId);
+                    attendance += Integer.toString(userId) + ",";
                 }
             }
         }
@@ -291,6 +300,7 @@ public class GameService {
             game.setState(GameState.POST_START);
             game.setServer("");
             game.setDuration(900);
+            game.setAttendance(attendance.substring(0, attendance.length() - 1));
             game.setCreateTime(CommonUtil.getTime(new Date()));
             game.setUpdateTime(CommonUtil.getTime(new Date()));
             gameMapper.insert(game);
@@ -310,6 +320,8 @@ public class GameService {
                 // remove game user from cache list
                 userQueueService.removeUser(0, userId);
             }
+            userDataMapper.updateUserIntoGame(userList, game.getId(), Constant.UserState.GAMING);
+            log.info("create game success, game id:" + game.getId());
         }
     }
 
@@ -483,13 +495,25 @@ public class GameService {
     /**
      * 获取游戏中的用户
      */
-    public List<User> getGameUser(int gameId) {
+    public List<UserData> getGameUser(int gameId) {
         Game gameInDb = gameMapper.selectOne(gameId);
         if (gameInDb == null) {
             throw new InvalidArgumentException("game is not exist");
         }
-        List<Integer> userList = gameUserMapper.selectUserListByGameId(gameId);
-        return userMapper.selectListByIds(userList);
+        String[] userIdStrings = gameInDb.getAttendance().split(",");
+        List<Integer> userIdList = new LinkedList<>();
+        for (String userId: userIdStrings) {
+            userIdList.add(Integer.parseInt(userId));
+        }
+
+        List<UserData> userList = new LinkedList<>();
+        List<UserData> userListForExam = userDataMapper.selectListByIds(userIdList);
+        for (UserData userData: userListForExam) {
+            //if (userData.getState() == Constant.UserState.GAMING && userData.getGameId() == gameId) {
+                userList.add(userData);
+            //}
+        }
+        return userList;
     }
 
     /**

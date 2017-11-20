@@ -7,38 +7,40 @@ import org.springframework.stereotype.Component;
 
 @Component("connectionConfig")
 public class Config {
-    
+
     @Value("${application.package}")
-    public String appPackage;
+    public String appPackage;  //用来标识当前项目的package，用来查找service
     
     @Value("${rpc.port}")
-    public int rpcPort;
+    public int rpcPort;  //rpc服务端口，发送用户同步消息
     
     @Value("${server.ip}")
-    public String serverIp;
+    public String serverIp;  //服务器ip
     
     @Value("${udp.port}")
-    public int serverPort;
+    public int serverPort;  //udp服务端口，接收用户消息
     
     @Value("${redis.ip}")
-    public String redisIp;
+    public String redisIp;  //redis服务器ip
     
     @Value("${redis.port}")
-    public int redisPort;
+    public int redisPort;  //redis接口
     
     @Value("${zookeeper.addrs}")
-    public String zookeeperAddrs;
-    
+    public String zookeeperAddrs;  //zookeeper 地址，[ip:port,...]
+
+    //TODO 以下都需要修改为common的静态变量
     @Value("${zkName.gameServer}")
-    public String gameServerZKName;
+    public String gameServerZKName;  //gameserver 在zookeeper的节点路径
 
     @Value("${zkName.gameDataServer}")
-    public String gameDataServerZKName;
-    
+    public String gameDataServerZKName;  //gameDateServer 在zookeeper的节点路径
+
+    //TODO 以下需要考虑修改为使用mysql或者redis
     @Value("${zkName.game}")
-    public String gameZKName;
+    public String gameZKName;  //game的节点路径
     
     @Value("${zkName.user}")
-    public String userZKName;
+    public String userZKName;  //user的节点路径
 		
 }

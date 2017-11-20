@@ -18,7 +18,7 @@ public class MessageParser {
      */
     public UserMessage parseUserMessage(UserMessage userMessage) {
         ByteBuffer content = userMessage.getContent();
-        int type = content.getInt();
+        int type = content.get();
         if (type == CONNECT_MESSAGE) {
             return new ConnectMessage(userMessage);
         } else if (type == QUIT_MESSAGE) {

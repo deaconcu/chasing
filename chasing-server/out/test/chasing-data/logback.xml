@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+	<property name="logPath" value="logs" />
+
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
 		<encoder>
 			<pattern>%date{YYYY-MM-dd HH:mm:ss} %level [%thread] [%file:%line] %msg%n</pattern>
@@ -19,13 +21,15 @@
 
 				<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
 					<Pattern>
-						<pattern>%date{YYYY-MM-dd HH:mm:ss} %level [%thread] [%file:%line] %msg%n</pattern>
+						<pattern>%date{YYYY-MM-dd HH:mm:ss} %level [%thread] [%file:%line]
+							%msg%n</pattern>
 					</Pattern>
 				</encoder>
 
 				<rollingPolicy
 					class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-					<FileNamePattern>${logpath}/${logFileName}.%i.log.zip</FileNamePattern>
+					<FileNamePattern>${logpath}/${logFileName}.%i.log.zip
+					</FileNamePattern>
 					<MinIndex>1</MinIndex>
 					<MaxIndex>10</MaxIndex>
 				</rollingPolicy>
@@ -40,8 +44,11 @@
 	</appender>
 
 	<logger name="org.springframework" level="INFO" />
+	<logger name="com.youku.java.fingerprint" level="INFO" />
+	<logger name="com.youku.java.fingerprint.mapper" level="INFO" />
 
 	<root level="INFO">
+		<appender-ref ref="FILE-THREAD" />
 		<appender-ref ref="STDOUT" />
 	</root>
 

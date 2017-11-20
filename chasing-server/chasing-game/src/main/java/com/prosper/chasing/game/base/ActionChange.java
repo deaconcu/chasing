@@ -89,6 +89,21 @@ public class ActionChange {
     public static class SkillAction extends Action {
         public int skillId;
     }
+
+    public static class PositionAction extends Action {
+        public long time;
+        PositionAction(long time) {
+            this.time = time;
+        }
+    }
+
+    public static class ConnectAction extends Action {
+
+    }
+
+    public static class QuitAction extends Action {
+
+    }
     
     public static class FieldChange {
     }

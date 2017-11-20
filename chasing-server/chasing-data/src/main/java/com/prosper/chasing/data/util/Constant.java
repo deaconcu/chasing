@@ -63,7 +63,12 @@ public class Constant {
         public static final short PROCESSING = 4;    //进行中
         public static final short FINISHED = 5;    //完成
     }
-	
+
+    public static class UserState {
+        public static final short NORMAL = 1;         // 正常状态
+        public static final short GAMING = 2;         // 游戏中
+        public static final short DISABLED = 3;       // 屏蔽状态
+    }
 }
 
 

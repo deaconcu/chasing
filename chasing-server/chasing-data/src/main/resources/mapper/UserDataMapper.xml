@@ -7,10 +7,12 @@
 
 	<resultMap id="userDataMap" type="UserData">
 		<result property="id" column="pk_id" />
-		<result property="distance" column="name" />
-		<result property="road" column="email" />
-		<result property="hill" column="phone" />
-		<result property="river" column="register_time" />
+		<result property="distance" column="distance" />
+		<result property="road" column="road" />
+		<result property="hill" column="hill" />
+		<result property="river" column="river" />
+		<result property="state" column="state" />
+		<result property="gameId" column="fk_game_id" />
 		<result property="createTime" column="create_time" />
 		<result property="updateTime" column="update_time" />
 	</resultMap>
@@ -42,6 +44,8 @@
 		    road = #{road},
 		    hill = #{hill},
             river = #{river},
+			state = #{state},
+			fk_game_id = #{gameId},
             create_time = #{createTime},
             update_time = #{updateTime}
 	</insert>
@@ -52,9 +56,24 @@
             road = #{road},
             hill = #{hill},
             river = #{river},
+			state = #{state},
+			fk_game_id = #{gameId},
             create_time = #{createTime},
             update_time = #{updateTime}
 		WHERE pk_id = #{id}
+	</update>
+
+	<update id="updateUserIntoGame" parameterType="Map">
+		UPDATE t_user_data
+		SET state = #{state},
+			fk_game_id = #{gameId}
+		WHERE pk_id IN
+		<foreach item="item" index="index" collection="userIdList" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+		<!-- 测试需要注释，上线需要打开
+		AND state = 1
+		-->
 	</update>
 
 	<delete id="delete" parameterType="Map">

@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.prosper.chasing.data.util.Constant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -68,6 +69,8 @@ public class UserService {
         userData.setHill(0);
         userData.setRiver(0);
         userData.setRoad(0);
+        userData.setState(Constant.UserState.NORMAL);
+        userData.setGameId(-1);
         
         userData.setCreateTime(CommonUtil.getTime(new Date()));
         userData.setUpdateTime(CommonUtil.getTime(new Date()));
@@ -115,12 +118,9 @@ public class UserService {
             throw new ResourceNotExistException("user is not exist");
         }
         String sessionCacheName = CacheName.session + user.getId();
-        String sessionId = jedis.get(sessionCacheName);
-        
-        if (sessionId == null) {
-            sessionId = getSessionId();
-            jedis.set(sessionCacheName, sessionId);
-        }
+        String sessionId = getSessionId();
+        jedis.set(sessionCacheName, sessionId);
+
         return sessionId;
     }
     
@@ -294,7 +294,7 @@ public class UserService {
      */
     private String getSessionId() {        
         SecureRandom random = new SecureRandom();
-        return new BigInteger(130, random).toString(32);
+        return new BigInteger(130, random).toString(32).substring(0,16);
     }
     
     /**

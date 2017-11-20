@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -33,24 +34,32 @@ public class TestUDP {
     
     Channel channel;
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         TestUDP testUDP = new TestUDP();
         testUDP.start();
+        int count = 0;
+        while (true) {
+            ByteBuffer buffer = ByteBuffer.allocate(36);
+            buffer.putInt(1001);
+            byte[] sessionBytes = "test-session-key".getBytes();
+            buffer.put(sessionBytes);
+            buffer.putLong(System.currentTimeMillis());
+            buffer.putInt(1);
+            //buffer.putInt(1);
+            //buffer.putInt(1);
+            //buffer.putInt(1);
+            //buffer.putInt(1);
+            buffer.flip();
+            byte[] data = buffer.array();
         
-        ByteBuffer buffer = ByteBuffer.allocate(36);
-        byte[] sessionBytes = "test-session-key".getBytes();
-        buffer.put(sessionBytes);
-        buffer.putInt(1);
-        //buffer.putInt(1);
-        //buffer.putInt(1);
-        //buffer.putInt(1);
-        //buffer.putInt(1);
-        buffer.flip();
-        byte[] data = buffer.array();
-        
-        //testUDP.sendData("120.27.112.99", 8201, data);
-        testUDP.sendData("192.168.1.17", 8201, data);
-        System.out.printf("udp server send data\n");
+            //testUDP.sendData("120.27.112.99", 8201, data);
+            //testUDP.sendData("192.168.1.17", 8201, data);
+
+            testUDP.sendData("127.0.0.1", 8201, data);
+            System.out.println("udp server send data, count:" + count);
+            count ++;
+            Thread.sleep(2);
+        }
     }
 
     public void sendData(String ip, int port, byte[] data) {
@@ -72,7 +81,7 @@ public class TestUDP {
 //                .option(ChannelOption.SO_BROADCAST, true)
                 .handler(new UDPServerHandler());
 
-                channel = b.bind(8101).sync().channel();
+                channel = b.bind(8001).sync().channel();
             } finally {
 //                group.shutdownGracefully();
             }

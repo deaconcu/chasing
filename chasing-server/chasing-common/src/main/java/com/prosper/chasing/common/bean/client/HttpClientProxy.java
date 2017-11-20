@@ -110,7 +110,7 @@ public class HttpClientProxy {
                 return EntityUtils.toString(entity);
             }
         } catch (IOException e) {
-            String postString = "";
+            String postString;
             try {
                 postString = EntityUtils.toString(requestEntity);
             } catch (IOException ie) {

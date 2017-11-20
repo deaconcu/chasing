@@ -12,6 +12,8 @@ import org.apache.thrift.protocol.TMultiplexedProtocol;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.prosper.chasing.common.bean.ThriftTransportPool;
@@ -30,9 +32,13 @@ import com.prosper.chasing.common.interfaces.data.UserTr;
 import com.prosper.chasing.common.interfaces.game.GameException;
 import com.prosper.chasing.common.interfaces.game.GameService;
 import com.prosper.chasing.common.util.Pair;
+import org.springframework.util.StopWatch;
 
 public class ThriftClient {
 
+    private Logger log = LoggerFactory.getLogger(getClass());
+
+    // zookeeper 节点路径，用来获取服务的ip和port
     private static String gameDataServerZkName = "/gameDataServer/serverList"; 
     private static String gameServerZkName = "/gameServer/serverList"; 
     private static String gameDataServiceRegisterName = "GameDataServiceImpl";
@@ -136,6 +142,39 @@ public class ThriftClient {
                 thriftTransportPool.removeObject(ipAndPort.getX(), ipAndPort.getY(), transport);
                 transport = null;
                 return null;
+            } finally {
+                if (transport != null) {
+                    thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);
+                }
+            }
+        }
+
+        @Override
+        public int getUserGame(int userId) throws TException {
+            StopWatch watch = new StopWatch();
+            TTransport transport = null;
+            watch.start();
+            Pair<String, Integer> ipAndPort = getServiceAddr(gameDataServerZkName);
+            watch.stop();
+            log.info("getServiceAddr cost:" + watch.getLastTaskTimeMillis());
+            try {
+                watch.start();
+                transport = thriftTransportPool.borrowObject(ipAndPort.getX(), ipAndPort.getY());
+                watch.stop();
+                log.info("borrowObject cost:" + watch.getLastTaskTimeMillis());
+                TBinaryProtocol protocol = new TBinaryProtocol(transport);
+                TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameDataServiceRegisterName);
+                GameDataService.Client service = new GameDataService.Client(mp);
+
+                watch.start();
+                int gameId = service.getUserGame(userId);
+                watch.stop();
+                log.info("getUserGame cost:" + watch.getLastTaskTimeMillis());
+                return gameId;
+            } catch (TTransportException e) {
+                thriftTransportPool.removeObject(ipAndPort.getX(), ipAndPort.getY(), transport);
+                transport = null;
+                return -1;
             } finally {
                 if (transport != null) {
                     thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);

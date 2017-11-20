@@ -9,7 +9,7 @@ struct GameTr {
     1: i32 id,
     2: i32 metagameId,
     3: i32 duration,
-    4: byte state,
+    4: i8 state,
     5: i32 creatorId,
     6: string server,
     7: string startTime,
@@ -22,7 +22,7 @@ struct MetagameTr {
     2: string code,
     3: string name,
     4: i32 duration,
-    5: byte state,
+    5: i8 state,
     6: string types,
     7: string createTime,
     8: string updateTime,
@@ -34,6 +34,8 @@ struct UserTr {
     3: i32 road,
     4: i32 hill,
     5: i32 river,
+    6: i8 state,
+    7: i32 gameId;
 }
 
 struct UserPropTr {
@@ -58,6 +60,12 @@ service GameDataService {
      * @param gameId: 游戏ID
      */
     list<UserTr> getGameUsers(1: i32 gameId),
+
+    /*
+     * 获取用户进入的游戏id
+     * @param gameId: 游戏ID
+     */
+    i32 getUserGame(1: i32 userId),
 }
 
 service MetagameDataService {

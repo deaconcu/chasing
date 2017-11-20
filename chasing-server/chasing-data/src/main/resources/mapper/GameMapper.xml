@@ -12,6 +12,7 @@
 		<result property="state" column="state" />
 		<result property="server" column="server" />
 		<result property="creatorId" column="creator_id" />
+        <result property="attendance" column="attendance" />
 		<result property="createTime" column="create_time" />
 		<result property="updateTime" column="update_time" />
 	</resultMap>
@@ -62,6 +63,7 @@
 		    state = #{state},
 		    server = #{server},
 		    creator_id = #{creatorId},
+            attendance = #{attendance},
             create_time = #{createTime},
             update_time = #{updateTime}
 	</insert>
@@ -71,6 +73,7 @@
         SET duration = #{duration},
             state = #{state},
             server = #{server},
+            attendance = #{attendance},
             creator_id = #{creatorId},
             update_time = #{updateTime}
 		WHERE pk_id = #{id}

@@ -5,6 +5,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.prosper.chasing.common.exception.ResourceNotExistException;
 import com.prosper.chasing.data.bean.Game;
 import com.prosper.chasing.data.service.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,6 +102,10 @@ public class UserController {
     public Object getUserGame(HttpServletRequest request){
         int userId = Integer.parseInt(request.getHeader("userId"));
         Game game = gameService.getGameByUser(userId);
+
+        if (game == null) {
+            throw new ResourceNotExistException();
+        }
 
         Map<String, Object> response = new HashMap<>();
         response.put("game", game);

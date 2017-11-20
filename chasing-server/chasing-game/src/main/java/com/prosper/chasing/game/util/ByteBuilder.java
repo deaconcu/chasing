@@ -19,6 +19,18 @@ public class ByteBuilder {
                 (byte)value});
     }
 
+    public void append(long value) {
+        append(new byte[] {
+                (byte)(value >>> 56),
+                (byte)(value >>> 48),
+                (byte)(value >>> 40),
+                (byte)(value >>> 32),
+                (byte)(value >>> 24),
+                (byte)(value >>> 16),
+                (byte)(value >>> 8),
+                (byte)value});
+    }
+
     public void append(byte b) {
         byte[] bytes = new byte[]{b};
         append(bytes);

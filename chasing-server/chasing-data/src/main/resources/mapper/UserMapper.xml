@@ -10,6 +10,7 @@
 		<result property="name" column="name" />
 		<result property="email" column="email" />
 		<result property="phone" column="phone" />
+
 		<result property="passwordMd5" column="password_md5" />
 		<result property="registerTime" column="register_time" />
 		<result property="registerIp" column="register_ip" />
@@ -47,6 +48,8 @@
             register_ip = #{registerIp},
             last_login_time = #{lastLoginTime},
             last_login_ip = #{lastLoginIp}
+			state = #{state},
+			fk_game_id = #{gameId}
 	</insert>
 
 	<update id="update" parameterType="User">
@@ -59,8 +62,12 @@
             register_ip = #{registerIp},
             last_login_time = #{lastLoginTime},
             last_login_ip = #{lastLoginIp}
+
 		WHERE pk_id = #{id}
 	</update>
+
+
+
 
 	<delete id="delete" parameterType="Map">
 		delete from t_user

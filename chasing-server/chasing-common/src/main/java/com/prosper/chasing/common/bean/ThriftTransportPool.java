@@ -11,8 +11,13 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StopWatch;
 
 public class ThriftTransportPool {
+
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     public enum Type {
         tSocket, tNonblockingSocket
@@ -34,12 +39,14 @@ public class ThriftTransportPool {
             GenericObjectPool<TTransport> transportPool = new GenericObjectPool<>(new TTransportFactory(ip, port, type));
 //            transportPool.setTestOnBorrow(true);
             poolMap.put(key, transportPool);
-        } 
+        }
+        TTransport transport = null;
         try {
-            return poolMap.get(key).borrowObject();
+            transport = poolMap.get(key).borrowObject();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        return transport;
     }
 
     public void removeObject(String ip, Integer port, TTransport transport) {

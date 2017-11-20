@@ -2,6 +2,7 @@ package com.prosper.chasing.data.thrift;
 
 import java.util.List;
 
+import com.prosper.chasing.data.bean.UserData;
 import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -36,10 +37,18 @@ public class GameDataServiceImpl implements GameDataService.Iface {
 
     @Override
     public List<UserTr> getGameUsers(int gameId) throws TException {
-        List<User> userList = gameService.getGameUser(gameId);
+        List<UserData> userList = gameService.getGameUser(gameId);
         return ViewTransformer.transferList(userList, UserTr.class);
     }
 
-   
+    @Override
+    public int getUserGame(int userId) throws TException {
+        Game game = gameService.getGameByUser(userId);
+        if (game == null) {
+            return -1;
+        }
+        return game.getId();
+    }
+
 
 }
