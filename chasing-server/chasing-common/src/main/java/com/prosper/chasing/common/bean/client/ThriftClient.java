@@ -75,6 +75,10 @@ public class ThriftClient {
         return new GameServiceClient(ip, port);
     }
 
+    public ConnectionServiceClient connectionServiceClient(String ip, int port) {
+        return new ConnectionServiceClient(ip, port);
+    }
+
     public ConnectionServiceAsyncClient connectionServiceAsyncClient(String ip, int port) {
         return new ConnectionServiceAsyncClient(ip, port);
     }
@@ -302,6 +306,39 @@ public class ThriftClient {
                 GameService.Client service = new GameService.Client(protocol);
 
                 service.executeData(gameId, userId, message);
+            } catch (TTransportException e) {
+                thriftTransportPool.removeObject(ip, port, transport);
+                transport = null;
+            } finally {
+                if (transport != null) {
+                    thriftTransportPool.returnObject(ip, port, transport);
+                }
+            }
+        }
+
+    }
+
+    public class ConnectionServiceClient implements ConnectionService.Iface {
+
+        private String ip;
+        private int port;
+
+        public ConnectionServiceClient(String ip, int port) {
+            this.ip = ip;
+            this.port = port;
+        }
+
+        @Override
+        public void executeData(int userId, ByteBuffer message)
+                throws TException {
+            TTransport transport = null;
+            try {
+                transport = thriftTransportPool.borrowObject(ip, port);
+                TBinaryProtocol protocol = new TBinaryProtocol(transport);
+                //                TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, gameServiceRegisterName);
+                ConnectionService.Client service = new ConnectionService.Client(protocol);
+
+                service.executeData(userId, message);
             } catch (TTransportException e) {
                 thriftTransportPool.removeObject(ip, port, transport);
                 transport = null;

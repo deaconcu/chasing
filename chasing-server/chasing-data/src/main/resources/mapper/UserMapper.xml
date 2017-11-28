@@ -48,8 +48,6 @@
             register_ip = #{registerIp},
             last_login_time = #{lastLoginTime},
             last_login_ip = #{lastLoginIp}
-			state = #{state},
-			fk_game_id = #{gameId}
 	</insert>
 
 	<update id="update" parameterType="User">
@@ -62,12 +60,8 @@
             register_ip = #{registerIp},
             last_login_time = #{lastLoginTime},
             last_login_ip = #{lastLoginIp}
-
 		WHERE pk_id = #{id}
 	</update>
-
-
-
 
 	<delete id="delete" parameterType="Map">
 		delete from t_user

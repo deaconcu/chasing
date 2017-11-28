@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+
 @Component
 public class GameCron {
 
@@ -15,13 +17,23 @@ public class GameCron {
     @Autowired
     GameService gameService;
 
-    @Scheduled(cron="${cron.create.game}")
+    @PostConstruct
     public void createGame() {
-        try {
-            gameService.createGameBySystem();
-        } catch (Exception e) {
-            log.error("create game failed", e);
-        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while(true) {
+                        int count = gameService.createGameBySystem();
+                        if (count == 0) {
+                            Thread.sleep(500);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("create game failed", e);
+                }
+            }
+        }).start();
     }
 
 }

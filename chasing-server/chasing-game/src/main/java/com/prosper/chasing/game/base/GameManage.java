@@ -7,10 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
 import javax.annotation.PostConstruct;
 import javax.swing.plaf.basic.BasicInternalFrameTitlePane.SystemMenuBar;
@@ -158,16 +155,13 @@ public class GameManage {
             Map<Integer, User> userMap = new HashMap<>();
             for (User user: userList) {
                 List<UserPropTr> propList = thriftClient.propDataServiceClient().getUserProp(user.getId());
-                Map<Integer, Prop> propMap = new HashMap<>();
+                Map<Byte, Byte> propMap = new HashMap<>();
                 for (UserPropTr propTr: propList) {
-                    Prop prop = new Prop();
-                    prop.setId(propTr.getPropId());
-                    prop.setCount(propTr.getCount());
-                    propMap.put(propTr.getPropId(), prop);
+                    propMap.put((byte)propTr.getPropId(), (byte)propTr.getCount());
                 }
                 user.setPropMap(propMap);
                 user.setState(UserState.LOADED);
-                user.setGameId(game.getGameInfo().getId());
+                user.setGame(game);
             }
             game.loadUser(userList);
 
@@ -228,6 +222,9 @@ public class GameManage {
         return userQueue.offer(user);
     }
 
+    /**
+     * 创建游戏
+     */
     @PostConstruct
     public void createGame() {
         new Thread(new Runnable() {
@@ -272,7 +269,8 @@ public class GameManage {
             public void run() {
                 while(true) {
                     try {
-                        Message message = recieveMessageQueue.take();
+                        // 处理玩家发送的动作
+                        Message message = recieveMessageQueue.poll(100, TimeUnit.MILLISECONDS);
                         Message parsedMessage = null;
                         Integer gameId = null;
                         if (message instanceof UserMessage) {
@@ -291,6 +289,17 @@ public class GameManage {
                         } else {
                             log.warn("message type not supported");
                         }
+
+                        // 处理游戏的逻辑，比如生成新的道具
+                        for (Game game: gameMap.values()) {
+                            game.logic();
+                        }
+
+                        // 同步用户数据
+                        for (Game game: gameMap.values()) {
+                            game.syncUser();
+                        }
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -327,6 +336,7 @@ public class GameManage {
                         String ip = ipAndPort[0];
                         int port = Integer.parseInt(ipAndPort[1]);
 
+                        /*
                         ConnectionServiceAsyncClient asyncClient = thriftClient.connectionServiceAsyncClient(ip, port);
                         asyncClient.executeData(userId, message.getContent(), new AsyncMethodCallback<Object>() {
                             @Override
@@ -338,6 +348,10 @@ public class GameManage {
                                 log.info("response failed, user id:" + userId, exception);
                             }
                         });
+                        */
+
+                        thriftClient.connectionServiceClient(ip, port).
+                                executeData(userId, message.getContent());
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -360,12 +374,12 @@ public class GameManage {
                         user = userQueue.take();
                         // TODO try 3 times
                         UserTr userTr = ViewTransformer.transferObject(user, UserTr.class);
-                        Map<Integer, Prop> propMap = user.getPropMap();
+                        Map<Byte, Byte> propMap = user.getPropMap();
                         List<UserPropTr> propList = new LinkedList<>();
-                        for (Prop prop: propMap.values()) {
+                        for (Map.Entry<Byte, Byte> entry: propMap.entrySet()) {
                             UserPropTr userPropTr = new UserPropTr();
-                            userPropTr.setPropId(prop.getId());
-                            userPropTr.setCount(prop.getCount());
+                            userPropTr.setPropId(entry.getKey());
+                            userPropTr.setCount(entry.getValue());
                             propList.add(userPropTr);
                         }
 
@@ -373,7 +387,7 @@ public class GameManage {
                         userTr.setGameId(-1);
                         thriftClient.wrapperServiceClient().updateUserProp(userTr, propList);
                         thriftClient.UserDataServiceClient().updateUser(userTr);
-                        recieveData(new QuitCompleteMessage(user.getGameId(), user.getId()));
+                        recieveData(new QuitCompleteMessage(user.getGame().getGameInfo().getId(), user.getId()));
                     } catch(Exception e) {
                         if (user != null) {
                             user.setState(UserState.ACTIVE);

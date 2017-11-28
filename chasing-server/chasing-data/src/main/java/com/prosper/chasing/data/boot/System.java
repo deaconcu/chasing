@@ -21,7 +21,8 @@ public class System  {
     @PostConstruct
     public void init() {
         zkClient.createPath(Constant.SERVE_LIST_ZK_NAME, CreateMode.PERSISTENT);
-        zkClient.createNode(Constant.SERVE_LIST_ZK_NAME + "/" + config.serverIp + ":" + config.rpcPort, null, CreateMode.EPHEMERAL, false);
+        // TODO CREATEMODE
+        zkClient.createNode(Constant.SERVE_LIST_ZK_NAME + "/" + config.serverIp + ":" + config.rpcPort, null, CreateMode.PERSISTENT, false);
     }
 
     

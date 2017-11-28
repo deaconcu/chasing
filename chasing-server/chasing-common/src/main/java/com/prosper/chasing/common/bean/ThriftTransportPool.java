@@ -103,9 +103,11 @@ public class ThriftTransportPool {
                     transport.open();
                 } else if (type == Type.tNonblockingSocket){
                     TNonblockingSocket tNonblockingSocket = new TNonblockingSocket(ip, port);
+                    tNonblockingSocket.open();
                     transport = (TTransport) tNonblockingSocket;
                 }
                 if (transport != null) {
+                    log.info("create transport successfully from factory");
                     return transport;
                 }
                 throw new RuntimeException("transport create error");

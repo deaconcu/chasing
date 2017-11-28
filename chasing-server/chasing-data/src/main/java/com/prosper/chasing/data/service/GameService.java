@@ -276,13 +276,14 @@ public class GameService {
      * 系统自动创建游戏
      * 单线程运行
      */
-    public void createGameBySystem() {
+    public int createGameBySystem() {
         log.info("start create game");
 
         String userListKey = CacheName.systemUserList + "0";
         List<Integer> userList = new LinkedList<>();
         String attendance = "";
-        if (jedis.llen(userListKey) >= config.minUserCount) {
+        long userCount = jedis.llen(userListKey);
+        if (userCount >= config.minUserCount) {
             for (int i = 0; i < config.minUserCount; i++) {
                 int userId = Integer.parseInt(jedis.lindex(userListKey, i));
                 if (!isUserInGame(userId)) {
@@ -322,7 +323,9 @@ public class GameService {
             }
             userDataMapper.updateUserIntoGame(userList, game.getId(), Constant.UserState.GAMING);
             log.info("create game success, game id:" + game.getId());
+            return 1;
         }
+        return 0;
     }
 
     /**

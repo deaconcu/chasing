@@ -82,7 +82,7 @@ public class ConnectionServerBeans {
     // thrift的rpc server, 自动扫描rpc service
     @Bean
     public ThriftRPCServer thriftRPCServer(Config config) {
-        return new ThriftRPCServer(config.appPackage, config.rpcPort, Type.TThreadedSelectorServer);
+        return new ThriftRPCServer(config.appPackage, config.rpcPort, Type.TThreadPoolServer);
     }
 
     // thrift客户端

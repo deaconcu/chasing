@@ -34,7 +34,7 @@ public class GameCron {
     @Autowired
     GameManage gameManage;
 
-    @Scheduled(cron="${cron.create.game}")
+    //@Scheduled(cron="${cron.create.game}")
     public void createGame() {
         try {
             final GameDataServiceClient gameDataServiceClient = thriftClient.gameDataServiceClient();

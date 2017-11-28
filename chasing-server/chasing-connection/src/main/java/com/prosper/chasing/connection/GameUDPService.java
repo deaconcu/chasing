@@ -116,8 +116,10 @@ public class GameUDPService implements UDPService {
 
             */
             // 处理用户行为数据
-            thriftClient.gameServiceClient((String)userInfo.get("host"), (Integer)userInfo.get("port")).
-                    executeData((Integer)userInfo.get("gameId"), userId, buffer);
+            synchronized (this) {
+                thriftClient.gameServiceClient((String) userInfo.get("host"), (Integer) userInfo.get("port")).
+                        executeData((Integer) userInfo.get("gameId"), userId, buffer);
+            }
 
             return userId;
         } catch (Exception e) {

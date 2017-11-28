@@ -9,7 +9,14 @@ public class ReplyMessage {
     
     private int userId;
     private ByteBuffer content;
-    
+
+    public ReplyMessage() {}
+
+    public ReplyMessage(int userId, ByteBuffer content) {
+        this.userId = userId;
+        this.content = content;
+    }
+
     public int getUserId() {
         return userId;
     }

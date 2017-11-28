@@ -1,5 +1,8 @@
 package com.prosper.chasing.game.base;
 
+/*
+ * 游戏的元信息
+ */
 public class GameInfo {
 
     private Integer id;

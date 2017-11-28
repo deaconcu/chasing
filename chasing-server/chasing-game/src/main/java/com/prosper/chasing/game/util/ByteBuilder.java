@@ -11,6 +11,12 @@ public class ByteBuilder {
         pos = -1;
     }
 
+    public void append(short value) {
+        append(new byte[] {
+                (byte)(value >>> 8),
+                (byte)value});
+    }
+
     public void append(int value) {
         append(new byte[] {
                 (byte)(value >>> 24),
@@ -43,6 +49,15 @@ public class ByteBuilder {
         }
         for (byte b: bytes) {
             innerBytes[++ pos] = b;
+        }
+    }
+
+    public void set(byte[] bytes, int index) {
+        if (index >= innerBytes.length || index < 0) {
+            throw new RuntimeException("index is out of range");
+        }
+        for (byte b: bytes) {
+            innerBytes[index ++] = b;
         }
     }
 

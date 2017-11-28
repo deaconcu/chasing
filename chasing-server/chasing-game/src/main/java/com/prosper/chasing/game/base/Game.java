@@ -1,16 +1,14 @@
 package com.prosper.chasing.game.base;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.prosper.chasing.game.message.*;
+import com.prosper.chasing.game.prop.PropService;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.prosper.chasing.common.interfaces.data.UserPropTr;
 import com.prosper.chasing.common.interfaces.game.GameException;
 import com.prosper.chasing.game.base.ActionChange.Action;
 import com.prosper.chasing.game.base.ActionChange.FieldChange;
@@ -21,7 +19,6 @@ import com.prosper.chasing.game.base.ActionChange.BuffChange;
 import com.prosper.chasing.game.base.ActionChange.StateChange;
 import com.prosper.chasing.game.base.User.UserState;
 import com.prosper.chasing.game.message.Message;
-import com.prosper.chasing.game.prop.BaseProp;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant.GameLoadingState;
 import com.prosper.chasing.common.util.CommonConstant.GameState;
@@ -40,13 +37,79 @@ public abstract class Game {
     // 参与的用户信息
     private Map<Integer, User> userMap;
 
+    // 游戏场景内的道具信息
+    private List<EnvProp> envPropList;
+
+    // 需要同步给用户的数据
+    private Map<Integer, Map<String, Object>> userChangeMap;
+
+    private PropService propService = new PropService();
+
     // 处理游戏逻辑的管理器
     private GameManage gameManage;
     private JsonUtil jsonUtil = new JsonUtil();
+    private Random random = new Random();
+
+    // 每一次同步的时候有位置变化和buff变化的用户map
+    List<EnvProp> envPropChangedList = new LinkedList<>();
+    Set<Integer> positionChangedSet = new HashSet<>();
+    Set<Integer> buffChangedSet = new HashSet<>();
     
     public Game() {
         this.state = GameLoadingState.START;
         userMap = new HashMap<>();
+    }
+
+    /**
+     *游戏场景中的道具
+     */
+    public static class EnvProp {
+        byte propId;
+        int positionX;
+        int positionY;
+        int positionZ;
+        long createTime;
+        long vanishTime;
+        boolean state;
+
+        public int getRemainSecond() {
+            return (int)((vanishTime - createTime) / 1000);
+        }
+    }
+
+    /**
+     * 游戏场景中的一些逻辑，比如生成道具
+     */
+    public void logic() {
+        // TODO 需要提取出去作为配置
+        int xRange = 100; // 地图上x的范围
+        int zRange = 100; // 地图上z的范围
+        int propSize = 10;  // 生成道具的数量
+        int last = 10000; // 道具持续时间, 单位为毫秒
+        byte[] propIds = {1, 2, 3, 4, 5};  // 能够生成的道具id
+
+        ListIterator<EnvProp> iterator = envPropList.listIterator();
+        while(iterator.hasNext()) {
+            EnvProp envProp = iterator.next();
+            if (envProp.vanishTime <= System.currentTimeMillis()) {
+                envProp.state = false;
+                envPropChangedList.add(envProp);
+                iterator.remove();
+            }
+        }
+
+        while (envPropList.size() < propSize) {
+            EnvProp envProp = new EnvProp();
+            envProp.propId = propIds[random.nextInt(propIds.length)];
+            envProp.positionX = (int) random.nextFloat() * xRange * 1000;
+            envProp.positionY = 0;
+            envProp.positionZ = (int) random.nextFloat() * zRange * 1000;
+            envProp.createTime = System.currentTimeMillis();
+            envProp.vanishTime = envProp.createTime + last;
+            envProp.state = true;
+            envPropChangedList.add(envProp);
+        }
+        envPropList.addAll(envPropChangedList);
     }
     
     /**
@@ -56,29 +119,51 @@ public abstract class Game {
         ActionChange actionChange = null;
         if (message instanceof ConnectMessage) {
             ConnectMessage connectMessage = (ConnectMessage) message;
-            actionChange = executeConnectMessage(connectMessage);
+            executeConnectMessage(connectMessage);
         } else if (message instanceof QuitMessage) {
             QuitMessage quitMessage = (QuitMessage) message;
-            actionChange = executeQuitMessage(quitMessage);
+            executeQuitMessage(quitMessage);
         } else if (message instanceof PositionMessage) {
             PositionMessage positionMessage = (PositionMessage) message;
-            actionChange = executePositionMessage(positionMessage);
+            executePositionMessage(positionMessage);
         } else if (message instanceof PropMessage) {
             PropMessage propMessage = (PropMessage) message;
-            actionChange = executePropMessage(propMessage);
+            executePropMessage(propMessage);
         } else if (message instanceof SkillMessage){
             SkillMessage skillMessage = (SkillMessage) message;
-            actionChange = executeSkillMessage(skillMessage);
+            executeSkillMessage(skillMessage);
         } else if (message instanceof QuitCompleteMessage){
             QuitCompleteMessage quitCompleteMessage = (QuitCompleteMessage) message;
-            actionChange = executeQuitCompleteMessage(quitCompleteMessage);
+            executeQuitCompleteMessage(quitCompleteMessage);
         } else {
             log.warn("undefined message type:" + message.getClass().getName());
         }
-        sync(actionChange);
+        //sync(actionChange);
         
         if (state == GameState.FINISHED) {
             gameManage.finishGame(gameInfo.getId());
+        }
+    }
+
+    public void syncUser() {
+        for (User user: userMap.values()) {
+            if (user.isPositionChanged) {
+                positionChangedSet.add(user.getId());
+            }
+            if (user.buffChangedSet.size() != 0) {
+                buffChangedSet.add(user.getId());
+            }
+        }
+
+        for (User user: userMap.values()) {
+            gameManage.replyData(new ReplyMessage(user.getId(), user.ChangesToBytes()));
+        }
+
+        envPropChangedList.clear();
+        positionChangedSet.clear();
+        buffChangedSet.clear();
+        for (User user: userMap.values()) {
+            user.clearAfterSync();
         }
     }
 
@@ -223,7 +308,7 @@ public abstract class Game {
     /**
      * 发送需要同步的用户数据
      * 消息格式如下
-     * messageType(1)|userId(4)|state(1)|time(8)|positionX(4)|positionY(4)|positionZ(4)
+     * messageType(1)|userId(4)|state(1)|time(8)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotationY(4)|
      * buff: buffId(4bit)|count(4bit)
      */
     private void sendPositionMessage(ActionChange actionChange) {
@@ -238,9 +323,11 @@ public abstract class Game {
                 byteBuilder.append(changedUser.getId());
                 byteBuilder.append((byte)changedUser.getState());
                 byteBuilder.append(((ActionChange.PositionAction)action).time);
-                byteBuilder.append(changedUser.getPosition().x);
-                byteBuilder.append(changedUser.getPosition().y);
-                byteBuilder.append(changedUser.getPosition().z);
+                byteBuilder.append(changedUser.getPosition().moveState);
+                byteBuilder.append(changedUser.getPosition().positionX);
+                byteBuilder.append(changedUser.getPosition().positionY);
+                byteBuilder.append(changedUser.getPosition().positionZ);
+                byteBuilder.append(changedUser.getPosition().rotateY);
 
                 ReplyMessage replyMessage = new ReplyMessage();
                 replyMessage.setUserId(userId);
@@ -269,15 +356,15 @@ public abstract class Game {
                 User changedUser = userMap.get(changedUserId);
                 byteBuilder.append(changedUser.getId());
                 byteBuilder.append((byte)changedUser.getState());
-                byteBuilder.append(changedUser.getPosition().x);
-                byteBuilder.append(changedUser.getPosition().y);
+                byteBuilder.append(changedUser.getPosition().positionX);
+                byteBuilder.append(changedUser.getPosition().positionY);
 
-                Map<Integer, Integer> buffMap = changedUser.getBuffMap();
+                Map<Byte, User.Buff> buffMap = changedUser.getBuffMap();
                 if (buffMap != null) {
                     byteBuilder.append((byte)buffMap.size());
-                    for (Integer buffId: buffMap.keySet()) {
+                    for (Byte buffId: buffMap.keySet()) {
                         byteBuilder.append(buffId);
-                        byteBuilder.append(buffMap.get(buffId));
+                        //byteBuilder.append(buffMap.get(buffId));
                     }
                 } else {
                     byteBuilder.append((byte)0);
@@ -338,44 +425,26 @@ public abstract class Game {
     /**
      * 处理位置消息
      */
-    public ActionChange executePositionMessage(PositionMessage message) {
+    public void executePositionMessage(PositionMessage message) {
         User user = getUser(message.getUserId(), true);
         
         // TODO check if could move
-        Position position = new Position(message.positionX, message.positionY, message.positionZ);
+        Position position = new Position(
+                message.moveState, message.positionX, message.positionY, message.positionZ, message.rotationY);
         user.setPosition(position);
-
-        ActionChange.PositionAction action = new ActionChange.PositionAction(message.time);
-        ActionChange actionChange = new ActionChange();
-        actionChange.setUserId(message.getUserId());
-        actionChange.putChange(message.getUserId(), new PositionChange());
-        actionChange.setAction(action);
-        return actionChange;
     }
     
     /**
      * 处理使用道具消息
      */
-    public ActionChange executePropMessage(PropMessage message) {
-        ActionChange actionChange = new ActionChange();
-        
+    public void executePropMessage(PropMessage message) {
         User user = getUser(message.getUserId(), true);
         User toUser = getUser(message.getToUserId(), false);
         // check if user prop is enough
         int propId = message.getPropId();
-        user.checkProp(propId, 1);
-        
-        PropAction action = new ActionChange.PropAction();
-        actionChange.setAction(action);
-        action.propId = propId;
-        
-        BaseProp baseProp = BaseProp.getProp(propId);
-        baseProp.testUse(user, toUser, userMap, action);
-        
-        if(action.opCode == 0) {
-            baseProp.use(user, toUser, userMap, actionChange);
-        }
-        return actionChange;
+        user.checkProp(propId, (byte)1);
+
+        propService.use(propId, user, toUser, userMap);
     }
     
     /**
@@ -446,8 +515,9 @@ public abstract class Game {
      */
     public void loadUser(List<User> userList) {
         for (User user: userList) {
-            Position position = new Position(0, 0, 0);
+            Position position = new Position((byte)1, 0, 0, 0, 0);
             user.setPosition(position);
+            user.setInitPosition(position);
             userMap.put(user.getId(), user);
         }
     }
@@ -468,6 +538,4 @@ public abstract class Game {
         return state;
     }
     
-
-
 }
