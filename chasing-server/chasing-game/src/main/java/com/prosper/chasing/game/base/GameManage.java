@@ -52,7 +52,7 @@ public class GameManage {
 
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    private static String gameImplScanPackage = "com.prosper.chasing.game.base.impl";
+    private static String gameImplScanPackage = "com.prosper.chasing.game.games";
     private Map<String, Class<? extends Game>> gameClassMap = new HashMap<>();
     private Map<Integer, Game> gameMap = new HashMap<>();
 
@@ -260,46 +260,46 @@ public class GameManage {
     }
 
     /**
-     * 执行游戏消息
+     * 分发游戏消息
      */
     @PostConstruct
-    public void executeData() {
+    public void dispatchMessage() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while(true) {
                     try {
-                        // 处理玩家发送的动作
                         Message message = recieveMessageQueue.poll(100, TimeUnit.MILLISECONDS);
-                        Message parsedMessage = null;
-                        Integer gameId = null;
-                        if (message instanceof UserMessage) {
-                            UserMessage userMessage = messageParser.parseUserMessage((UserMessage) message);
-                            gameId = userMessage.getGameId();
-                            parsedMessage = userMessage;
-                        } else if (message instanceof SystemMessage) {
-                            SystemMessage systemMessage = (SystemMessage) message;
-                            gameId = systemMessage.getGameId();
-                            parsedMessage = systemMessage;
-                        }
+                        Integer gameId = message.getGameId();
 
                         if (gameId != null) {
                             Game game = gameMap.get(gameId);
-                            game.executeMessage(parsedMessage);
-                        } else {
-                            log.warn("message type not supported");
+                            game.offerMessage(message);
                         }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+    }
 
+    /**
+     * 执行游戏逻辑
+     */
+    @PostConstruct
+    public void executeGameLogic() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    try {
                         // 处理游戏的逻辑，比如生成新的道具
                         for (Game game: gameMap.values()) {
+                            game.executeMessage();
                             game.logic();
-                        }
-
-                        // 同步用户数据
-                        for (Game game: gameMap.values()) {
                             game.syncUser();
                         }
-
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

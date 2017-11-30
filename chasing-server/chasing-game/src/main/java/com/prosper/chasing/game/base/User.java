@@ -69,6 +69,18 @@ public class User {
         byte id;
         int startSecond; // 起始时间
         short last;      // 持续时间
+        Object[] values;  // buff的一些属性
+
+        public Buff(byte id, short last) {
+            this.id = id;
+            this.startSecond = (int)(System.currentTimeMillis() / 1000);
+            this.last = last;
+        }
+
+        public Buff(byte id, short last, Object[] values) {
+            this(id, last);
+            this.values = values;
+        }
 
         public int getRemainSecond() {
             return (int) (System.currentTimeMillis() / 1000 - (startSecond + last));
@@ -167,6 +179,10 @@ public class User {
         propChangedSet.add(propId);
     }
 
+    public byte getProp(byte propId) {
+        return propMap.get(propId);
+    }
+
     public Map<Byte, Buff> getBuffMap() {
         return buffMap;
     }
@@ -221,7 +237,7 @@ public class User {
      * speedValue(4)
      * buffCount(1)|list<Buff>
      * propCount(1)|list<Prop>
-     * userCount(1)|list<UserPostion>
+     * userCount(1)|list<UserPosition>
      * userCount(1)|list<UserBuff>
      *
      * state: reserved(7bit)|envProp(1bit)|action(1bit)|position(1bit)|life(1bit)|speed(1bit)|buff(1bit)|
@@ -230,7 +246,7 @@ public class User {
      * Action: id(2)|code(1)|type(1)|value(4)|
      * Buff: buffId(1)|remainSecond(4)|
      * Prop: propId(1)|count(1)|
-     * UserPostion moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
+     * UserPosition moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * UserBuff buffByte(4)
      */
     public ByteBuffer ChangesToBytes() {

@@ -5,18 +5,7 @@ package com.prosper.chasing.game.message;
  */
 public class SystemMessage extends Message {
     
-    private int gameId;
-    
     public SystemMessage(int gameId) {
-        this.gameId = gameId;
+        setGameId(gameId);
     }
-
-    public int getGameId() {
-        return gameId;
-    }
-
-    public void setGameId(int gameId) {
-        this.gameId = gameId;
-    }
-
 }

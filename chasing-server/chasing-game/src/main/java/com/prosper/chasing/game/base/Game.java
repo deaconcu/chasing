@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 import com.prosper.chasing.game.message.*;
-import com.prosper.chasing.game.prop.PropService;
+import com.prosper.chasing.game.service.PropService;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +28,8 @@ public abstract class Game {
     
     private Logger log = LoggerFactory.getLogger(getClass());
 
+    public static final int FETCH_DISTANCE = 5;
+
     // 游戏加载状态
     private int state;
 
@@ -36,6 +38,8 @@ public abstract class Game {
 
     // 参与的用户信息
     private Map<Integer, User> userMap;
+
+    private Queue<Message> messageQueue;
 
     // 游戏场景内的道具信息
     private List<EnvProp> envPropList;
@@ -48,32 +52,101 @@ public abstract class Game {
     // 处理游戏逻辑的管理器
     private GameManage gameManage;
     private JsonUtil jsonUtil = new JsonUtil();
+
     private Random random = new Random();
 
     // 每一次同步的时候有位置变化和buff变化的用户map
     List<EnvProp> envPropChangedList = new LinkedList<>();
     Set<Integer> positionChangedSet = new HashSet<>();
     Set<Integer> buffChangedSet = new HashSet<>();
+
+    protected long startTime = System.currentTimeMillis();
     
     public Game() {
         this.state = GameLoadingState.START;
         userMap = new HashMap<>();
     }
 
+    public Class<? extends User> getUserClass() {
+        return User.class;
+    }
+
+    public Map<Integer, User> getUserMap() {
+        return userMap;
+    }
+
+    public Random getRandom() {
+        return random;
+    }
+
+    public List<EnvProp> getEnvPropChangedList() {
+        return envPropChangedList;
+    }
+
+    public List<EnvProp> getEnvPropList() {
+        return envPropList;
+    }
+
+    public void offerMessage(Message message) {
+        messageQueue.offer(message);
+    }
     /**
-     *游戏场景中的道具
+     * 游戏场景中的道具
      */
     public static class EnvProp {
-        byte propId;
-        int positionX;
-        int positionY;
-        int positionZ;
-        long createTime;
-        long vanishTime;
-        boolean state;
+        public byte propId;
+        public PositionPoint positionPoint;
+        public long createTime;
+        public long vanishTime;
+        public boolean state;
 
         public int getRemainSecond() {
             return (int)((vanishTime - createTime) / 1000);
+        }
+    }
+
+    /**
+     * 结束后的成绩
+     */
+    public static class Result implements Comparable{
+        User user;
+        int score;
+
+        public Result(User user, int score) {
+            this.user = user;
+            this.score = score;
+        }
+
+        @Override
+        public int compareTo(Object o) {
+            if (!(o instanceof Result)) {
+                return -1;
+            }
+            return (score > ((Result) o).score) ? 1 : -1;
+        }
+    }
+
+    /**
+     * 位置点
+     */
+    public static class PositionPoint {
+        public int x;
+        public int y;
+        public int z;
+
+        public PositionPoint(int x, int y , int z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof  PositionPoint)) {
+                return false;
+            }
+            PositionPoint pp = (PositionPoint) o;
+            return x == pp.x && y == pp.y && z == pp.z;
         }
     }
 
@@ -101,9 +174,9 @@ public abstract class Game {
         while (envPropList.size() < propSize) {
             EnvProp envProp = new EnvProp();
             envProp.propId = propIds[random.nextInt(propIds.length)];
-            envProp.positionX = (int) random.nextFloat() * xRange * 1000;
-            envProp.positionY = 0;
-            envProp.positionZ = (int) random.nextFloat() * zRange * 1000;
+            envProp.positionPoint.x = (int) random.nextFloat() * xRange * 1000;
+            envProp.positionPoint.y = 0;
+            envProp.positionPoint.z = (int) random.nextFloat() * zRange * 1000;
             envProp.createTime = System.currentTimeMillis();
             envProp.vanishTime = envProp.createTime + last;
             envProp.state = true;
@@ -111,7 +184,16 @@ public abstract class Game {
         }
         envPropList.addAll(envPropChangedList);
     }
-    
+
+    /**
+     * 处理消息
+     */
+    public void executeMessage() {
+        while(messageQueue.size() > 0) {
+            executeMessage(messageQueue.poll());
+        }
+    }
+
     /**
      * 处理进入的消息，主要进行分发
      */
@@ -166,6 +248,15 @@ public abstract class Game {
             user.clearAfterSync();
         }
     }
+
+    protected int getDistance(PositionPoint pp1, PositionPoint pp2 ) {
+        return (int) Math.sqrt(Math.pow(pp1.x - pp2.x, 2) + Math.pow(pp2.y - pp2.y, 2) + Math.pow(pp2.z - pp2.z, 2));
+    }
+
+    /**
+     * 获取结果列表
+     */
+    protected abstract List<Result> getResultList();
 
     /**
      * 同步变化
@@ -324,9 +415,9 @@ public abstract class Game {
                 byteBuilder.append((byte)changedUser.getState());
                 byteBuilder.append(((ActionChange.PositionAction)action).time);
                 byteBuilder.append(changedUser.getPosition().moveState);
-                byteBuilder.append(changedUser.getPosition().positionX);
-                byteBuilder.append(changedUser.getPosition().positionY);
-                byteBuilder.append(changedUser.getPosition().positionZ);
+                byteBuilder.append(changedUser.getPosition().positionPoint.x);
+                byteBuilder.append(changedUser.getPosition().positionPoint.y);
+                byteBuilder.append(changedUser.getPosition().positionPoint.z);
                 byteBuilder.append(changedUser.getPosition().rotateY);
 
                 ReplyMessage replyMessage = new ReplyMessage();
@@ -356,8 +447,8 @@ public abstract class Game {
                 User changedUser = userMap.get(changedUserId);
                 byteBuilder.append(changedUser.getId());
                 byteBuilder.append((byte)changedUser.getState());
-                byteBuilder.append(changedUser.getPosition().positionX);
-                byteBuilder.append(changedUser.getPosition().positionY);
+                byteBuilder.append(changedUser.getPosition().positionPoint.x);
+                byteBuilder.append(changedUser.getPosition().positionPoint.z);
 
                 Map<Byte, User.Buff> buffMap = changedUser.getBuffMap();
                 if (buffMap != null) {
@@ -430,7 +521,8 @@ public abstract class Game {
         
         // TODO check if could move
         Position position = new Position(
-                message.moveState, message.positionX, message.positionY, message.positionZ, message.rotationY);
+                message.moveState, new PositionPoint(message.positionX, message.positionY, message.positionZ),
+                message.rotationY);
         user.setPosition(position);
     }
     
@@ -440,11 +532,14 @@ public abstract class Game {
     public void executePropMessage(PropMessage message) {
         User user = getUser(message.getUserId(), true);
         User toUser = getUser(message.getToUserId(), false);
+        if (toUser == null) {
+            toUser = user;
+        }
         // check if user prop is enough
         int propId = message.getPropId();
         user.checkProp(propId, (byte)1);
 
-        propService.use(propId, user, toUser, userMap);
+        propService.use(propId, message.getValues(), user, toUser, userMap);
     }
     
     /**
@@ -515,12 +610,70 @@ public abstract class Game {
      */
     public void loadUser(List<User> userList) {
         for (User user: userList) {
-            Position position = new Position((byte)1, 0, 0, 0, 0);
+            Position position = new Position((byte)1, new PositionPoint(0, 0, 0),0);
             user.setPosition(position);
             user.setInitPosition(position);
             userMap.put(user.getId(), user);
         }
     }
+
+    /**
+     * 移除无效道具
+     */
+    protected void removeInvalidProp() {
+        ListIterator<EnvProp> iterator = getEnvPropList().listIterator();
+        while(iterator.hasNext()) {
+            EnvProp envProp = iterator.next();
+            if (envProp.vanishTime <= System.currentTimeMillis()) {
+                envProp.state = false;
+                getEnvPropChangedList().add(envProp);
+                iterator.remove();
+            }
+        }
+    }
+
+    /**
+     * 拾取道具
+     */
+    protected void fetchProp() {
+        for (EnvProp envProp: getEnvPropList()) {
+            for (User user: getUserMap().values()) {
+                int distance = getDistance(envProp.positionPoint, user.getPosition().positionPoint);
+                if (distance > Game.FETCH_DISTANCE) {
+                    user.setProp(envProp.propId, (byte)(user.getProp(envProp.propId) + 1));
+                    getEnvPropList().remove(envProp);
+                    getEnvPropChangedList().add(envProp);
+                }
+            }
+        }
+    }
+
+    /**
+     * 补充新的道具
+     */
+    protected void generatProp() {
+        // TODO 需要提取出去作为配置
+        int xRange = 100; // 地图上x的范围
+        int zRange = 100; // 地图上z的范围
+        int propSize = 10;  // 生成道具的数量
+        int last = 10000; // 道具持续时间, 单位为毫秒
+        byte[] propIds = {1, 2, 3, 4, 5, 26};  // 能够生成的道具id
+
+
+        while (getEnvPropList().size() < propSize) {
+            EnvProp envProp = new EnvProp();
+            envProp.propId = propIds[getRandom().nextInt(propIds.length)];
+            envProp.positionPoint.x = (int) getRandom().nextFloat() * xRange * 1000;
+            envProp.positionPoint.y = 0;
+            envProp.positionPoint.z = (int) getRandom().nextFloat() * zRange * 1000;
+            envProp.createTime = System.currentTimeMillis();
+            envProp.vanishTime = envProp.createTime + last;
+            envProp.state = true;
+            getEnvPropChangedList().add(envProp);
+        }
+        getEnvPropList().addAll(getEnvPropChangedList());
+    }
+
 
     public void setGameManage(GameManage gameManage) {
         this.gameManage = gameManage;

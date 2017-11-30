@@ -3,16 +3,12 @@ package com.prosper.chasing.game.base;
 public class Position {
 
     public byte moveState;
-    public int positionX;
-    public int positionY;
-    public int positionZ;
+    public Game.PositionPoint positionPoint;
     public int rotateY;
 
-    public Position(byte moveState, int positionX, int positionY, int positionZ, int rotateY) {
+    public Position(byte moveState, Game.PositionPoint positionPoint, int rotateY) {
         this.moveState = moveState;
-        this.positionX = positionX;
-        this.positionY = positionY;
-        this.positionZ = positionZ;
+        this.positionPoint = positionPoint;
         this.rotateY = rotateY;
     }
 
@@ -22,8 +18,8 @@ public class Position {
             return false;
         }
         Position position = (Position) obj;
-        if (moveState == position.moveState && positionX == position.positionX && positionY == position.positionY
-                && positionZ == position.positionZ && position.rotateY == position.rotateY) {
+        if (moveState == position.moveState && positionPoint.equals(((Position) obj).positionPoint)
+                && position.rotateY == position.rotateY) {
             return true;
         }
         return false;
