@@ -10,7 +10,6 @@ import com.prosper.chasing.game.service.PropService;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 
 @MetaGameAnno("gems")
 public class Gems extends Game {
@@ -21,6 +20,7 @@ public class Gems extends Game {
     public static class GemsUser extends User {
         public GemsUser(User user) {
             setId(user.getId());
+            setName(user.getName());
             setPropMap(user.getPropMap());
             setGame(user.getGame());
             setState(user.getState());
@@ -49,14 +49,14 @@ public class Gems extends Game {
     public void logic() {
         removeInvalidProp();
         fetchProp();
-        generatProp();
+        generateProp();
     }
 
     @Override
     public List<Result> getResultList() {
         List<Result> resultList = new LinkedList<>();
         for(User user: getUserMap().values()) {
-            resultList.add(new Result(user, user.getProp(PropService.GEN)));
+            resultList.add(new Result(user, user.getProp(PropService.GEN), 0));
         }
         Collections.sort(resultList);
         return resultList;

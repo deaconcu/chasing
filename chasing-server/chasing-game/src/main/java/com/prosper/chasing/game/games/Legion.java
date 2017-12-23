@@ -68,7 +68,7 @@ public class Legion extends Game {
             currentRoundStartTime = (int) System.currentTimeMillis() / 1000;
         }
 
-        generatProp();
+        generateProp();
     }
 
     @Override
@@ -80,12 +80,12 @@ public class Legion extends Game {
         for(User user: getUserMap().values()) {
             LegionUser mUser = (LegionUser) user;
             if (mUser.team == 1) {
-                team1ResultList.add(new Result(mUser, mUser.kill));
+                team1ResultList.add(new Result(mUser, mUser.kill, 0));
                 if (mUser.life > 0) {
                     team1Remain ++;
                 }
             } else {
-                team2ResultList.add(new Result(mUser, mUser.kill));
+                team2ResultList.add(new Result(mUser, mUser.kill, 0));
                 if (mUser.life > 0) {
                     team2Remain ++;
                 }

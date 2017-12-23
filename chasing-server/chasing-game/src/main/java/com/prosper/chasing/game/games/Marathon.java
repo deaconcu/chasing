@@ -4,12 +4,10 @@ import com.prosper.chasing.game.base.Game;
 import com.prosper.chasing.game.base.MetaGameAnno;
 import com.prosper.chasing.game.base.Position;
 import com.prosper.chasing.game.base.User;
-import com.prosper.chasing.game.service.PropService;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 
 @MetaGameAnno("marathon")
 public class Marathon extends Game {
@@ -69,8 +67,8 @@ public class Marathon extends Game {
             for (User user: getUserMap().values()) {
                 MarathonUser mUser = (MarathonUser) user;
                 if (flagIndex == mUser.pointIndex) {
-                    int distance = getDistance(flagList[flagIndex], user.getPosition().positionPoint);
-                    if (distance < Game.FETCH_DISTANCE) {
+                    boolean isNear = isNear(flagList[flagIndex], user.getPosition().positionPoint, FETCH_DISTANCE);
+                    if (isNear) {
                         if ((mUser.pointIndex == flagList.length - 1) && (mUser.loop == loopCount - 1)) {
                             mUser.loop++;
                             mUser.pointIndex = -1;
@@ -86,7 +84,7 @@ public class Marathon extends Game {
             }
         }
 
-        generatProp();
+        generateProp();
     }
 
     @Override
@@ -95,7 +93,7 @@ public class Marathon extends Game {
         for(User user: getUserMap().values()) {
             MarathonUser mUser = (MarathonUser) user;
             int cost = (int) (mUser.finishTime - startTime / 1000);
-            resultList.add(new Result(mUser, cost));
+            resultList.add(new Result(mUser, cost, 0));
         }
         Collections.sort(resultList);
         return resultList;

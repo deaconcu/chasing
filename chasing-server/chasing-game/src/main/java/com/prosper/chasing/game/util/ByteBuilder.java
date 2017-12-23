@@ -44,8 +44,8 @@ public class ByteBuilder {
 
     public void append(byte[] bytes) {
         int contentSize = pos + bytes.length;
-        if (contentSize > innerBytes.length) {
-            expand(contentSize * 2);
+        if (contentSize >= innerBytes.length - 1) {
+            expand(innerBytes.length * 2);
         }
         for (byte b: bytes) {
             innerBytes[++ pos] = b;
@@ -61,6 +61,20 @@ public class ByteBuilder {
         }
     }
 
+    public void set(short value, int index) {
+        set(new byte[] {
+                (byte)(value >>> 8),
+                (byte)value}, index);
+    }
+
+    public void set(int value, int index) {
+        set(new byte[] {
+                (byte)(value >>> 24),
+                (byte)(value >>> 16),
+                (byte)(value >>> 8),
+                (byte)value}, index);
+    }
+
     public byte[] getBytes() {
         byte[] bytes = new byte[pos + 1];
         for (int i = 0; i <= pos; i ++) {
@@ -69,11 +83,15 @@ public class ByteBuilder {
         return bytes;
     }
 
+    public int getSize() {
+        return pos + 1;
+    }
+
     private void expand(int size) {
         byte[] expandBytes = new byte[size];
         int i = 0;
         for (byte b: innerBytes) {
-            expandBytes[i] = b;
+            expandBytes[i ++] = b;
         }
         this.innerBytes = expandBytes;
     }

@@ -22,15 +22,15 @@ public class GameCron {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    while(true) {
+                while(true) {
+                    try {
                         int count = gameService.createGameBySystem();
                         if (count == 0) {
                             Thread.sleep(500);
                         }
+                    } catch (Exception e) {
+                        log.error("create game failed", e);
                     }
-                } catch (Exception e) {
-                    log.error("create game failed", e);
                 }
             }
         }).start();

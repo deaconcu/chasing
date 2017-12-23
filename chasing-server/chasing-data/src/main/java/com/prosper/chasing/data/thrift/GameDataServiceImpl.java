@@ -37,8 +37,7 @@ public class GameDataServiceImpl implements GameDataService.Iface {
 
     @Override
     public List<UserTr> getGameUsers(int gameId) throws TException {
-        List<UserData> userList = gameService.getGameUser(gameId);
-        return ViewTransformer.transferList(userList, UserTr.class);
+        return gameService.getGameUser(gameId);
     }
 
     @Override

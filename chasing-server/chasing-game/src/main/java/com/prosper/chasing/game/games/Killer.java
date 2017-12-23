@@ -55,7 +55,7 @@ public class Killer extends Game {
             }
         }
 
-        generatProp();
+        generateProp();
     }
 
     @Override
@@ -64,7 +64,7 @@ public class Killer extends Game {
         for(User user: getUserMap().values()) {
             KillerUser mUser = (KillerUser) user;
             int cost = (int) (mUser.endTime - startTime / 1000);
-            resultList.add(new Result(mUser, cost));
+            resultList.add(new Result(mUser, cost, 0));
         }
         Collections.sort(resultList);
         return resultList;

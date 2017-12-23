@@ -55,12 +55,15 @@ public class CommonConstant {
     }
 	
 	public static class GameState {
-        public static final short CREATE = 1;         //创建
-        public static final short POST_START = 2;     //提交开始
-        public static final short LOADING = 3;         //加载中
-        public static final short PROCESSING = 4;    //进行中
-        public static final short FINISHED = 5;    //完成
-    }
+        public static final byte CREATE = 1;         	//创建
+        public static final byte POST_START = 2;     	//提交开始
+        public static final byte LOADING = 3;         	//加载中
+		public static final byte PREPARE = 4;    		//准备中
+        public static final byte PROCESSING = 5;    	//进行中
+		public static final byte FINISHED = 6;    		//完成
+		public static final byte RESULT_INFORMED = 7; 	//已通知结果
+        public static final byte DESTROYING = 8;    	//完成
+	}
 	
 	
 	

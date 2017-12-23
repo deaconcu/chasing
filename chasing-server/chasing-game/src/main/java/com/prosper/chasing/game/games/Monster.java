@@ -70,9 +70,10 @@ public class Monster extends Game {
                 if (monsterUser.type == 1) {
                     continue;
                 }
-                int distance = getDistance(
-                        choosenOne.getPosition().positionPoint, monsterUser.getPosition().positionPoint);
-                if (distance < FETCH_DISTANCE) {
+                boolean isNear = isNear(
+                        choosenOne.getPosition().positionPoint,
+                        monsterUser.getPosition().positionPoint, FETCH_DISTANCE);
+                if (isNear) {
                     monsterUser.life = 0;
                     monsterUser.endTime = (int) System.currentTimeMillis() / 1000;
                 }
@@ -83,7 +84,7 @@ public class Monster extends Game {
             choosenOne.life = 0;
         }
 
-        generatProp();
+        generateProp();
     }
 
     @Override
@@ -94,13 +95,13 @@ public class Monster extends Game {
             if (mUser.type == 1) {
                 continue;
             }
-            resultList.add(new Result(mUser, mUser.getFragmentCount));
+            resultList.add(new Result(mUser, mUser.getFragmentCount, 0));
         }
         Collections.sort(resultList);
         if (choosenOne.life == 1) {
-            resultList.add(0, new Result(choosenOne, choosenOne.getFragmentCount));
+            resultList.add(0, new Result(choosenOne, choosenOne.getFragmentCount, 0));
         } else {
-            resultList.add(new Result(choosenOne, choosenOne.getFragmentCount));
+            resultList.add(new Result(choosenOne, choosenOne.getFragmentCount, 0));
         }
         return resultList;
     }

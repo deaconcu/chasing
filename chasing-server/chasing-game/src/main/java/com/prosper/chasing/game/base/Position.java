@@ -6,6 +6,12 @@ public class Position {
     public Game.PositionPoint positionPoint;
     public int rotateY;
 
+    public Position() {
+        moveState = 0;
+        positionPoint = new Game.PositionPoint(0, 0, 0);
+        rotateY = 0;
+    }
+
     public Position(byte moveState, Game.PositionPoint positionPoint, int rotateY) {
         this.moveState = moveState;
         this.positionPoint = positionPoint;

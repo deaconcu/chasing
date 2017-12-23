@@ -1,6 +1,5 @@
 package com.prosper.chasing.game.base;
 
-import java.lang.annotation.Annotation;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -10,10 +9,11 @@ import java.util.Set;
 import java.util.concurrent.*;
 
 import javax.annotation.PostConstruct;
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane.SystemMenuBar;
 
+import com.prosper.chasing.game.message.*;
+import com.prosper.chasing.game.util.ByteBuilder;
+import com.prosper.chasing.game.util.Constant;
 import org.apache.thrift.TException;
-import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.zookeeper.CreateMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,29 +21,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AssignableTypeFilter;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.prosper.chasing.common.bean.client.ThriftClient;
-import com.prosper.chasing.common.bean.client.ThriftClient.ConnectionServiceAsyncClient;
 import com.prosper.chasing.common.bean.client.ZkClient;
-import com.prosper.chasing.common.interfaces.connection.ConnectionService.AsyncClient;
-import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.GameTr;
-import com.prosper.chasing.common.interfaces.data.MetagameDataService;
 import com.prosper.chasing.common.interfaces.data.MetagameTr;
-import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserPropTr;
 import com.prosper.chasing.common.interfaces.data.UserTr;
 import com.prosper.chasing.common.util.ViewTransformer;
 import com.prosper.chasing.common.util.CommonConstant.GameState;
-import com.prosper.chasing.game.base.User.UserState;
-import com.prosper.chasing.game.message.Message;
-import com.prosper.chasing.game.message.QuitCompleteMessage;
-import com.prosper.chasing.game.message.ReplyMessage;
-import com.prosper.chasing.game.message.SystemMessage;
-import com.prosper.chasing.game.message.UserMessage;
-import com.prosper.chasing.game.message.MessageParser;
 import com.prosper.chasing.game.util.Config;
 import redis.clients.jedis.Jedis;
 
@@ -57,7 +44,7 @@ public class GameManage {
     private Map<Integer, Game> gameMap = new HashMap<>();
 
     // 进入的消息队列
-    private BlockingQueue<Message> recieveMessageQueue;
+    private BlockingQueue<Message> receiveMessageQueue;
     // 发送的消息队列
     private BlockingQueue<ReplyMessage> ReplyMessageQueue;
     // 需要写回到数据库的用户队列
@@ -111,7 +98,7 @@ public class GameManage {
         }
 
         // 初始化消息队列，回答队列，用户队列
-        recieveMessageQueue = new LinkedBlockingQueue<>();
+        receiveMessageQueue = new LinkedBlockingQueue<>();
         ReplyMessageQueue = new LinkedBlockingQueue<>();
         userQueue = new LinkedBlockingQueue<>();
         log.info("game manage started");
@@ -152,7 +139,6 @@ public class GameManage {
             List<UserTr> userTrList = thriftClient.gameDataServiceClient().getGameUsers(gameInfo.getId());
             List<User> userList = ViewTransformer.transferList(userTrList, User.class);
 
-            Map<Integer, User> userMap = new HashMap<>();
             for (User user: userList) {
                 List<UserPropTr> propList = thriftClient.propDataServiceClient().getUserProp(user.getId());
                 Map<Byte, Byte> propMap = new HashMap<>();
@@ -160,10 +146,11 @@ public class GameManage {
                     propMap.put((byte)propTr.getPropId(), (byte)propTr.getCount());
                 }
                 user.setPropMap(propMap);
-                user.setState(UserState.LOADED);
+                user.setState(Constant.UserState.LOADED);
                 user.setGame(game);
             }
             game.loadUser(userList);
+            game.setState(GameState.PREPARE);
 
             // 把加载好的游戏放到map中
             gameMap.put(gameInfo.getId(), game);
@@ -189,8 +176,9 @@ public class GameManage {
         try {
             thriftClient.gameDataServiceClient().updateGame(gameTr);
             gameMap.remove(gameId);
+            log.info("game finished, game: {}", game.getGameInfo().getId());
         } catch (TException e) {
-            log.error("finish game failed, game id:" + gameId, e);
+            log.error("finish game failed, game id: " + gameId, e);
         }
     }
 
@@ -200,7 +188,7 @@ public class GameManage {
      * @return false 添加失败
      */
     public boolean recieveData(Message message) {
-        return recieveMessageQueue.offer(message);
+        return receiveMessageQueue.offer(message);
     }
 
     /**
@@ -218,7 +206,6 @@ public class GameManage {
      * @return false 添加失败
      */
     public boolean addUserForDataDB(User user) {
-
         return userQueue.offer(user);
     }
 
@@ -227,60 +214,34 @@ public class GameManage {
      */
     @PostConstruct
     public void createGame() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
+        new Thread(() -> {
                 while(true) {
                     try {
+                        //log.info("start creating game ...");
                         final ThriftClient.GameDataServiceClient gameDataServiceClient =
                                 thriftClient.gameDataServiceClient();
                         List<GameTr> gameTrList =
                                 gameDataServiceClient.ClaimGame(config.serverIp, config.rpcPort, 100);
 
-                        if (gameTrList.size() > 0) {
-                            System.out.println("11111");
-                        }
-
-                        for (final GameTr gameTr : gameTrList) {
-                            try {
-                                createGame(gameTr);
-                                gameTr.setState((byte) GameState.PROCESSING);
-                                // todo restore
-                                gameDataServiceClient.updateGame(gameTr);
-                            } catch (Exception e) {
-                                log.error("create game failed", e);
+                        if (gameTrList.size() == 0) {
+                            Thread.sleep(1000);
+                        } else {
+                            for (final GameTr gameTr : gameTrList) {
+                                try {
+                                    createGame(gameTr);
+                                    gameTr.setState(GameState.PROCESSING);
+                                    // todo restore
+                                    gameDataServiceClient.updateGame(gameTr);
+                                } catch (Exception e) {
+                                    log.error("create game failed", e);
+                                }
                             }
                         }
                     } catch (Exception e) {
                         log.error("create game failed", e);
-                    }
-                }
-            }
-        }).start();
-    }
-
-    /**
-     * 分发游戏消息
-     */
-    @PostConstruct
-    public void dispatchMessage() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while(true) {
-                    try {
-                        Message message = recieveMessageQueue.poll(100, TimeUnit.MILLISECONDS);
-                        Integer gameId = message.getGameId();
-
-                        if (gameId != null) {
-                            Game game = gameMap.get(gameId);
-                            game.offerMessage(message);
-                        }
-                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
-            }
         }).start();
     }
 
@@ -289,20 +250,79 @@ public class GameManage {
      */
     @PostConstruct
     public void executeGameLogic() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while(true) {
-                    try {
-                        // 处理游戏的逻辑，比如生成新的道具
-                        for (Game game: gameMap.values()) {
-                            game.executeMessage();
-                            game.logic();
+        new Thread(() -> {
+            while(true) {
+                try {
+                    //log.info("start dispatch message ...");
+                    Message message = receiveMessageQueue.poll();
+                    while (message != null) {
+                        Message parsedMessage = null;
+                        if (message instanceof UserMessage) {
+                            UserMessage userMessage = messageParser.parseUserMessage((UserMessage) message);
+                            parsedMessage = userMessage;
+                        } else if (message instanceof SystemMessage) {
+                            SystemMessage systemMessage = (SystemMessage) message;
+                            parsedMessage = systemMessage;
+                        }
+
+                        Integer gameId = message.getGameId();
+                        if (gameId != null) {
+                            Game game = gameMap.get(gameId);
+                            // 如果game不存在，返回一个游戏不存在的消息
+                            if (game == null) {
+                                log.warn("game is not exist, game id: {}", gameId);
+                                if (message instanceof UserMessage) {
+                                    ByteBuilder byteBuilder =  new ByteBuilder();
+                                    UserMessage userMessage = (UserMessage) parsedMessage;
+                                    byteBuilder.append(0);
+                                    byteBuilder.append(Constant.MessageType.NO_GAME);
+                                    ReplyMessageQueue.offer(new ReplyMessage(
+                                            userMessage.getUserId(), 0, ByteBuffer.wrap(byteBuilder.getBytes())));
+                                }
+                            } else {
+                                log.info("dispatch message to game: {}", gameId);
+                                game.offerMessage(parsedMessage);
+                            }
+                        }
+                        message = receiveMessageQueue.poll();
+                    }
+
+                    long start = System.currentTimeMillis();
+                    for (Game game: gameMap.values()) {
+                        // 如果游戏已是等待销毁状态，则销毁游戏, 否则执行游戏逻辑
+                        if (game.getState() == GameState.DESTROYING) {
+                            finishGame(game.getGameInfo().getId());
+                        } else {
+                            if (game.getState() == GameState.PREPARE) {
+                                game.generatePrepareMessage();
+                                game.setState(GameState.PROCESSING);
+                            } else if (game.getState() == GameState.PROCESSING) {
+                                // 执行玩家消息
+                                game.executeMessage();
+                                // 执行游戏逻辑
+                                game.logic();
+                                // 检查, 比如玩家是否掉线, 游戏是否结束
+                                game.check();
+                            } else if (game.getState() == GameState.FINISHED) {
+                                game.generateResultMessage();
+                                game.setState(GameState.RESULT_INFORMED);
+                            } else if (game.getState() == GameState.RESULT_INFORMED) {
+                                // 执行玩家退出消息
+                                game.executeMessage();
+                                game.check();
+                            }
+                            // 发送玩家同步消息
+                            game.generateUserMessage();
                             game.syncUser();
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     }
+                    long cost = System.currentTimeMillis() - start;
+                    if (cost < 15) {
+                        // 如果一次处理时间不到15毫秒，则sleep一段时间
+                        Thread.sleep(15 - cost);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }).start();
@@ -313,11 +333,10 @@ public class GameManage {
      */
     @PostConstruct
     public void replyData() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
+        new Thread(() -> {
                 while(true) {
                     try {
+                        //log.info("start reply data ...");
                         ReplyMessage message = ReplyMessageQueue.take();
                         final int userId = message.getUserId();
                         long begin = System.currentTimeMillis();
@@ -355,7 +374,6 @@ public class GameManage {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                }
             }
         }).start();
     }
@@ -365,10 +383,9 @@ public class GameManage {
      */
     @PostConstruct
     public void writeUser() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
+        new Thread(() -> {
                 while(true) {
+                    //log.info("start write user ...");
                     User user = null;
                     try {
                         user = userQueue.take();
@@ -390,37 +407,11 @@ public class GameManage {
                         recieveData(new QuitCompleteMessage(user.getGame().getGameInfo().getId(), user.getId()));
                     } catch(Exception e) {
                         if (user != null) {
-                            user.setState(UserState.ACTIVE);
+                            user.setState(Constant.UserState.ACTIVE);
                         }
-                    }
-                }
-            }
-        }).start();
-    }
-
-    /**
-     * 检查已完成的游戏
-     */
-    @PostConstruct
-    public void checkGame() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while(true) {
-                    for (Map.Entry<Integer, Game> gameEntry: gameMap.entrySet()) {
-                        if (gameEntry.getValue().getState() == GameState.FINISHED) {
-                            log.info("finishing game: " + gameEntry.getKey());
-                            finishGame(gameEntry.getKey());
-                        }
-                    }
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
-            }
         }).start();
     }
-
 }

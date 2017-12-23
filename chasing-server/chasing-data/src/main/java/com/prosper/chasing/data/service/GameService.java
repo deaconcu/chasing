@@ -8,6 +8,7 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.prosper.chasing.common.interfaces.data.UserTr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -174,12 +175,12 @@ public class GameService {
      * 获取某个用户加入的游戏
      */
     public Game getGameByUser(int userId) {
-        GameUser gameUser = gameUserMapper.selectOneByUserId(userId);
-        if (gameUser == null) {
+        UserData userData = userDataMapper.selectOne(userId);
+        if (userData.getGameId() == -1) {
             return null;
         }
         List<Integer> gameIds = new LinkedList<>();
-        gameIds.add(gameUser.getGameId());
+        gameIds.add(userData.getGameId());
         return gameMapper.selectListByIds(gameIds).get(0);
     }
 
@@ -300,7 +301,7 @@ public class GameService {
             game.setCreatorId(0);
             game.setState(GameState.POST_START);
             game.setServer("");
-            game.setDuration(900);
+            game.setDuration(7000);
             game.setAttendance(attendance.substring(0, attendance.length() - 1));
             game.setCreateTime(CommonUtil.getTime(new Date()));
             game.setUpdateTime(CommonUtil.getTime(new Date()));
@@ -498,7 +499,7 @@ public class GameService {
     /**
      * 获取游戏中的用户
      */
-    public List<UserData> getGameUser(int gameId) {
+    public List<UserTr> getGameUser(int gameId) {
         Game gameInDb = gameMapper.selectOne(gameId);
         if (gameInDb == null) {
             throw new InvalidArgumentException("game is not exist");
@@ -510,13 +511,25 @@ public class GameService {
         }
 
         List<UserData> userList = new LinkedList<>();
-        List<UserData> userListForExam = userDataMapper.selectListByIds(userIdList);
-        for (UserData userData: userListForExam) {
+        List<UserData> userDataListForExam = userDataMapper.selectListByIds(userIdList);
+        List<User> userInfoList = userMapper.selectListByIds(userIdList);
+        List<UserTr> userTrList = new LinkedList<>();
+        for (UserData userData: userDataListForExam) {
             //if (userData.getState() == Constant.UserState.GAMING && userData.getGameId() == gameId) {
-                userList.add(userData);
+                UserTr userTr = new UserTr();
+                userTr.setId(userData.getId());
+                userTr.setGameId(userData.getGameId());
+                userTr.setState(userData.getState().byteValue());
+                userTr.setDistance(userData.getDistance());
+                for (User user: userInfoList) {
+                    if (user.getId() == userData.getId()) {
+                        userTr.setName(user.getName());
+                    }
+                }
+                userTrList.add(userTr);
             //}
         }
-        return userList;
+        return userTrList;
     }
 
     /**

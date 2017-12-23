@@ -7,14 +7,21 @@ public class Constant {
     public static class GameExceptionConstant {
         public static final Pair<Integer, String> gameExistException = new Pair<>(101, "game is exist");
     }
-    
-    public static class GameLoadingState {
-        public static final short START = 1;                    // 开始加载
-        public static final short GAME_INFO_FINISHED = 2;     // 游戏信息加载完成
-        public static final short USER_INFO_FINISHED = 3;     // 用户信息加载完成
-        public static final short PROP_INFO_FINISHED = 4;     // 道具信息加载完成
-        public static final short PLAYING = 5;                  // 全部加载完成，游戏进行中
-        public static final short FINISHED = 6;                 // 游戏结束
+
+    public static class MessageType {
+        public static byte USER = 1;
+        public static byte PREPARE = 2;
+        public static byte RESULT = 3;
+        public static byte NO_GAME = 4;
+    }
+
+    public static class UserState {
+        public static byte LOADED = 1;   // 加载完成状态
+        public static byte ACTIVE = 2;   // 活动状态
+        public static byte OFFLINE = 3;  // 离线状态
+        public static byte GAME_OVER = 4;  // 离线状态
+        public static byte QUITING = 5;  // 正在退出
+        public static byte QUIT = 6;     // 已退出
     }
     
 }

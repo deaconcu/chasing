@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 public class UserMessage extends Message {
 
     private int userId;
+    private int seqId;
     private ByteBuffer content;
 
     public UserMessage() {
@@ -17,6 +18,7 @@ public class UserMessage extends Message {
         setGameId(message.getGameId());
         this.userId = message.getUserId();
         this.content = message.getContent();
+        this.seqId = message.seqId;
     }
     
     public UserMessage(int gameId, int userId, ByteBuffer content) {
@@ -40,5 +42,12 @@ public class UserMessage extends Message {
     public void setContent(ByteBuffer content) {
         this.content = content;
     }
-    
+
+    public int getSeqId() {
+        return seqId;
+    }
+
+    public void setSeqId(int seqId) {
+        this.seqId = seqId;
+    }
 }

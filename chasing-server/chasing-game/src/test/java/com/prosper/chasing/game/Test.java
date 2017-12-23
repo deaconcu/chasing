@@ -2,26 +2,14 @@ package com.prosper.chasing.game;
 
 public class Test {
     public static void main(String... args) {
-        B b = new B();
-        b.execute();
+        transfer((byte)66);
+    }
+
+    public static void transfer(byte value) {
+        for(int i = 0; i < 8; i++) {
+            System.out.print((value >>> i) % 2);
+            System.out.print(", ");
+        }
     }
 }
 
-class A {
-    
-    public void execute() {
-        print();
-    }
-    
-    public void print() {
-        System.out.println("A");
-    }
-}
-
-class B extends A{
-    
-    @Override
-    public void print() {
-        System.out.println("B");
-    }
-}

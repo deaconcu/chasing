@@ -1,6 +1,7 @@
 package com.prosper.chasing.connection;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,6 +45,7 @@ public class GameUDPService implements UDPService {
     @Override
     public int executeData(ByteBuf in) {
         try {
+            log.info("received user message");
             // 读userId
             int userId = in.readInt();
 
@@ -52,7 +54,8 @@ public class GameUDPService implements UDPService {
             in.readBytes(sessionIdBuffer);
             String postSessionId = new String(sessionIdBuffer);
 
-            long time = in.readLong();
+            in.readLong(); // skip time
+
             Map<String, Object> userInfo = userMap.get(userId);
             if (userInfo == null) {
                 userInfo = new HashMap<>();
@@ -73,6 +76,7 @@ public class GameUDPService implements UDPService {
             }
 
             in.markReaderIndex();
+            in.readInt(); // skip seqId
             int messageType = in.readByte();
             if (messageType == 1) {
                 // 获取用户参加的游戏id，没有游戏id返回
@@ -117,6 +121,7 @@ public class GameUDPService implements UDPService {
             */
             // 处理用户行为数据
             synchronized (this) {
+                log.info("execute user message: {}", Arrays.toString(buffer.array()));
                 thriftClient.gameServiceClient((String) userInfo.get("host"), (Integer) userInfo.get("port")).
                         executeData((Integer) userInfo.get("gameId"), userId, buffer);
             }

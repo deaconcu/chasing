@@ -386,7 +386,7 @@ public class ThriftClient {
     }
 
     private Pair<String, Integer> getServiceAddr(String serverListZKName) {
-        List<String> addrList = zkClient.getChild(serverListZKName, true);
+        List<String> addrList = zkClient.getChild(serverListZKName, false);
         if (addrList.size() < 1) {
             return null;
         } else if (addrList.size() == 1) {

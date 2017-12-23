@@ -30,12 +30,13 @@ struct MetagameTr {
 
 struct UserTr {
     1: i32 id,
-    2: i32 distance,
-    3: i32 road,
-    4: i32 hill,
-    5: i32 river,
-    6: i8 state,
-    7: i32 gameId;
+    2: string name,
+    3: i32 distance,
+    4: i32 road,
+    5: i32 hill,
+    6: i32 river,
+    7: i8 state,
+    8: i32 gameId;
 }
 
 struct UserPropTr {

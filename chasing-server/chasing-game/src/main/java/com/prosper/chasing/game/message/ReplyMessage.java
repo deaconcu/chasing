@@ -8,13 +8,17 @@ import java.nio.ByteBuffer;
 public class ReplyMessage {
     
     private int userId;
+    private int seqId;
     private ByteBuffer content;
+    private long timestamp;
 
     public ReplyMessage() {}
 
-    public ReplyMessage(int userId, ByteBuffer content) {
+    public ReplyMessage(int userId, int seqId, ByteBuffer content) {
         this.userId = userId;
+        this.seqId = seqId;
         this.content = content;
+        this.timestamp = System.currentTimeMillis();
     }
 
     public int getUserId() {
@@ -29,5 +33,16 @@ public class ReplyMessage {
     public void setContent(ByteBuffer content) {
         this.content = content;
     }
-    
+
+    public int getSeqId() {
+        return seqId;
+    }
+
+    public void setSeqId(int seqId) {
+        this.seqId = seqId;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
 }

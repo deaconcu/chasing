@@ -1,33 +1,34 @@
 package com.prosper.chasing.game.base;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.prosper.chasing.game.message.ReplyMessage;
 import com.prosper.chasing.game.util.ByteBuilder;
+import com.prosper.chasing.game.util.Constant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class User {
 
-
-    public static class UserState {
-        public static int LOADED = 1;   // 加载完成状态
-        public static int ACTIVE = 2;   // 活动状态
-        public static int QUITING = 3;  // 正在退出
-        public static int QUIT = 4;     // 已退出
-    }
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     // 用户所属的游戏
+    @JsonIgnore
     private Game game;
     
     // 用户id
     private int id;
+
+    // 用户名称
+    private String name;
     
     // 用户位置
-    private Position position;
+    private Position position = new Position();
 
     // 出生位置
-    private Position initPosition;
+    private Position initPosition = new Position();
 
     // 速度
     private int speed;
@@ -36,13 +37,13 @@ public class User {
     private short life;
     
     // 所拥有的道具
-    private Map<Byte, Byte> propMap;
+    private Map<Byte, Byte> propMap = new HashMap<>();
     
     // Buff Map
-    private Map<Byte, Buff> buffMap;
+    private Map<Byte, Buff> buffMap = new HashMap<>();
     
     // 用户状态 @see #User.UserState
-    private int state;
+    private byte state;
 
     // 位置是否有修改
     boolean isPositionChanged = false;
@@ -53,16 +54,44 @@ public class User {
     // 速度是否有修改
     boolean isSpeedChanged = false;
 
+    // 状态是否有修改
     boolean isStateChanged = false;
 
     // 动作列表
-    List<User.Action> actionList;
+    @JsonIgnore
+    List<User.Action> actionList = new LinkedList<>();
 
     // buff变化列表
-    Set<Byte> buffChangedSet;
+    @JsonIgnore
+    Set<Byte> buffChangedSet = new HashSet<>();
 
     // 道具变化列表
-    Set<Byte> propChangedSet;
+    @JsonIgnore
+    Set<Byte> propChangedSet = new HashSet<>();
+
+    // 用户同步消息队列
+    @JsonIgnore
+    LinkedList<ReplyMessage> messageQueue = new LinkedList<>();
+
+    int messageId = 1;
+    int messageOffsetId = 1;
+
+    /**
+     * 设置需要发送给用户的消息偏移
+     */
+    public void updateMessageSeq(int seqId) {
+        while(messageQueue.peek() != null && messageQueue.peek().getSeqId() <= seqId) {
+            messageQueue.poll();
+        }
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     // buff类
     public static class Buff {
@@ -180,7 +209,11 @@ public class User {
     }
 
     public byte getProp(byte propId) {
-        return propMap.get(propId);
+        Byte count = propMap.get(propId);
+        if (count == null) {
+            return 0;
+        }
+        return count;
     }
 
     public Map<Byte, Buff> getBuffMap() {
@@ -198,13 +231,15 @@ public class User {
         buffChangedSet.add(buff.id);
     }
 
-    public int getState() {
+    public byte getState() {
         return state;
     }
 
-    public void setState(int state) {
-        this.state = state;
-        this.isStateChanged = true;
+    public void setState(byte state) {
+        if (state != this.state) {
+            this.state = state;
+            this.isStateChanged = true;
+        }
     }
 
     public Game getGame() {
@@ -213,6 +248,25 @@ public class User {
 
     public void setGame(Game game) {
         this.game = game;
+    }
+
+    public void offerMessage(ByteBuilder bb) {
+        int seqId = messageId ++;
+        bb.set(seqId, 0);
+        messageQueue.offer(new ReplyMessage(id, seqId, ByteBuffer.wrap(bb.getBytes())));
+    }
+
+    public ReplyMessage nextMessage() {
+        return messageQueue.peek();
+        /*
+        ReplyMessage message = messageQueue.size() > messageOffsetId ? messageQueue.get(messageOffsetId ++) : null;
+        if (message == null) {
+            messageOffsetId = 0;
+            return null;
+        } else {
+            return message;
+        }
+        */
     }
 
     /**
@@ -229,9 +283,13 @@ public class User {
     /**
      * 将修改写成byte[]，用来同步客户端用户数据
      * 格式：
-     * state(2)
+     * seqId(4)
+     * messageType(1)
+     * sign(2)
+     * time(8)
      * envPropCount(2)|list<EnvProp>|
      * actionCount(2)|list<Action>
+     * state(1)
      * moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * lifeValue(2)
      * speedValue(4)
@@ -240,32 +298,44 @@ public class User {
      * userCount(1)|list<UserPosition>
      * userCount(1)|list<UserBuff>
      *
-     * state: reserved(7bit)|envProp(1bit)|action(1bit)|position(1bit)|life(1bit)|speed(1bit)|buff(1bit)|
-     *        prop(1bit)|otherUserPosition(1bit)|otherUserBuff(1bit)|
-     * EnvProp: id(1)|positionX(4)|positionY(4)|positionZ(4)|remainSecond(4)|
+     * sign: reserved(6bit)|envProp(1bit)|action(1bit)|
+     *       state(1bit)|position(1bit)|life(1bit)|speed(1bit)|
+     *       buff(1bit)|prop(1bit)|otherUserPosition(1bit)|otherUserBuff(1bit)|
+     * EnvProp: id(1)|seqId(4)|positionX(4)|positionY(4)|positionZ(4)|remainSecond(4)|
      * Action: id(2)|code(1)|type(1)|value(4)|
      * Buff: buffId(1)|remainSecond(4)|
      * Prop: propId(1)|count(1)|
-     * UserPosition moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
-     * UserBuff buffByte(4)
+     * UserPosition userId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
+     * UserBuff userId(4)|buffByte(4)
      */
-    public ByteBuffer ChangesToBytes() {
+    public ByteBuilder ChangesToBytes() {
         ByteBuilder byteBuilder =  new ByteBuilder();
-        short state = 0;
-        byteBuilder.append(state);
+        int seqId = 0;
+        byteBuilder.append(seqId);
+        byteBuilder.append(Constant.MessageType.USER);
+        short sign = 0;
+        byteBuilder.append(sign);
+        byteBuilder.append(System.currentTimeMillis());
         if (game.envPropChangedList.size() != 0) {
-            state = (short) (state | 256);
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 512);
             byteBuilder.append((short)game.envPropChangedList.size());
             for (Game.EnvProp envProp: game.envPropChangedList) {
                 byteBuilder.append(envProp.propId);
-                byteBuilder.append(envProp.positionX);
-                byteBuilder.append(envProp.positionY);
-                byteBuilder.append(envProp.positionZ);
+                byteBuilder.append(envProp.seqId);
+                byteBuilder.append(envProp.positionPoint.x);
+                byteBuilder.append(envProp.positionPoint.y);
+                byteBuilder.append(envProp.positionPoint.z);
                 byteBuilder.append(envProp.getRemainSecond());
             }
         }
         if (actionList.size() != 0) {
-            state = (short) (state | 128);
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 256);
             byteBuilder.append((short)actionList.size());
             for (Action action: actionList) {
                 byteBuilder.append(action.actionId);
@@ -276,24 +346,44 @@ public class User {
                 }
             }
         }
+        if (isStateChanged) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 128);
+            byteBuilder.append(state);
+        }
         if (isPositionChanged) {
-            state = (short) (state | 64);
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 64);
             byteBuilder.append(position.moveState);
-            byteBuilder.append(position.positionX);
-            byteBuilder.append(position.positionY);
-            byteBuilder.append(position.positionZ);
+            byteBuilder.append(position.positionPoint.x);
+            byteBuilder.append(position.positionPoint.y);
+            byteBuilder.append(position.positionPoint.z);
             byteBuilder.append(position.rotateY);
         }
         if (isLifeChanged) {
-            state = (short) (state | 32);
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 32);
             byteBuilder.append(getLife());
         }
         if (isSpeedChanged) {
-            state = (short) (state | 16);
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 16);
             byteBuilder.append(getSpeed());
         }
         if (buffChangedSet.size() != 0) {
-            state = (short) (state | 8);
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 8);
+            byteBuilder.append((byte)buffChangedSet.size());
             for (byte buffId: buffChangedSet) {
                 Buff buff = buffMap.get(buffId);
                 byteBuilder.append(buff.id);
@@ -301,35 +391,53 @@ public class User {
             }
         }
         if (propChangedSet.size() != 0) {
-            state = (short) (state | 4);
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 4);
+            byteBuilder.append((byte)propChangedSet.size());
             for (byte propId: propChangedSet) {
                 byteBuilder.append(propId);
                 byteBuilder.append(propMap.get(propId));
             }
         }
         if (game.positionChangedSet.size() != 0) {
-            state = (short) (state | 2);
-            byteBuilder.append((short)game.positionChangedSet.size());
-            for (int userId: game.positionChangedSet) {
-                Position position = game.getUser(userId).getPosition();
-                byteBuilder.append(userId);
-                byteBuilder.append(position.moveState);
-                byteBuilder.append(position.positionX);
-                byteBuilder.append(position.positionY);
-                byteBuilder.append(position.positionZ);
-                byteBuilder.append(position.rotateY);
+            if (!(game.positionChangedSet.size() == 1 && game.positionChangedSet.contains(id))) {
+                if (byteBuilder == null) {
+                    byteBuilder =  new ByteBuilder();
+                }
+                sign = (short) (sign | 2);
+                byteBuilder.append((byte)game.positionChangedSet.size());
+                for (int userId: game.positionChangedSet) {
+                    Position position = game.getUser(userId).getPosition();
+                    byteBuilder.append(userId);
+                    byteBuilder.append(position.moveState);
+                    byteBuilder.append(position.positionPoint.x);
+                    byteBuilder.append(position.positionPoint.y);
+                    byteBuilder.append(position.positionPoint.z);
+                    byteBuilder.append(position.rotateY);
+                }
             }
         }
         if (game.buffChangedSet.size() != 0) {
-            state = (short) (state | 1);
-            byteBuilder.append((short)game.buffChangedSet.size());
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 1);
+            byteBuilder.append((byte)game.buffChangedSet.size());
             for (int userId: game.buffChangedSet) {
                 byteBuilder.append(userId);
                 byteBuilder.append(game.getUser(userId).getBuffBytes());
             }
         }
-        byteBuilder.append(state);
-        return ByteBuffer.wrap(byteBuilder.getBytes());
+
+        if (sign == 0) {
+            // 如果没有需要同步的内容，返回null
+            return null;
+        } else {
+            byteBuilder.set(sign, 5);
+            return byteBuilder;
+        }
     }
 
     /**
@@ -343,5 +451,17 @@ public class User {
 
         buffChangedSet.clear();
         propChangedSet.clear();
+    }
+
+    /**
+     * 获取用户拥有的道具总数
+     * @return
+     */
+    public int getPropCount() {
+        int count = 0;
+        for (int value: propMap.values()) {
+            count += value;
+        }
+        return count;
     }
 }

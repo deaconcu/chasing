@@ -17,12 +17,12 @@ public class PositionMessage extends UserMessage {
     
     public PositionMessage(UserMessage message) {
         super(message);
-        time = message.getContent().getLong(1);
-        moveState = message.getContent().get(9);
-        positionX = message.getContent().getInt(10);
-        positionY = message.getContent().getInt(14);
-        positionZ = message.getContent().getInt(18);
-        rotationY = message.getContent().getInt(22);
+        time = message.getContent().getLong(5);
+        moveState = message.getContent().get(13);
+        positionX = message.getContent().getInt(14);
+        positionY = message.getContent().getInt(18);
+        positionZ = message.getContent().getInt(22);
+        rotationY = message.getContent().getInt(26);
     }
 
 }
