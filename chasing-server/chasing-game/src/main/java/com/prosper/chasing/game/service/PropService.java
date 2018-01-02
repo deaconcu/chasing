@@ -1,12 +1,19 @@
 package com.prosper.chasing.game.service;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.prosper.chasing.game.base.Game;
 import com.prosper.chasing.game.base.Position;
 import com.prosper.chasing.game.base.User;
+import com.prosper.chasing.game.message.PropMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PropService {
+
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     private BuffService buffService = new BuffService();
 
@@ -38,13 +45,59 @@ public class PropService {
 
     public static final byte GEN = 26; // 宝石，宝石竞赛使用
 
+    public static Map<Byte, byte[]> typeMap = new HashMap<>();
+
+    static {
+        typeMap.put((byte)1, new byte[]{PropMessage.TYPE_NONE, PropMessage.TYPE_USER});
+        typeMap.put((byte)2, new byte[]{PropMessage.TYPE_NONE, PropMessage.TYPE_PROP});
+        typeMap.put((byte)3, new byte[]{PropMessage.TYPE_NONE, PropMessage.TYPE_POSITION});
+        typeMap.put((byte)4, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)5, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)6, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)7, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)8, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)9, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)10, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)11, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)12, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)13, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)14, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)15, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)16, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)17, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)18, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)19, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)20, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)21, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)22, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)23, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)24, new byte[]{PropMessage.TYPE_USER});
+        typeMap.put((byte)25, new byte[]{PropMessage.TYPE_USER});
+    }
+
+    private boolean checkType (byte propId, byte messageType) {
+        byte[] type = typeMap.get(propId);
+        for (byte i : type) {
+            if (i == messageType) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * 使用道具
      * @param user 使用者 
      * @param toUser 被使用者
      * @param userMap 用户列表
      */
-    public void use(int propId, Object[] values, User user, User toUser, Map<Integer, ? extends User> userMap) {
+    public void use(byte propId, PropMessage message, User user, User toUser,
+                    Map<Integer, ? extends User> userMap, List<Game.EnvProp> envPropList) {
+        if (!checkType(propId, message.getType())) {
+            log.warn("prop type is not right, prop id: {}, message type: {}", propId, message.getType());
+            return;
+        }
+
         if (propId == RETURN_TO_INIT_POSITION) {
             user.setPosition(user.getInitPosition());
         } else if (propId == SPEED_ADD_30_PERCENT) {
@@ -52,10 +105,7 @@ public class PropService {
         } else if (propId == SPEED_ADD_50_PERCENT) {
             buffService.addBuffer(toUser, BuffService.SPEED_ADD_50_PERCENT, (short)20);
         } else if (propId == TRANSPORT) {
-            int x = (Integer)values[0];
-            int y = (Integer)values[1];
-            int z = (Integer)values[2];
-            user.setPosition(new Position((byte)0, new Game.PositionPoint(x, y , z), 0));
+            user.setPosition(new Position((byte)0, message.getPositionPoint(), 0));
         } else if (propId == SPEED_REDUCE_30_PERCENT) {
             buffService.addBuffer(toUser, BuffService.SPEED_REDUCE_30_PERCENT, (short)20);
         } else if (propId == SPEED_REDUCE_50_PERCENT) {
@@ -69,18 +119,7 @@ public class PropService {
         } else if (propId == RANDOM_MOVE) {
             // TODO
         } else if (propId == MOVE_50_METER) {
-            int direction = (Integer)values[0];
-            Position position = toUser.getPosition();
-            if (direction == 1) {
-                position.positionPoint.x += 50;
-            } else if (direction == 2) {
-                position.positionPoint.x -= 50;
-            } else if (direction == 3) {
-                position.positionPoint.z += 50;
-            } else if (direction == 4) {
-                position.positionPoint.z -= 50;
-            }
-            toUser.setPosition(position);
+            // TODO
         } else if (propId == FOLLOW) {
             buffService.addBuffer(toUser, BuffService.FOLLOWED, (short)20, new Object[]{user.getId()});
             buffService.addBuffer(user, BuffService.FOLLOW, (short)20, new Object[]{toUser.getId()});
@@ -114,5 +153,7 @@ public class PropService {
             // TODO
 
         }
+
+        user.useProp(propId);
     }
 }

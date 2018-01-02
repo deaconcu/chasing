@@ -4,7 +4,7 @@ import com.prosper.chasing.game.base.Position;
 
 /**
  * 格式：
- * messageType(4)|time(8)|moveState(4)|positionX(4)|positionY(4)|positionZ(4)|rotationY(4)
+ * seqId(4)|messageType(1)|time(8)|moveState(4)|positionX(4)|positionY(4)|positionZ(4)|rotationY(4)
  */
 public class PositionMessage extends UserMessage {
 

@@ -2,17 +2,23 @@ package com.prosper.chasing.game.base;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.prosper.chasing.game.message.ReplyMessage;
+import com.prosper.chasing.game.service.BuffService;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
+import com.prosper.chasing.game.base.Buff.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.*;
 
+import static com.prosper.chasing.game.base.Game.FROZEN_TIME;
+
 public class User {
 
     private Logger log = LoggerFactory.getLogger(getClass());
+
+    private static final int NEAR_DISTANCE = 10;
 
     // 用户所属的游戏
     @JsonIgnore
@@ -35,12 +41,15 @@ public class User {
 
     // 生命值
     private short life;
+
+    // 钱
+    private int money;
     
     // 所拥有的道具
-    private Map<Byte, Byte> propMap = new HashMap<>();
+    private Map<Short, Byte> propMap = new HashMap<>();
     
     // Buff Map
-    private Map<Byte, Buff> buffMap = new HashMap<>();
+    private Map<Byte, BaseBuff> buffMap = new HashMap<>();
     
     // 用户状态 @see #User.UserState
     private byte state;
@@ -67,7 +76,7 @@ public class User {
 
     // 道具变化列表
     @JsonIgnore
-    Set<Byte> propChangedSet = new HashSet<>();
+    Set<Short> propChangedSet = new HashSet<>();
 
     // 用户同步消息队列
     @JsonIgnore
@@ -93,29 +102,6 @@ public class User {
         this.name = name;
     }
 
-    // buff类
-    public static class Buff {
-        byte id;
-        int startSecond; // 起始时间
-        short last;      // 持续时间
-        Object[] values;  // buff的一些属性
-
-        public Buff(byte id, short last) {
-            this.id = id;
-            this.startSecond = (int)(System.currentTimeMillis() / 1000);
-            this.last = last;
-        }
-
-        public Buff(byte id, short last, Object[] values) {
-            this(id, last);
-            this.values = values;
-        }
-
-        public int getRemainSecond() {
-            return (int) (System.currentTimeMillis() / 1000 - (startSecond + last));
-        }
-    }
-
     // 动作类
     private static class Action {
         short actionId;
@@ -138,7 +124,7 @@ public class User {
     }
 
     // 检查道具是否满足要求的数量
-    public boolean checkProp(int propId, byte need) {
+    public boolean checkProp(byte propId, byte need) {
         Byte count = propMap.get(propId);
         if (count == null) {
             return false;
@@ -147,6 +133,12 @@ public class User {
             return false;
         }
         return true;
+    }
+
+    public void useProp(byte propId) {
+        if (propMap.get(propId) > 0) {
+            setProp(propId, (byte)(propMap.get(propId) - 1));
+        }
     }
     
     public int getId() {
@@ -195,20 +187,20 @@ public class User {
         isLifeChanged = true;
     }
 
-    public Map<Byte, Byte> getPropMap() {
+    public Map<Short, Byte> getPropMap() {
         return propMap;
     }
 
-    public void setPropMap(Map<Byte, Byte> propMap) {
+    public void setPropMap(Map<Short, Byte> propMap) {
         this.propMap = propMap;
     }
 
-    public void setProp(byte propId, byte count) {
+    public void setProp(short propId, byte count) {
         propMap.put(propId, count);
         propChangedSet.add(propId);
     }
 
-    public byte getProp(byte propId) {
+    public byte getProp(short propId) {
         Byte count = propMap.get(propId);
         if (count == null) {
             return 0;
@@ -216,13 +208,13 @@ public class User {
         return count;
     }
 
-    public Map<Byte, Buff> getBuffMap() {
+    public Map<Byte, Buff.BaseBuff> getBuffMap() {
         return buffMap;
     }
 
-    public void setBuff(Buff buff) {
+    public void setBuff(BaseBuff buff) {
         if (buffMap.get(buff.id) != null) {
-            Buff exist = buffMap.get(buff.id);
+            BaseBuff exist = buffMap.get(buff.id);
             exist.last = buff.last;
             exist.startSecond = buff.startSecond;
         } else {
@@ -274,7 +266,7 @@ public class User {
      */
     private int getBuffBytes() {
         int value = 0;
-        for (Buff buff: buffMap.values()) {
+        for (BaseBuff buff: buffMap.values()) {
             value = value | (1 << (buff.id - 1));
         }
         return value;
@@ -288,6 +280,7 @@ public class User {
      * sign(2)
      * time(8)
      * envPropCount(2)|list<EnvProp>|
+     * NPCCount(2)|list<NPC>|
      * actionCount(2)|list<Action>
      * state(1)
      * moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
@@ -298,13 +291,14 @@ public class User {
      * userCount(1)|list<UserPosition>
      * userCount(1)|list<UserBuff>
      *
-     * sign: reserved(6bit)|envProp(1bit)|action(1bit)|
+     * sign: reserved(6bit)|envProp(1bit)|npc(1bit)|action(1bit)|
      *       state(1bit)|position(1bit)|life(1bit)|speed(1bit)|
      *       buff(1bit)|prop(1bit)|otherUserPosition(1bit)|otherUserBuff(1bit)|
-     * EnvProp: id(1)|seqId(4)|positionX(4)|positionY(4)|positionZ(4)|remainSecond(4)|
+     * EnvProp: id(2)|seqId(4)|positionX(4)|positionY(4)|positionZ(4)|remainSecond(4)|
+     * NPC: id(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * Action: id(2)|code(1)|type(1)|value(4)|
      * Buff: buffId(1)|remainSecond(4)|
-     * Prop: propId(1)|count(1)|
+     * Prop: propId(2)|count(1)|
      * UserPosition userId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * UserBuff userId(4)|buffByte(4)
      */
@@ -320,7 +314,7 @@ public class User {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
-            sign = (short) (sign | 512);
+            sign = (short) (sign | 1024);
             byteBuilder.append((short)game.envPropChangedList.size());
             for (Game.EnvProp envProp: game.envPropChangedList) {
                 byteBuilder.append(envProp.propId);
@@ -329,6 +323,24 @@ public class User {
                 byteBuilder.append(envProp.positionPoint.y);
                 byteBuilder.append(envProp.positionPoint.z);
                 byteBuilder.append(envProp.getRemainSecond());
+            }
+        }
+        if (game.getMoveableNPCMap().size() != 0) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 512);
+            byteBuilder.append((short)game.getMoveableNPCMap().size());
+            for (NPC npc: game.getMoveableNPCMap().values()) {
+                if (npc.isPositionChanged()) {
+                    byteBuilder.append(npc.getId());
+                    byteBuilder.append(npc.getSeqId());
+                    byteBuilder.append(npc.getPosition().moveState);
+                    byteBuilder.append(npc.getPosition().positionPoint.x);
+                    byteBuilder.append(npc.getPosition().positionPoint.y);
+                    byteBuilder.append(npc.getPosition().positionPoint.z);
+                    byteBuilder.append(npc.getPosition().rotateY);
+                }
             }
         }
         if (actionList.size() != 0) {
@@ -385,7 +397,7 @@ public class User {
             sign = (short) (sign | 8);
             byteBuilder.append((byte)buffChangedSet.size());
             for (byte buffId: buffChangedSet) {
-                Buff buff = buffMap.get(buffId);
+                BaseBuff buff = buffMap.get(buffId);
                 byteBuilder.append(buff.id);
                 byteBuilder.append(buff.getRemainSecond());
             }
@@ -396,7 +408,7 @@ public class User {
             }
             sign = (short) (sign | 4);
             byteBuilder.append((byte)propChangedSet.size());
-            for (byte propId: propChangedSet) {
+            for (short propId: propChangedSet) {
                 byteBuilder.append(propId);
                 byteBuilder.append(propMap.get(propId));
             }
@@ -463,5 +475,68 @@ public class User {
             count += value;
         }
         return count;
+    }
+
+    public void purchaseProp(short propId, int price) {
+        if (price > money) {
+            return;
+        }
+        money -= price;
+        setProp(propId, (byte)(getProp(propId) + 1));
+    }
+
+    public void check() {
+        List<Byte> removeIdList = new LinkedList<>();
+        for(BaseBuff buff: buffMap.values()) {
+            if (!checkBuff(buff)) {
+                removeIdList.add(buff.id);
+            }
+        }
+        for (Byte id: removeIdList) {
+            buffMap.remove(id);
+        }
+
+        ReplyMessage replyMessage = nextMessage();
+        if (replyMessage != null) {
+            // 如果用户在规定时间内都没有响应的消息，判定为掉线，不再发送同步消息，等待用户重新连接
+            if (System.currentTimeMillis() - replyMessage.getTimestamp() > FROZEN_TIME) {
+                setState(Constant.UserState.OFFLINE);
+                log.info("user is offline, user id: {}", getId());
+            }
+        }
+    }
+
+    /**
+     * 当buff无效时，返回false, 否则返回true
+     */
+    protected boolean checkBuff(BaseBuff buff) {
+        if (buff instanceof ChasingBuff) {
+            ChasingBuff chasingBuff = (ChasingBuff) buff;
+            if (chasingBuff.type == ChasingBuff.USER) {
+                // TODO
+            } else if (chasingBuff.type == ChasingBuff.NPC) {
+                NPC npc = game.getMoveableNPCMap().get(chasingBuff.targetId);
+                if (npc != null) {
+                    boolean isNear = game.isNear(npc.getPosition().positionPoint, position.positionPoint, NEAR_DISTANCE);
+                    if (!isNear) {
+                        return false;
+                    } else if (isNear && buff.getRemainSecond() <= 0) {
+                        catchUp(npc);
+                    }
+                }
+            }
+        }
+
+        if (buff.getRemainSecond() <= 0) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 捕获NPC后的行为
+     */
+    protected void catchUp(NPC npc) {
+
     }
 }

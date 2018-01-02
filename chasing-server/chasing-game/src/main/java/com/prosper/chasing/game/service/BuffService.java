@@ -6,6 +6,7 @@ import com.prosper.chasing.game.base.User;
  * Created by deacon on 2017/11/28.
  */
 public class BuffService {
+
     public static final byte SPEED_ADD_30_PERCENT = 1;
     public static final byte SPEED_ADD_50_PERCENT = 2;
     public static final byte SPEED_REDUCE_30_PERCENT = 3;
@@ -20,6 +21,7 @@ public class BuffService {
     public static final byte IMMUNITY_NOT_MOVE = 11;
     public static final byte NEAR_ENEMY_REMIND = 12;
     public static final byte REBOUND = 13;
+    public static final byte CHASING = 14; // 追逐动物的状态
 
     public void addBuffer(User user, byte bufferId, short last, Object[] values) {
         User.Buff buffer = new User.Buff(bufferId, last, values);

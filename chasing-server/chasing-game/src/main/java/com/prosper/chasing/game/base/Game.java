@@ -1,17 +1,15 @@
 package com.prosper.chasing.game.base;
 
-import java.nio.ByteBuffer;
 import java.util.*;
 
 import com.prosper.chasing.game.message.*;
 import com.prosper.chasing.game.service.PropService;
+import com.prosper.chasing.game.service.SkillService;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.prosper.chasing.game.base.ActionChange.FieldChange;
-import com.prosper.chasing.game.base.ActionChange.StateChange;
 import com.prosper.chasing.game.message.Message;
 import com.prosper.chasing.game.util.Constant.UserState;
 import com.prosper.chasing.common.util.CommonConstant.GameState;
@@ -38,10 +36,24 @@ public abstract class Game {
     // 游戏场景内的道具信息
     private List<EnvProp> envPropList = new LinkedList<>();
 
+    // 可移动NPC的配置信息
+    private List<NPC.NPCConfig> movableNPCConfigList;
+    // 位置不发生变化的NPC
+    private Map<Integer, NPC> staticNPCMap = new HashMap<>();
+    // 可以移动的NPC
+    private Map<Integer, NPC> movableNPCMap = new HashMap<>();
+    // 移动NPC每种类型的数量
+    private Map<Short, Integer> movableNPCCountMap;
+
     // prop顺序号id
     private int nextPropSeqId = 1;
+    // 静止NPC顺序号id
+    private int staticNPCSeqId = 1;
+    // 移动NPC顺序号id
+    private int movableNPCSeqId = 1;
 
     private PropService propService = new PropService();
+    private SkillService skillService = new SkillService();
 
     // 处理游戏逻辑的管理器
     private GameManage gameManage;
@@ -55,7 +67,9 @@ public abstract class Game {
     Set<Integer> buffChangedSet = new HashSet<>();
 
     protected long startTime = System.currentTimeMillis();
-    
+    private long lastUpdateTime = System.currentTimeMillis();
+    private long currentUpdateTime = System.currentTimeMillis();
+
     public Game() {
         this.state = GameState.CREATE;
         userMap = new HashMap<>();
@@ -81,14 +95,34 @@ public abstract class Game {
         return envPropList;
     }
 
+    public Map<Integer, NPC> getStaticNPCMap() {
+        return staticNPCMap;
+    }
+
+    public Map<Integer, NPC> getMoveableNPCMap() {
+        return movableNPCMap;
+    }
+
     public void offerMessage(Message message) {
         messageQueue.offer(message);
     }
+
+    protected void addMovableNPCConfig(NPC.NPCConfig config) {
+        movableNPCConfigList.add(config);
+    }
+
+    /**
+     * 获得npc相关的道具，比如捕猎时捕获一个动物，获得一个相应的动物道具
+     */
+    public Short getRelatedPropByNPC(short npcId) {
+        return null;
+    }
+
     /**
      * 游戏场景中的道具
      */
     public static class EnvProp {
-        public byte propId;
+        public short propId;
         public int seqId;
         public PositionPoint positionPoint;
         public long createTime;
@@ -155,7 +189,16 @@ public abstract class Game {
     /**
      * 游戏场景中的一些逻辑，比如生成道具
      */
-    public abstract void logic();
+    public void logic() {
+        lastUpdateTime = currentUpdateTime;
+        currentUpdateTime = System.currentTimeMillis();
+        removeInvalidProp();
+        fetchProp();
+        generateProp();
+
+        generateMovableNPC();
+        moveNPC();
+    }
 
     /**
      * 处理消息
@@ -200,6 +243,9 @@ public abstract class Game {
             } else if (message instanceof PropMessage) {
                 PropMessage propMessage = (PropMessage) message;
                 executePropMessage(propMessage);
+            } else if (message instanceof PurchaseMessage) {
+                PurchaseMessage purchaseMessage = (PurchaseMessage) message;
+                executePurchaseMessage(purchaseMessage);
             } else if (message instanceof SkillMessage){
                 SkillMessage skillMessage = (SkillMessage) message;
                 executeSkillMessage(skillMessage);
@@ -244,7 +290,8 @@ public abstract class Game {
     /**
      * 同步游戏开始之后的一些数据，比如用户名, 游戏时间等，格式如下
      *
-     * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]
+     * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]|NPCCount(2)|list<NPC>|
+     * NPC: id(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      *
      * User: userId(4)|nameLength(1)|name
      */
@@ -258,6 +305,19 @@ public abstract class Game {
             bb.append(user.getId());
             bb.append(user.getName().getBytes().length);
             bb.append(user.getName().getBytes());
+        }
+
+        if (getStaticNPCMap().size() != 0) {
+            bb.append((short)getStaticNPCMap().size());
+            for (NPC npc: getStaticNPCMap().values()) {
+                bb.append(npc.getId());
+                bb.append(npc.getSeqId());
+                bb.append(npc.getPosition().moveState);
+                bb.append(npc.getPosition().positionPoint.x);
+                bb.append(npc.getPosition().positionPoint.y);
+                bb.append(npc.getPosition().positionPoint.z);
+                bb.append(npc.getPosition().rotateY);
+            }
         }
 
         if (bb.getSize() > 0) {
@@ -375,17 +435,43 @@ public abstract class Game {
             toUser = user;
         }
         // check if user prop is enough
-        int propId = message.getPropId();
-        user.checkProp(propId, (byte)1);
-
-        propService.use(propId, message.getValues(), user, toUser, userMap);
+        byte propId = message.getPropId();
+        if (user.checkProp(propId, (byte)1)) {
+            propService.use(propId, message, user, toUser, userMap, envPropList);
+        }
     }
-    
+
+    /**
+     * 处理购买消息
+     */
+    public void executePurchaseMessage(PurchaseMessage message) {
+        int price = getPrice(message.itemId);
+        if (price == -1) {
+            return;
+        }
+        User user = getUser(message.getUserId(), true);
+        user.purchaseProp(message.itemId, price);
+    }
+
+    /**
+     * 获得某个商品的价格
+     */
+    public int getPrice(short propId) {
+        return -1;
+    }
+
     /**
      * 处理使用技能消息
      */
-    public ActionChange executeSkillMessage(SkillMessage message) {
-        return null;
+    public void executeSkillMessage(SkillMessage message) {
+        User user = getUser(message.getUserId(), true);
+        User toUser = getUser(message.getToUserId(), false);
+        if (toUser == null) {
+            toUser = user;
+        }
+        // check if user prop is enough
+        short skillId = message.getSkillId();
+        skillService.use(skillId, message, user, toUser, userMap);
     }
     
     /**
@@ -449,14 +535,7 @@ public abstract class Game {
 
         // 检查用户是否掉线
         for (User user: userMap.values()) {
-            ReplyMessage replyMessage = user.nextMessage();
-            if (replyMessage != null) {
-                // 如果用户在规定时间内都没有响应的消息，判定为掉线，不再发送同步消息，等待用户重新连接
-                if (System.currentTimeMillis() - replyMessage.getTimestamp() > FROZEN_TIME) {
-                    user.setState(UserState.OFFLINE);
-                    log.info("user is offline, user id: {}", user.getId());
-                }
-            }
+            user.check();
         }
     }
     
@@ -528,7 +607,7 @@ public abstract class Game {
         int zRange = 5; // 地图上z的范围
         int propSize = 3;  // 生成道具的数量
         int last = 15000; // 道具持续时间, 单位为毫秒
-        byte[] propIds = {1, 2, 3};  // 能够生成的道具id
+        short[] propIds = {1, 2, 3};  // 能够生成的道具id
 
         while (getEnvPropList().size() < propSize) {
             EnvProp envProp = new EnvProp();
@@ -544,6 +623,52 @@ public abstract class Game {
             getEnvPropChangedList().add(envProp);
             log.info("created prop: {}:{}-{}:{}", gameInfo.getId(), envProp.seqId, envProp.positionPoint.x, envProp.positionPoint.z);
         }
+    }
+
+    /**
+     * 生成可以移动的NPC
+     */
+    protected void generateMovableNPC() {
+        for (NPC.NPCConfig config: movableNPCConfigList) {
+            generateNPC(config);
+        }
+    }
+
+    private void generateNPC(NPC.NPCConfig config) {
+        Integer count = movableNPCCountMap.get(config.id);
+        if (count == null) {
+            count = 0;
+        }
+        Position position = getInitPositionById(config.id);
+        for (int i = 0; i < count; i++) {
+            int seqId = movableNPCSeqId ++;
+            getMoveableNPCMap().put(seqId, new NPC(seqId, config.id, position, config.speed));
+            movableNPCCountMap.put(config.id, movableNPCCountMap.get(config.id) + 1);
+        }
+    }
+
+    /**
+     * 移动NPC
+     */
+    protected void moveNPC() {
+        for (NPC npc: getMoveableNPCMap().values()) {
+            npc.move(currentUpdateTime - lastUpdateTime);
+        }
+    }
+
+    /**
+     * 检查buff是否还有效
+     */
+    protected void checkBuff() {
+
+    }
+
+    /**
+     * 生成某一种动物的初始地址
+     */
+    private Position getInitPositionById(short id) {
+        // TODO
+        return new Position((byte)0, new PositionPoint(0, 0, 1), 0);
     }
 
     public void setGameManage(GameManage gameManage) {
