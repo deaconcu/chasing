@@ -43,6 +43,7 @@ public class ByteBuilder {
     }
 
     public void append(byte[] bytes) {
+        if (bytes == null) return;
         int contentSize = pos + bytes.length;
         if (contentSize >= innerBytes.length - 1) {
             expand(innerBytes.length * 2);

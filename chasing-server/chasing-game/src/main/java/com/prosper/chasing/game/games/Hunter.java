@@ -2,6 +2,8 @@ package com.prosper.chasing.game.games;
 
 import com.prosper.chasing.game.base.*;
 
+import com.prosper.chasing.game.message.PropMessage;
+import com.prosper.chasing.game.message.TaskMessage;
 import com.prosper.chasing.game.service.PropService;
 
 import java.util.*;
@@ -24,6 +26,17 @@ public class Hunter extends Game {
     private static final short PROP_BULL_ID = 3003;
     private static final short PROP_WOLF_ID = 3004;
     private static final short PROP_TIGER_ID = 3005;
+
+    private static final Map<Short, Integer> PROP_VALUE_MAP = new HashMap<>();
+    static {
+        PROP_VALUE_MAP.put(PROP_SHEEP_ID, 100);
+        PROP_VALUE_MAP.put(PROP_DOG_ID, 200);
+        PROP_VALUE_MAP.put(PROP_BULL_ID, 300);
+        PROP_VALUE_MAP.put(PROP_WOLF_ID, 400);
+        PROP_VALUE_MAP.put(PROP_TIGER_ID, 500);
+    }
+
+    private static final short TASK_HUNT = 1;
 
     private static final int POSITION_X_LIMIT = 10;
     private static final int POSITION_Z_LIMIT = 10;
@@ -57,6 +70,10 @@ public class Hunter extends Game {
         }
     }
 
+
+
+
+
     public Hunter() {
         super();
         addMovableNPCConfig(new NPC.NPCConfig(NPC_SHEEP_ID, 20, 2)); // sheep
@@ -89,7 +106,7 @@ public class Hunter extends Game {
         for (User user: userList) {
             HunterUser gemsUser = new HunterUser(user);
             int positionX = getRandom().nextInt(POSITION_X_LIMIT * 2 + 1) - POSITION_X_LIMIT;
-            int positionZ = getRandom().nextInt(POSITION_Z_LIMIT * 2 + 1) - POSITION_Z_LIMIT;
+           int positionZ = getRandom().nextInt(POSITION_Z_LIMIT * 2 + 1) - POSITION_Z_LIMIT;
             Position position = new Position((byte)1, new PositionPoint(positionX, 0, positionZ), 0);
             gemsUser.setPosition(position);
             gemsUser.setInitPosition(position);
@@ -115,5 +132,21 @@ public class Hunter extends Game {
         }
         Collections.sort(resultList);
         return resultList;
+    }
+
+    @Override
+    public void executeTaskMessage(TaskMessage message) {
+        User user = getUser(message.getUserId());
+        if (message.taskId == TASK_HUNT) {
+            int amount = 0;
+            for (Map.Entry<Short, Integer> entry: PROP_VALUE_MAP.entrySet()) {
+                short propId = entry.getKey();
+                int value = entry.getValue();
+
+                amount += user.getProp(propId) * value;
+                user.setProp(propId, (byte)0);
+            }
+            user.addMoney(amount);
+        }
     }
 }

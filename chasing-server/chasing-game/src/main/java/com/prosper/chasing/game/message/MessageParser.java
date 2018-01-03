@@ -14,6 +14,7 @@ public class MessageParser {
     private static int SKILL_MESSAGE = 5;
     private static int ECHO_MESSAGE = 6;
     private static int PURCHASE_MESSAGE = 7;
+    private static int TASK_MESSAGE = 8;
 
     /**
      * 解析消息
@@ -38,6 +39,8 @@ public class MessageParser {
             return new EchoMessage(userMessage);
         } else if (type == PURCHASE_MESSAGE) {
             return new PurchaseMessage(userMessage);
+        } else if (type == TASK_MESSAGE) {
+            return new TaskMessage(userMessage);
         } else {
             throw new RuntimeException("type is not supported, type" + type);
         }

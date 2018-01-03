@@ -25,6 +25,9 @@ public abstract class Game {
     // 游戏加载状态
     private int state;
 
+    // 游戏的阶段
+    private byte step;
+
     // 游戏元信息
     private GameInfo gameInfo;
 
@@ -61,6 +64,7 @@ public abstract class Game {
 
     private Random random = new Random();
 
+    protected boolean isStepChanged = false;
     // 每一次同步的时候有位置变化和buff变化的用户map
     List<EnvProp> envPropChangedList = new LinkedList<>();
     Set<Integer> positionChangedSet = new HashSet<>();
@@ -101,6 +105,19 @@ public abstract class Game {
 
     public Map<Integer, NPC> getMoveableNPCMap() {
         return movableNPCMap;
+    }
+
+    public byte getStep() {
+        return step;
+    }
+
+    public void setStep(byte step) {
+        isStepChanged = true;
+        this.step = step;
+    }
+
+    public boolean isStepChanged() {
+        return isStepChanged;
     }
 
     public void offerMessage(Message message) {
@@ -249,6 +266,9 @@ public abstract class Game {
             } else if (message instanceof SkillMessage){
                 SkillMessage skillMessage = (SkillMessage) message;
                 executeSkillMessage(skillMessage);
+            } else if (message instanceof TaskMessage){
+                TaskMessage taskMessage = (TaskMessage) message;
+                executeTaskMessage(taskMessage);
             } else if (message instanceof QuitCompleteMessage){
                 QuitCompleteMessage quitCompleteMessage = (QuitCompleteMessage) message;
                 executeQuitCompleteMessage(quitCompleteMessage);
@@ -282,6 +302,7 @@ public abstract class Game {
         envPropChangedList.clear();
         positionChangedSet.clear();
         buffChangedSet.clear();
+        isStepChanged = false;
         for (User user: userMap.values()) {
             user.clearAfterSync();
         }
@@ -451,6 +472,13 @@ public abstract class Game {
         }
         User user = getUser(message.getUserId(), true);
         user.purchaseProp(message.itemId, price);
+    }
+
+    /**
+     * 处理任务消息
+     */
+    public void executeTaskMessage(TaskMessage message) {
+        // for override
     }
 
     /**

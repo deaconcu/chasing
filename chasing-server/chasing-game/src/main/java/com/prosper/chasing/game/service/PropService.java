@@ -3,6 +3,7 @@ package com.prosper.chasing.game.service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import com.prosper.chasing.game.base.Game;
 import com.prosper.chasing.game.base.Position;
@@ -42,6 +43,7 @@ public class PropService {
     public static final byte WIND_ZONE = 23;
     public static final byte BLOOD_PILL = 24;
     public static final byte QUESTION = 25;
+    public static final byte CHEST = 26;
 
     public static final byte GEN = 26; // 宝石，宝石竞赛使用
 
@@ -98,6 +100,12 @@ public class PropService {
             return;
         }
 
+        doUse(propId, message, user, toUser, userMap, envPropList);
+        user.useProp(propId);
+    }
+
+    public void doUse(byte propId, PropMessage message, User user, User toUser,
+                    Map<Integer, ? extends User> userMap, List<Game.EnvProp> envPropList) {
         if (propId == RETURN_TO_INIT_POSITION) {
             user.setPosition(user.getInitPosition());
         } else if (propId == SPEED_ADD_30_PERCENT) {
@@ -152,8 +160,8 @@ public class PropService {
         } else if (propId == QUESTION) {
             // TODO
 
+        } else if (propId == CHEST) {
+            user.addMoney((new Random()).nextInt(1000));
         }
-
-        user.useProp(propId);
     }
 }

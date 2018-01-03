@@ -66,6 +66,9 @@ public class User {
     // 状态是否有修改
     boolean isStateChanged = false;
 
+    // 自定义属性是否有变化
+    public boolean isCustomPropertyChanged = false;
+
     // 动作列表
     @JsonIgnore
     List<User.Action> actionList = new LinkedList<>();
@@ -234,6 +237,18 @@ public class User {
         }
     }
 
+    public int getMoney() {
+        return money;
+    }
+
+    public boolean addMoney(int amount) {
+        if (money + amount >= 0) {
+            money += amount;
+            return true;
+        }
+        return false;
+    }
+
     public Game getGame() {
         return game;
     }
@@ -279,6 +294,7 @@ public class User {
      * messageType(1)
      * sign(2)
      * time(8)
+     * step(1)
      * envPropCount(2)|list<EnvProp>|
      * NPCCount(2)|list<NPC>|
      * actionCount(2)|list<Action>
@@ -288,12 +304,13 @@ public class User {
      * speedValue(4)
      * buffCount(1)|list<Buff>
      * propCount(1)|list<Prop>
+     * customProperty 详见各自定义user类
      * userCount(1)|list<UserPosition>
      * userCount(1)|list<UserBuff>
      *
-     * sign: reserved(6bit)|envProp(1bit)|npc(1bit)|action(1bit)|
-     *       state(1bit)|position(1bit)|life(1bit)|speed(1bit)|
-     *       buff(1bit)|prop(1bit)|otherUserPosition(1bit)|otherUserBuff(1bit)|
+     * sign: reserved(3bit)|step|envProp(1bit)|npc(1bit)|action(1bit)|state(1bit)|
+     *       position(1bit)|life(1bit)|speed(1bit)|buff(1bit)||
+     *       prop(1bit)|customProperty(1bit)|otherUserPosition(1bit)|otherUserBuff(1bit)|
      * EnvProp: id(2)|seqId(4)|positionX(4)|positionY(4)|positionZ(4)|remainSecond(4)|
      * NPC: id(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * Action: id(2)|code(1)|type(1)|value(4)|
@@ -310,11 +327,18 @@ public class User {
         short sign = 0;
         byteBuilder.append(sign);
         byteBuilder.append(System.currentTimeMillis());
+        if (game.isStepChanged()) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 4096);
+            byteBuilder.append(game.getStep());
+        }
         if (game.envPropChangedList.size() != 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
-            sign = (short) (sign | 1024);
+            sign = (short) (sign | 2048);
             byteBuilder.append((short)game.envPropChangedList.size());
             for (Game.EnvProp envProp: game.envPropChangedList) {
                 byteBuilder.append(envProp.propId);
@@ -329,7 +353,7 @@ public class User {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
-            sign = (short) (sign | 512);
+            sign = (short) (sign | 1024);
             byteBuilder.append((short)game.getMoveableNPCMap().size());
             for (NPC npc: game.getMoveableNPCMap().values()) {
                 if (npc.isPositionChanged()) {
@@ -347,7 +371,7 @@ public class User {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
-            sign = (short) (sign | 256);
+            sign = (short) (sign | 512);
             byteBuilder.append((short)actionList.size());
             for (Action action: actionList) {
                 byteBuilder.append(action.actionId);
@@ -362,14 +386,14 @@ public class User {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
-            sign = (short) (sign | 128);
+            sign = (short) (sign | 256);
             byteBuilder.append(state);
         }
         if (isPositionChanged) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
-            sign = (short) (sign | 64);
+            sign = (short) (sign | 128);
             byteBuilder.append(position.moveState);
             byteBuilder.append(position.positionPoint.x);
             byteBuilder.append(position.positionPoint.y);
@@ -380,21 +404,21 @@ public class User {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
-            sign = (short) (sign | 32);
+            sign = (short) (sign | 64);
             byteBuilder.append(getLife());
         }
         if (isSpeedChanged) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
-            sign = (short) (sign | 16);
+            sign = (short) (sign | 32);
             byteBuilder.append(getSpeed());
         }
         if (buffChangedSet.size() != 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
-            sign = (short) (sign | 8);
+            sign = (short) (sign | 16);
             byteBuilder.append((byte)buffChangedSet.size());
             for (byte buffId: buffChangedSet) {
                 BaseBuff buff = buffMap.get(buffId);
@@ -406,12 +430,19 @@ public class User {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
-            sign = (short) (sign | 4);
+            sign = (short) (sign | 8);
             byteBuilder.append((byte)propChangedSet.size());
             for (short propId: propChangedSet) {
                 byteBuilder.append(propId);
                 byteBuilder.append(propMap.get(propId));
             }
+        }
+        if (isCustomPropertyChanged) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 4);
+            byteBuilder.append(getCustomPropertyBytes());
         }
         if (game.positionChangedSet.size() != 0) {
             if (!(game.positionChangedSet.size() == 1 && game.positionChangedSet.contains(id))) {
@@ -452,6 +483,11 @@ public class User {
         }
     }
 
+    public byte[] getCustomPropertyBytes() {
+        return null;
+        // for override
+    }
+
     /**
      * 在同步数据后清空修改状态位和数据
      */
@@ -460,6 +496,7 @@ public class User {
         isPositionChanged = false;
         isSpeedChanged = false;
         isStateChanged = false;
+        isCustomPropertyChanged = false;
 
         buffChangedSet.clear();
         propChangedSet.clear();
