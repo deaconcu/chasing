@@ -23,5 +23,11 @@ public class Constant {
         public static byte QUITING = 5;  // 正在退出
         public static byte QUIT = 6;     // 已退出
     }
+
+    public static class MoveState {
+        public static byte IDLE = 1;
+        public static byte WALK = 2;
+        public static byte RUN = 3;
+    }
     
 }

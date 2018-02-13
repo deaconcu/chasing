@@ -4,11 +4,12 @@ import com.prosper.chasing.game.base.*;
 
 import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.message.TaskMessage;
+import com.prosper.chasing.game.navmesh.Point;
 import com.prosper.chasing.game.service.PropService;
 
 import java.util.*;
 
-@MetaGameAnno("Hunter")
+@MetaGameAnno("hunt")
 public class Hunter extends Game {
 
     private static final short NPC_PROP_MERCHANT_ID = 1001; // 卖道具的商人
@@ -70,25 +71,21 @@ public class Hunter extends Game {
         }
     }
 
-
-
-
-
     public Hunter() {
         super();
-        addMovableNPCConfig(new NPC.NPCConfig(NPC_SHEEP_ID, 20, 2)); // sheep
-        addMovableNPCConfig(new NPC.NPCConfig(NPC_DOG_ID, 15, 5)); // dog
-        addMovableNPCConfig(new NPC.NPCConfig(NPC_BULL_ID, 10, 10)); // bull
-        addMovableNPCConfig(new NPC.NPCConfig(NPC_WOLF_ID, 5, 15)); // wolf
-        addMovableNPCConfig(new NPC.NPCConfig(NPC_TIGER_ID, 2, 20)); // tiger
+        addMovableNPCConfig(new NPC.NPCConfig(NPC_SHEEP_ID, 20, 20)); // sheep
+        addMovableNPCConfig(new NPC.NPCConfig(NPC_DOG_ID, 15, 50)); // dog
+        addMovableNPCConfig(new NPC.NPCConfig(NPC_BULL_ID, 10, 100)); // bull
+        addMovableNPCConfig(new NPC.NPCConfig(NPC_WOLF_ID, 5, 150)); // wolf
+        addMovableNPCConfig(new NPC.NPCConfig(NPC_TIGER_ID, 2, 200)); // tiger
 
         // 生成npc商人
         getStaticNPCMap().put(1, new NPC(1, NPC_PROP_MERCHANT_ID,
-                new Position((byte)0, new PositionPoint(0, 0, 1), 0), 0));
+                new Position((byte)0, new Point(0, 0, 1), 0), 0));
         getStaticNPCMap().put(1, new NPC(1, NPC_HUNTER_ID,
-                new Position((byte)0, new PositionPoint(0, 0, 2), 0), 0));
+                new Position((byte)0, new Point(0, 0, 2), 0), 0));
         getStaticNPCMap().put(1, new NPC(1, NPC_CHEST_MERCHANT_ID,
-                new Position((byte)0, new PositionPoint(0, 0, 3), 0), 0));
+                new Position((byte)0, new Point(0, 0, 3), 0), 0));
     }
 
     @Override
@@ -107,7 +104,7 @@ public class Hunter extends Game {
             HunterUser gemsUser = new HunterUser(user);
             int positionX = getRandom().nextInt(POSITION_X_LIMIT * 2 + 1) - POSITION_X_LIMIT;
            int positionZ = getRandom().nextInt(POSITION_Z_LIMIT * 2 + 1) - POSITION_Z_LIMIT;
-            Position position = new Position((byte)1, new PositionPoint(positionX, 0, positionZ), 0);
+            Position position = new Position((byte)1, new Point(positionX, 0, positionZ), 0);
             gemsUser.setPosition(position);
             gemsUser.setInitPosition(position);
             getUserMap().put(gemsUser.getId(), gemsUser);
@@ -118,7 +115,7 @@ public class Hunter extends Game {
     public void logic() {
         removeInvalidProp();
         fetchProp();
-        generateProp();
+        //generateProp();
 
         generateMovableNPC();
         moveNPC();

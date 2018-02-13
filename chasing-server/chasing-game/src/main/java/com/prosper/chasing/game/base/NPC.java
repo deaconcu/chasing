@@ -1,6 +1,8 @@
 package com.prosper.chasing.game.base;
 
-import java.util.Random;
+import com.prosper.chasing.game.navmesh.Point;
+
+import java.util.*;
 
 import static java.lang.Math.random;
 
@@ -28,6 +30,7 @@ public class NPC {
     private Position position;
     private int speed;
     private boolean isPositionChanged;
+    private Deque<Point> path;
 
     public NPC(int seqId, short id, Position position, int speed) {
         this.seqId = seqId;
@@ -35,18 +38,37 @@ public class NPC {
         this.position = position;
         this.speed = speed;
         this.isPositionChanged = true;
+        this.path = new LinkedList<>();
     }
 
     public void move(long time) {
-        // TODO 有些地方是不能去的
-        long distance = speed * time / 1000;
-        int rotation = random.nextInt(11) - 5 + position.rotateY;
-        int x = (int) (Math.sin(rotation) * distance);
-        int z = (int) (Math.cos(rotation) * distance);
-        position.positionPoint.x += x;
-        position.positionPoint.z += z;
-        position.rotateY = rotation;
-        isPositionChanged = true;
+        long distance = time * speed;
+
+        while (true) {
+            Point nextPoint = path.peek();
+            if (nextPoint == null) break;
+            long pointDistance = nextPoint.distance(position.point);
+            if (pointDistance < distance) {
+                distance = distance - pointDistance;
+                position.point = path.pollFirst();
+            } else if (pointDistance == distance) {
+                position.point = path.pollFirst();
+                break;
+            } else {
+                double ratio = (double) distance / pointDistance;
+                Point vector = new Point(
+                        nextPoint.x - position.point.x,
+                        nextPoint.y - position.point.y,
+                        nextPoint.z - position.point.z);
+                position.point = position.point.add(vector, ratio);
+                break;
+            }
+        }
+    }
+
+    public boolean isPathEmpty() {
+        if (path == null || path.size() == 0) return true;
+        return false;
     }
 
     public short getId() {
@@ -88,4 +110,13 @@ public class NPC {
     public void setPositionChanged(boolean positionChanged) {
         isPositionChanged = positionChanged;
     }
+
+    public Deque<Point> getPath() {
+        return path;
+    }
+
+    public void setPath(Deque<Point> path) {
+        this.path = path;
+    }
+
 }

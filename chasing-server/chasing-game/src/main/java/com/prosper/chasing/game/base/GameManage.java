@@ -11,6 +11,7 @@ import java.util.concurrent.*;
 import javax.annotation.PostConstruct;
 
 import com.prosper.chasing.game.message.*;
+import com.prosper.chasing.game.navmesh.Navimesh;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import org.apache.thrift.TException;
@@ -62,6 +63,9 @@ public class GameManage {
     ExecutorService executorService;
     @Autowired
     Jedis jedis;
+
+    @Autowired
+    Navimesh navimesh;
 
     /**
      * 初始化游戏管理，主要实现把现有的游戏类加载到game class map里
@@ -134,6 +138,7 @@ public class GameManage {
             }
             game.setGameInfo(gameInfo);
             game.setGameManage(this);
+            game.setNavimesh(navimesh);
 
             // 加载游戏用户
             List<UserTr> userTrList = thriftClient.gameDataServiceClient().getGameUsers(gameInfo.getId());
@@ -145,7 +150,7 @@ public class GameManage {
                 for (UserPropTr propTr: propList) {
                     propMap.put((byte)propTr.getPropId(), (byte)propTr.getCount());
                 }
-                user.setPropMap(propMap);
+                //user.setPropMap(propMap);
                 user.setState(Constant.UserState.LOADED);
                 user.setGame(game);
             }
@@ -294,6 +299,7 @@ public class GameManage {
                             finishGame(game.getGameInfo().getId());
                         } else {
                             if (game.getState() == GameState.PREPARE) {
+                                game.prepare();
                                 game.generatePrepareMessage();
                                 game.setState(GameState.PROCESSING);
                             } else if (game.getState() == GameState.PROCESSING) {
@@ -311,9 +317,11 @@ public class GameManage {
                                 game.executeMessage();
                                 game.check();
                             }
-                            // 发送玩家同步消息
-                            game.generateUserMessage();
-                            game.syncUser();
+                            // 发送玩家同步消息, prepare阶段不要发送同步信息
+                            if (game.getState() != GameState.PREPARE) {
+                                game.generateUserMessage();
+                                game.syncUser();
+                            }
                         }
                     }
                     long cost = System.currentTimeMillis() - start;
@@ -391,9 +399,9 @@ public class GameManage {
                         user = userQueue.take();
                         // TODO try 3 times
                         UserTr userTr = ViewTransformer.transferObject(user, UserTr.class);
-                        Map<Byte, Byte> propMap = user.getPropMap();
+                        Map<Short, Byte> propMap = user.getPropMap();
                         List<UserPropTr> propList = new LinkedList<>();
-                        for (Map.Entry<Byte, Byte> entry: propMap.entrySet()) {
+                        for (Map.Entry<Short, Byte> entry: propMap.entrySet()) {
                             UserPropTr userPropTr = new UserPropTr();
                             userPropTr.setPropId(entry.getKey());
                             userPropTr.setCount(entry.getValue());

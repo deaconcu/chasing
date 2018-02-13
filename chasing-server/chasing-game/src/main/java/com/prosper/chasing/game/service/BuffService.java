@@ -24,8 +24,8 @@ public class BuffService {
     public static final byte CHASING = 14; // 追逐动物的状态
 
     public void addBuffer(User user, byte bufferId, short last, Object[] values) {
-        User.Buff buffer = new User.Buff(bufferId, last, values);
-        user.setBuff(buffer);
+        //User.Buff buffer = new User.Buff(bufferId, last, values);
+        //user.setBuff(buffer);
     }
 
     public void addBuffer(User user, byte bufferId, short last) {

@@ -8,6 +8,7 @@ import com.prosper.chasing.game.util.Constant;
 import com.prosper.chasing.game.base.Buff.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.rmi.runtime.Log;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -19,6 +20,7 @@ public class User {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     private static final int NEAR_DISTANCE = 10;
+    private static final int REPLY_GAP = 1000;
 
     // 用户所属的游戏
     @JsonIgnore
@@ -85,8 +87,12 @@ public class User {
     @JsonIgnore
     LinkedList<ReplyMessage> messageQueue = new LinkedList<>();
 
+    // 下一个消息需要设置的seqId
     int messageId = 1;
-    int messageOffsetId = 1;
+
+    // 上一次
+    int lastReplySeqId = 0;
+    long lastReplyTime = System.currentTimeMillis();
 
     /**
      * 设置需要发送给用户的消息偏移
@@ -263,17 +269,30 @@ public class User {
         messageQueue.offer(new ReplyMessage(id, seqId, ByteBuffer.wrap(bb.getBytes())));
     }
 
+    /**
+     * 获得下一个需要发送的消息，需要发送消息的时候调用
+     */
     public ReplyMessage nextMessage() {
-        return messageQueue.peek();
-        /*
-        ReplyMessage message = messageQueue.size() > messageOffsetId ? messageQueue.get(messageOffsetId ++) : null;
-        if (message == null) {
-            messageOffsetId = 0;
+        if (messageQueue.peek() == null) {
             return null;
-        } else {
-            return message;
         }
-        */
+        if (lastReplySeqId == messageQueue.peek().getSeqId() &&
+                System.currentTimeMillis() - lastReplyTime < REPLY_GAP) {
+            //log.info("repeated message reply, skip, last reply time: " + lastReplyTime);
+            return null;
+        }
+        lastReplySeqId = messageQueue.peek().getSeqId();
+        lastReplyTime = System.currentTimeMillis();
+        log.info("message queue size: " + messageQueue.size());
+        return messageQueue.peek();
+    }
+
+    /**
+     * 获得消息队列中的第一个最早的消息
+     * @return
+     */
+    public ReplyMessage firstMessage() {
+        return messageQueue.peek();
     }
 
     /**
@@ -343,9 +362,9 @@ public class User {
             for (Game.EnvProp envProp: game.envPropChangedList) {
                 byteBuilder.append(envProp.propId);
                 byteBuilder.append(envProp.seqId);
-                byteBuilder.append(envProp.positionPoint.x);
-                byteBuilder.append(envProp.positionPoint.y);
-                byteBuilder.append(envProp.positionPoint.z);
+                byteBuilder.append(envProp.point.x);
+                byteBuilder.append(envProp.point.y);
+                byteBuilder.append(envProp.point.z);
                 byteBuilder.append(envProp.getRemainSecond());
             }
         }
@@ -360,9 +379,9 @@ public class User {
                     byteBuilder.append(npc.getId());
                     byteBuilder.append(npc.getSeqId());
                     byteBuilder.append(npc.getPosition().moveState);
-                    byteBuilder.append(npc.getPosition().positionPoint.x);
-                    byteBuilder.append(npc.getPosition().positionPoint.y);
-                    byteBuilder.append(npc.getPosition().positionPoint.z);
+                    byteBuilder.append(npc.getPosition().point.x);
+                    byteBuilder.append(npc.getPosition().point.y);
+                    byteBuilder.append(npc.getPosition().point.z);
                     byteBuilder.append(npc.getPosition().rotateY);
                 }
             }
@@ -395,9 +414,9 @@ public class User {
             }
             sign = (short) (sign | 128);
             byteBuilder.append(position.moveState);
-            byteBuilder.append(position.positionPoint.x);
-            byteBuilder.append(position.positionPoint.y);
-            byteBuilder.append(position.positionPoint.z);
+            byteBuilder.append(position.point.x);
+            byteBuilder.append(position.point.y);
+            byteBuilder.append(position.point.z);
             byteBuilder.append(position.rotateY);
         }
         if (isLifeChanged) {
@@ -455,9 +474,9 @@ public class User {
                     Position position = game.getUser(userId).getPosition();
                     byteBuilder.append(userId);
                     byteBuilder.append(position.moveState);
-                    byteBuilder.append(position.positionPoint.x);
-                    byteBuilder.append(position.positionPoint.y);
-                    byteBuilder.append(position.positionPoint.z);
+                    byteBuilder.append(position.point.x);
+                    byteBuilder.append(position.point.y);
+                    byteBuilder.append(position.point.z);
                     byteBuilder.append(position.rotateY);
                 }
             }
@@ -533,12 +552,14 @@ public class User {
             buffMap.remove(id);
         }
 
-        ReplyMessage replyMessage = nextMessage();
+        // 如果队列中存在消息，说明用户有延时，用延时的时长来判断是否掉线
+        ReplyMessage replyMessage = firstMessage();
         if (replyMessage != null) {
             // 如果用户在规定时间内都没有响应的消息，判定为掉线，不再发送同步消息，等待用户重新连接
-            if (System.currentTimeMillis() - replyMessage.getTimestamp() > FROZEN_TIME) {
-                setState(Constant.UserState.OFFLINE);
-                log.info("user is offline, user id: {}", getId());
+            if (System.currentTimeMillis() - replyMessage.getTimestamp() > FROZEN_TIME &&
+                    getState() != Constant.UserState.OFFLINE) {
+                //setState(Constant.UserState.OFFLINE);
+                //log.info("user is offline, user id: {}", getId());
             }
         }
     }
@@ -554,7 +575,7 @@ public class User {
             } else if (chasingBuff.type == ChasingBuff.NPC) {
                 NPC npc = game.getMoveableNPCMap().get(chasingBuff.targetId);
                 if (npc != null) {
-                    boolean isNear = game.isNear(npc.getPosition().positionPoint, position.positionPoint, NEAR_DISTANCE);
+                    boolean isNear = game.isNear(npc.getPosition().point, position.point, NEAR_DISTANCE);
                     if (!isNear) {
                         return false;
                     } else if (isNear && buff.getRemainSecond() <= 0) {

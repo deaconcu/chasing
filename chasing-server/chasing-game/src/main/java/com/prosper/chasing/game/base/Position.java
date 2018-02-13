@@ -1,20 +1,22 @@
 package com.prosper.chasing.game.base;
 
+import com.prosper.chasing.game.navmesh.Point;
+
 public class Position {
 
     public byte moveState;
-    public Game.PositionPoint positionPoint;
+    public Point point;
     public int rotateY;
 
     public Position() {
         moveState = 0;
-        positionPoint = new Game.PositionPoint(0, 0, 0);
+        point = new Point(0, 0, 0);
         rotateY = 0;
     }
 
-    public Position(byte moveState, Game.PositionPoint positionPoint, int rotateY) {
+    public Position(byte moveState, Point point, int rotateY) {
         this.moveState = moveState;
-        this.positionPoint = positionPoint;
+        this.point = point;
         this.rotateY = rotateY;
     }
 
@@ -24,7 +26,7 @@ public class Position {
             return false;
         }
         Position position = (Position) obj;
-        if (moveState == position.moveState && positionPoint.equals(((Position) obj).positionPoint)
+        if (moveState == position.moveState && point.equals(((Position) obj).point)
                 && position.rotateY == position.rotateY) {
             return true;
         }

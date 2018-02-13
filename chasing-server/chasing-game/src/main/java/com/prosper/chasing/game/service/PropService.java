@@ -113,7 +113,7 @@ public class PropService {
         } else if (propId == SPEED_ADD_50_PERCENT) {
             buffService.addBuffer(toUser, BuffService.SPEED_ADD_50_PERCENT, (short)20);
         } else if (propId == TRANSPORT) {
-            user.setPosition(new Position((byte)0, message.getPositionPoint(), 0));
+            user.setPosition(new Position((byte)0, message.getPoint(), 0));
         } else if (propId == SPEED_REDUCE_30_PERCENT) {
             buffService.addBuffer(toUser, BuffService.SPEED_REDUCE_30_PERCENT, (short)20);
         } else if (propId == SPEED_REDUCE_50_PERCENT) {

@@ -4,12 +4,13 @@ import com.prosper.chasing.game.base.Game;
 import com.prosper.chasing.game.base.MetaGameAnno;
 import com.prosper.chasing.game.base.Position;
 import com.prosper.chasing.game.base.User;
+import com.prosper.chasing.game.navmesh.Point;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-@MetaGameAnno("hunter")
+@MetaGameAnno("legion")
 public class Legion extends Game {
 
     // 每轮时间
@@ -42,7 +43,7 @@ public class Legion extends Game {
         for (int i = 0; i < userList.size(); i++) {
             LegionUser legionUser = new LegionUser(userList.get(i));
             Position position = new Position(
-                    (byte)1, new PositionPoint(0, 0, 0), 0);
+                    (byte)1, new Point(0, 0, 0), 0);
             legionUser.setPosition(position);
             legionUser.setInitPosition(position);
             if (i < (userList.size() / 2)) {

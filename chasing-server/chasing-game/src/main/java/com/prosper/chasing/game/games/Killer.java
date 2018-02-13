@@ -4,6 +4,7 @@ import com.prosper.chasing.game.base.Game;
 import com.prosper.chasing.game.base.MetaGameAnno;
 import com.prosper.chasing.game.base.Position;
 import com.prosper.chasing.game.base.User;
+import com.prosper.chasing.game.navmesh.Point;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -35,7 +36,7 @@ public class Killer extends Game {
         for (User user: userList) {
             KillerUser KillerUser = new KillerUser(user);
             Position position = new Position(
-                    (byte)1, new PositionPoint(0, 0, 0), 0);
+                    (byte)1, new Point(0, 0, 0), 0);
             KillerUser.setPosition(position);
             KillerUser.setInitPosition(position);
             getUserMap().put(KillerUser.getId(), KillerUser);

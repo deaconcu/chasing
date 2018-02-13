@@ -3,6 +3,8 @@ package com.prosper.chasing.game.base;
 import java.util.*;
 
 import com.prosper.chasing.game.message.*;
+import com.prosper.chasing.game.navmesh.Navimesh;
+import com.prosper.chasing.game.navmesh.Point;
 import com.prosper.chasing.game.service.PropService;
 import com.prosper.chasing.game.service.SkillService;
 import com.prosper.chasing.game.util.ByteBuilder;
@@ -40,13 +42,13 @@ public abstract class Game {
     private List<EnvProp> envPropList = new LinkedList<>();
 
     // 可移动NPC的配置信息
-    private List<NPC.NPCConfig> movableNPCConfigList;
+    private List<NPC.NPCConfig> movableNPCConfigList = new LinkedList<>();
     // 位置不发生变化的NPC
     private Map<Integer, NPC> staticNPCMap = new HashMap<>();
     // 可以移动的NPC
     private Map<Integer, NPC> movableNPCMap = new HashMap<>();
     // 移动NPC每种类型的数量
-    private Map<Short, Integer> movableNPCCountMap;
+    private Map<Short, Integer> movableNPCCountMap = new HashMap<>();
 
     // prop顺序号id
     private int nextPropSeqId = 1;
@@ -61,6 +63,8 @@ public abstract class Game {
     // 处理游戏逻辑的管理器
     private GameManage gameManage;
     private JsonUtil jsonUtil = new JsonUtil();
+
+    private Navimesh navimesh;
 
     private Random random = new Random();
 
@@ -135,19 +139,23 @@ public abstract class Game {
         return null;
     }
 
+    public void setNavimesh(Navimesh navimesh) {
+        this.navimesh = navimesh;
+    }
+
     /**
      * 游戏场景中的道具
      */
     public static class EnvProp {
         public short propId;
         public int seqId;
-        public PositionPoint positionPoint;
+        public Point point;
         public long createTime;
         public long vanishTime;
         public boolean state;
 
         public EnvProp() {
-            positionPoint = new PositionPoint(0, 0, 0);
+            point = new Point(0, 0, 0);
         }
 
         public int getRemainSecond() {
@@ -180,39 +188,19 @@ public abstract class Game {
     }
 
     /**
-     * 位置点
-     */
-    public static class PositionPoint {
-        public int x;
-        public int y;
-        public int z;
-
-        public PositionPoint(int x, int y , int z) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof  PositionPoint)) {
-                return false;
-            }
-            PositionPoint pp = (PositionPoint) o;
-            return x == pp.x && y == pp.y && z == pp.z;
-        }
-    }
-
-    /**
      * 游戏场景中的一些逻辑，比如生成道具
      */
     public void logic() {
+        // set time
         lastUpdateTime = currentUpdateTime;
         currentUpdateTime = System.currentTimeMillis();
+
+        // deal with prop
         removeInvalidProp();
         fetchProp();
         generateProp();
 
+        // npc
         generateMovableNPC();
         moveNPC();
     }
@@ -309,6 +297,19 @@ public abstract class Game {
     }
 
     /**
+     * 处理游戏开始之后的一些准备工作，比如设置用户位置, NPC位置等等
+     */
+    public void prepare() {
+        for (User user: userMap.values()) {
+            Position userPosition = new Position();
+            userPosition.rotateY = 0;
+            userPosition.point = navimesh.getRandomPosition();
+            userPosition.moveState = Constant.MoveState.IDLE;
+            user.setPosition(userPosition);
+        }
+    }
+
+    /**
      * 同步游戏开始之后的一些数据，比如用户名, 游戏时间等，格式如下
      *
      * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]|NPCCount(2)|list<NPC>|
@@ -334,9 +335,9 @@ public abstract class Game {
                 bb.append(npc.getId());
                 bb.append(npc.getSeqId());
                 bb.append(npc.getPosition().moveState);
-                bb.append(npc.getPosition().positionPoint.x);
-                bb.append(npc.getPosition().positionPoint.y);
-                bb.append(npc.getPosition().positionPoint.z);
+                bb.append(npc.getPosition().point.x);
+                bb.append(npc.getPosition().point.y);
+                bb.append(npc.getPosition().point.z);
                 bb.append(npc.getPosition().rotateY);
             }
         }
@@ -377,8 +378,8 @@ public abstract class Game {
             if (user.getState() == UserState.OFFLINE) {
                 continue;
             }
+            // TODO 实际应该是发到最新的为止
             ReplyMessage replyMessage = user.nextMessage();
-            //while(replyMessage != null) {
             if (replyMessage != null) {
                 gameManage.replyData(replyMessage);
                 log.info("reply bytes: {}", Arrays.toString(replyMessage.getContent().array()));
@@ -390,7 +391,7 @@ public abstract class Game {
     /**
      * 判断两个位置是不是相邻
      */
-    protected boolean isNear(PositionPoint pp1, PositionPoint pp2, int range) {
+    protected boolean isNear(Point pp1, Point pp2, int range) {
         if (Math.abs(pp1.x - pp2.x) <= range && Math.abs(pp1.y - pp2.y) <= range & Math.abs(pp1.z - pp2.z) <= range) {
             return true;
         }
@@ -441,7 +442,7 @@ public abstract class Game {
         
         // TODO check if could move
         Position position = new Position(
-                message.moveState, new PositionPoint(message.positionX, message.positionY, message.positionZ),
+                message.moveState, new Point(message.positionX, message.positionY, message.positionZ),
                 message.rotationY);
         user.setPosition(position);
     }
@@ -579,7 +580,7 @@ public abstract class Game {
      */
     public void loadUser(List<User> userList) {
         for (User user: userList) {
-            Position position = new Position((byte)1, new PositionPoint(0, 0, 0),0);
+            Position position = new Position((byte)1, new Point(0, 0, 0),0);
             user.setPosition(position);
             user.setInitPosition(position);
             userMap.put(user.getId(), user);
@@ -613,7 +614,7 @@ public abstract class Game {
                 if (user.getPropCount() >= 15) {
                     continue;
                 }
-                boolean isNear = isNear(envProp.positionPoint, user.getPosition().positionPoint, FETCH_DISTANCE);
+                boolean isNear = isNear(envProp.point, user.getPosition().point, FETCH_DISTANCE);
                 if (isNear) {
                     user.setProp(envProp.propId, (byte)(user.getProp(envProp.propId) + 1));
                     envProp.vanishTime = System.currentTimeMillis();
@@ -641,15 +642,15 @@ public abstract class Game {
             EnvProp envProp = new EnvProp();
             envProp.propId = propIds[getRandom().nextInt(propIds.length)];
             envProp.seqId = nextPropSeqId ++;
-            envProp.positionPoint.x = (int) (getRandom().nextFloat() * xRange * 1000);
-            envProp.positionPoint.y = 0;
-            envProp.positionPoint.z = (int) (getRandom().nextFloat() * zRange * 1000);
+            envProp.point.x = (int) (getRandom().nextFloat() * xRange * 1000);
+            envProp.point.y = 0;
+            envProp.point.z = (int) (getRandom().nextFloat() * zRange * 1000);
             envProp.createTime = System.currentTimeMillis();
             envProp.vanishTime = envProp.createTime + last;
             envProp.state = true;
             getEnvPropList().add(envProp);
             getEnvPropChangedList().add(envProp);
-            log.info("created prop: {}:{}-{}:{}", gameInfo.getId(), envProp.seqId, envProp.positionPoint.x, envProp.positionPoint.z);
+            log.info("created prop: {}:{}-{}:{}", gameInfo.getId(), envProp.seqId, envProp.point.x, envProp.point.z);
         }
     }
 
@@ -668,10 +669,15 @@ public abstract class Game {
             count = 0;
         }
         Position position = getInitPositionById(config.id);
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < config.count - count; i++) {
             int seqId = movableNPCSeqId ++;
             getMoveableNPCMap().put(seqId, new NPC(seqId, config.id, position, config.speed));
-            movableNPCCountMap.put(config.id, movableNPCCountMap.get(config.id) + 1);
+            if (movableNPCCountMap.get(config.id) == null) {
+                movableNPCCountMap.put(config.id, 1);
+            } else {
+                movableNPCCountMap.put(config.id, movableNPCCountMap.get(config.id) + 1);
+            }
+
         }
     }
 
@@ -680,6 +686,9 @@ public abstract class Game {
      */
     protected void moveNPC() {
         for (NPC npc: getMoveableNPCMap().values()) {
+            if (npc.isPathEmpty()) {
+                npc.setPath(navimesh.getPath(npc.getPosition().point, 1000));
+            }
             npc.move(currentUpdateTime - lastUpdateTime);
         }
     }
@@ -694,9 +703,9 @@ public abstract class Game {
     /**
      * 生成某一种动物的初始地址
      */
-    private Position getInitPositionById(short id) {
-        // TODO
-        return new Position((byte)0, new PositionPoint(0, 0, 1), 0);
+    protected Position getInitPositionById(short id) {
+        Point point = navimesh.getRandomPosition();
+        return new Position((byte)0, point, 0);
     }
 
     public void setGameManage(GameManage gameManage) {

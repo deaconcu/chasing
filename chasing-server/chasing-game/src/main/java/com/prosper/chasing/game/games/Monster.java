@@ -5,6 +5,7 @@ import com.prosper.chasing.game.base.MetaGameAnno;
 import com.prosper.chasing.game.base.Position;
 import com.prosper.chasing.game.base.User;
 import com.prosper.chasing.game.message.PropMessage;
+import com.prosper.chasing.game.navmesh.Point;
 import com.prosper.chasing.game.service.PropService;
 import com.prosper.chasing.game.util.ByteBuilder;
 
@@ -102,7 +103,7 @@ public class Monster extends Game {
         for (User user: userList) {
             MonsterUser monsterUser = new MonsterUser(user);
             Position position = new Position(
-                    (byte)1, new PositionPoint(0, 0, 0), 0);
+                    (byte)1, new Point(0, 0, 0), 0);
             monsterUser.setPosition(position);
             monsterUser.setInitPosition(position);
             getUserMap().put(monsterUser.getId(), monsterUser);
@@ -130,8 +131,8 @@ public class Monster extends Game {
                     continue;
                 }
                 boolean isNear = isNear(
-                        chosenOne.getPosition().positionPoint,
-                        monsterUser.getPosition().positionPoint, FETCH_DISTANCE);
+                        chosenOne.getPosition().point,
+                        monsterUser.getPosition().point, FETCH_DISTANCE);
                 if (isNear) {
                     monsterUser.setLife((short)0);
                     monsterUser.endTime = (int) System.currentTimeMillis() / 1000;

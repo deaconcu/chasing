@@ -4,6 +4,7 @@ import com.prosper.chasing.game.base.Game;
 import com.prosper.chasing.game.base.MetaGameAnno;
 import com.prosper.chasing.game.base.Position;
 import com.prosper.chasing.game.base.User;
+import com.prosper.chasing.game.navmesh.Point;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -18,14 +19,14 @@ public class Marathon extends Game {
     // 圈数
     private static final int loopCount = 5;
     // 路径点
-    private static final PositionPoint[] flagList = new PositionPoint[]{
-            new PositionPoint(10, 0, 10),
-            new PositionPoint(-10, 0, 10),
-            new PositionPoint(-10, 0, -10),
-            new PositionPoint(10, 0, -10)
+    private static final Point[] flagList = new Point[]{
+            new Point(10, 0, 10),
+            new Point(-10, 0, 10),
+            new Point(-10, 0, -10),
+            new Point(10, 0, -10)
     };
     // 出发地
-    private PositionPoint birthArea = new PositionPoint(0, 0, 0);
+    private Point birthArea = new Point(0, 0, 0);
 
     public static class MarathonUser extends User {
         // 当前圈数
@@ -50,7 +51,7 @@ public class Marathon extends Game {
         for (User user: userList) {
             MarathonUser marathonUser = new MarathonUser(user);
             Position position = new Position(
-                    (byte)1, new PositionPoint(birthArea.x, birthArea.y, birthArea.z), 0);
+                    (byte)1, new Point(birthArea.x, birthArea.y, birthArea.z), 0);
             marathonUser.setPosition(position);
             marathonUser.setInitPosition(position);
             getUserMap().put(marathonUser.getId(), marathonUser);
@@ -67,7 +68,7 @@ public class Marathon extends Game {
             for (User user: getUserMap().values()) {
                 MarathonUser mUser = (MarathonUser) user;
                 if (flagIndex == mUser.pointIndex) {
-                    boolean isNear = isNear(flagList[flagIndex], user.getPosition().positionPoint, FETCH_DISTANCE);
+                    boolean isNear = isNear(flagList[flagIndex], user.getPosition().point, FETCH_DISTANCE);
                     if (isNear) {
                         if ((mUser.pointIndex == flagList.length - 1) && (mUser.loop == loopCount - 1)) {
                             mUser.loop++;

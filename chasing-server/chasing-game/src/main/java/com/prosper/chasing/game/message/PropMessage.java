@@ -2,6 +2,7 @@ package com.prosper.chasing.game.message;
 
 import com.prosper.chasing.game.base.Game;
 import com.prosper.chasing.game.base.Prop;
+import com.prosper.chasing.game.navmesh.Point;
 import com.prosper.chasing.game.service.PropService;
 
 import java.nio.ByteBuffer;
@@ -26,7 +27,7 @@ public class PropMessage extends UserMessage {
     private int toPropId;
 
     // 道具使用位置
-    private Game.PositionPoint positionPoint;
+    private Point point;
 
     public PropMessage(UserMessage message) {
         super(message);
@@ -38,7 +39,7 @@ public class PropMessage extends UserMessage {
         } else if (type == TYPE_PROP) {
             this.toPropId = content.getInt();
         } else if (type == TYPE_POSITION) {
-            this.positionPoint = new Game.PositionPoint(content.getInt(), content.getInt(), content.getInt());
+            this.point = new Point(content.getInt(), content.getInt(), content.getInt());
         }
     }
 
@@ -58,8 +59,8 @@ public class PropMessage extends UserMessage {
         return toPropId;
     }
 
-    public Game.PositionPoint getPositionPoint() {
-        return positionPoint;
+    public Point getPoint() {
+        return point;
     }
 
 }
