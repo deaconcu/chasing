@@ -29,5 +29,11 @@ public class Constant {
         public static byte WALK = 2;
         public static byte RUN = 3;
     }
+
+    public static class MessageRetryType {
+        public static byte NONE = 0;
+        public static byte ALL = 1;
+        public static byte SINGLE = 2;
+    }
     
 }

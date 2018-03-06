@@ -14,27 +14,27 @@ public class NPC {
     private static Random random = new Random();
 
     public static class NPCConfig {
-        public short id;
+        public short typeId;
         public int count;
         public int speed;
 
-        public NPCConfig(short id , int count, int speed) {
-            this.id = id;
+        public NPCConfig(short typeId , int count, int speed) {
+            this.typeId = typeId;
             this.count = count;
             this.speed = speed;
         }
     }
 
     private int seqId;
-    private short id;
+    private short typeId;
     private Position position;
     private int speed;
     private boolean isPositionChanged;
     private Deque<Point> path;
 
-    public NPC(int seqId, short id, Position position, int speed) {
+    public NPC(int seqId, short typeId, Position position, int speed) {
         this.seqId = seqId;
-        this.id = id;
+        this.typeId = typeId;
         this.position = position;
         this.speed = speed;
         this.isPositionChanged = true;
@@ -61,6 +61,7 @@ public class NPC {
                         nextPoint.y - position.point.y,
                         nextPoint.z - position.point.z);
                 position.point = position.point.add(vector, ratio);
+                setPositionChanged(true);
                 break;
             }
         }
@@ -71,12 +72,12 @@ public class NPC {
         return false;
     }
 
-    public short getId() {
-        return id;
+    public short getTypeId() {
+        return typeId;
     }
 
-    public void setId(short id) {
-        this.id = id;
+    public void setTypeId(short id) {
+        this.typeId = id;
     }
 
     public int getSeqId() {

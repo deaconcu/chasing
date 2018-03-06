@@ -36,10 +36,11 @@ public abstract class Game {
     // 参与的用户信息
     private Map<Integer, User> userMap;
 
+    // 玩家消息队列
     private Queue<Message> messageQueue = new LinkedList<>();
 
     // 游戏场景内的道具信息
-    private List<EnvProp> envPropList = new LinkedList<>();
+    private List<Prop> envPropList = new LinkedList<>();
 
     // 可移动NPC的配置信息
     private List<NPC.NPCConfig> movableNPCConfigList = new LinkedList<>();
@@ -57,6 +58,9 @@ public abstract class Game {
     // 移动NPC顺序号id
     private int movableNPCSeqId = 1;
 
+    // 游戏中的道具配置
+    protected GamePropConfigMap gamePropConfigMap = new GamePropConfigMap(0);
+
     private PropService propService = new PropService();
     private SkillService skillService = new SkillService();
 
@@ -70,7 +74,7 @@ public abstract class Game {
 
     protected boolean isStepChanged = false;
     // 每一次同步的时候有位置变化和buff变化的用户map
-    List<EnvProp> envPropChangedList = new LinkedList<>();
+    List<Prop> envPropChangedList = new LinkedList<>();
     Set<Integer> positionChangedSet = new HashSet<>();
     Set<Integer> buffChangedSet = new HashSet<>();
 
@@ -95,11 +99,11 @@ public abstract class Game {
         return random;
     }
 
-    public List<EnvProp> getEnvPropChangedList() {
+    public List<Prop> getEnvPropChangedList() {
         return envPropChangedList;
     }
 
-    public List<EnvProp> getEnvPropList() {
+    public List<Prop> getEnvPropList() {
         return envPropList;
     }
 
@@ -144,27 +148,6 @@ public abstract class Game {
     }
 
     /**
-     * 游戏场景中的道具
-     */
-    public static class EnvProp {
-        public short propId;
-        public int seqId;
-        public Point point;
-        public long createTime;
-        public long vanishTime;
-        public boolean state;
-
-        public EnvProp() {
-            point = new Point(0, 0, 0);
-        }
-
-        public int getRemainSecond() {
-            int remainSecond = (int)((vanishTime - System.currentTimeMillis()) / 1000);
-            return remainSecond > 0 ? remainSecond : 0;
-        }
-    }
-
-    /**
      * 结束后的成绩
      */
     public static class Result implements Comparable{
@@ -188,17 +171,28 @@ public abstract class Game {
     }
 
     /**
-     * 游戏场景中的一些逻辑，比如生成道具
+     * 游戏主逻辑
+     * 主要包括：处理用户消息，执行预定义游戏逻辑，检查连接等
      */
-    public void logic() {
+    public void execute() {
         // set time
         lastUpdateTime = currentUpdateTime;
         currentUpdateTime = System.currentTimeMillis();
 
+        // 执行玩家消息
+        executeMessage();
+        // 执行游戏逻辑
+        logic();
+        // 检查, 比如玩家是否掉线, 游戏是否结束
+        check();
+    }
+
+    /**
+     * 游戏场景中的一些逻辑，比如生成道具
+     */
+    public void logic() {
         // deal with prop
-        removeInvalidProp();
-        fetchProp();
-        generateProp();
+        executeProp();
 
         // npc
         generateMovableNPC();
@@ -261,6 +255,8 @@ public abstract class Game {
                 QuitCompleteMessage quitCompleteMessage = (QuitCompleteMessage) message;
                 executeQuitCompleteMessage(quitCompleteMessage);
             } else if (message instanceof EchoMessage){
+                EchoMessage echoMessage = (EchoMessage) message;
+                executeEchoMessage(echoMessage);
             } else {
                 log.warn("undefined message type:" + message.getClass().getName());
             }
@@ -297,9 +293,17 @@ public abstract class Game {
     }
 
     /**
-     * 处理游戏开始之后的一些准备工作，比如设置用户位置, NPC位置等等
+     * 游戏开始后的准备工作
      */
     public void prepare() {
+        prepareData();
+        generatePrepareMessage();
+    }
+
+    /**
+     * 处理游戏开始之后的一些准备数据，比如设置用户位置, NPC位置等等
+     */
+    public void prepareData() {
         for (User user: userMap.values()) {
             Position userPosition = new Position();
             userPosition.rotateY = 0;
@@ -332,7 +336,7 @@ public abstract class Game {
         if (getStaticNPCMap().size() != 0) {
             bb.append((short)getStaticNPCMap().size());
             for (NPC npc: getStaticNPCMap().values()) {
-                bb.append(npc.getId());
+                bb.append(npc.getTypeId());
                 bb.append(npc.getSeqId());
                 bb.append(npc.getPosition().moveState);
                 bb.append(npc.getPosition().point.x);
@@ -378,12 +382,12 @@ public abstract class Game {
             if (user.getState() == UserState.OFFLINE) {
                 continue;
             }
-            // TODO 实际应该是发到最新的为止
+
             ReplyMessage replyMessage = user.nextMessage();
-            if (replyMessage != null) {
+            while (replyMessage != null) {
                 gameManage.replyData(replyMessage);
                 log.info("reply bytes: {}", Arrays.toString(replyMessage.getContent().array()));
-                //replyMessage = user.nextMessage();
+                replyMessage = user.nextMessage();
             }
         }
     }
@@ -528,6 +532,18 @@ public abstract class Game {
             log.info("game is quitting, game: {}", gameInfo.getId());
         }
     }
+
+    /**
+     * 处理echo消息
+     */
+    private void executeEchoMessage(EchoMessage echoMessage) {
+        User user = getUser(echoMessage.getUserId());
+        if (echoMessage.retryType == Constant.MessageRetryType.ALL) {
+            user.sendSeqId = user.earliestSeqId;
+        } else if (echoMessage.retryType == Constant.MessageRetryType.SINGLE){
+            user.resendSeqIdList = echoMessage.missingMessageSeqIdList;
+        }
+    }
     
     /**
      * 获取用户
@@ -588,40 +604,50 @@ public abstract class Game {
     }
 
     /**
-     * 移除无效道具
+     * 处理和道具相关的一些逻辑
      */
-    protected void removeInvalidProp() {
-        ListIterator<EnvProp> iterator = getEnvPropList().listIterator();
-        while(iterator.hasNext()) {
-            EnvProp envProp = iterator.next();
-            if (envProp.vanishTime <= System.currentTimeMillis()) {
-                envProp.state = false;
-                getEnvPropChangedList().add(envProp);
-                iterator.remove();
-                log.info("removed prop: {}:{}:{}", gameInfo.getId(), envProp.seqId, getEnvPropChangedList());
-            }
-        }
+    protected  void executeProp() {
+        executeExistProp();
+        generateProp();
     }
 
     /**
-     * 拾取道具
+     * 移动可移动道具
+     * 1. 道具离玩家太近会自动跑开(暂时不做)
+     * 2. 如果被玩家标记且距离太近，道具会离开，且会尝试摆脱
+     * 3. 可以被多名玩家追逐
      */
-    protected void fetchProp() {
-        ListIterator<EnvProp> iterator = getEnvPropList().listIterator();
+    protected void executeExistProp() {
+        ListIterator<Prop> iterator = getEnvPropList().listIterator();
         while(iterator.hasNext()) {
-            EnvProp envProp = iterator.next();
+            Prop prop = iterator.next();
+            // 如果道具到期，移除道具
+            if (prop.vanishTime <= System.currentTimeMillis()) {
+                getEnvPropChangedList().add(prop);
+                iterator.remove();
+                log.info("removed prop: {}:{}:{}", gameInfo.getId(), prop.id, getEnvPropChangedList());
+            }
+
+            // 移动道具
+            prop.move();
+
+            // 计算追逐进度
+            prop.countProgress();
+
+            // 拾取道具
+            // TODO 需要提高一下速度，比较慢
             for (User user: getUserMap().values()) {
                 if (user.getPropCount() >= 15) {
                     continue;
                 }
-                boolean isNear = isNear(envProp.point, user.getPosition().point, FETCH_DISTANCE);
+                boolean isNear = isNear(prop.position.point, user.getPosition().point, FETCH_DISTANCE);
                 if (isNear) {
-                    user.setProp(envProp.propId, (byte)(user.getProp(envProp.propId) + 1));
-                    envProp.vanishTime = System.currentTimeMillis();
+                    user.setProp(prop.typeId, (byte)(user.getProp(prop.typeId) + 1));
+                    prop.vanishTime = System.currentTimeMillis();
                     iterator.remove();
-                    getEnvPropChangedList().add(envProp);
+                    getEnvPropChangedList().add(prop);
 
-                    log.info("fetched prop: {}:{}:{}", gameInfo.getId(), envProp.seqId, getEnvPropChangedList());
+                    log.info("fetched prop: {}:{}:{}", gameInfo.getId(), prop.id, getEnvPropChangedList());
                 }
             }
         }
@@ -631,27 +657,26 @@ public abstract class Game {
      * 补充新的道具
      */
     protected void generateProp() {
-        // TODO 需要提取出去作为配置
-        int xRange = 5; // 地图上x的范围
-        int zRange = 5; // 地图上z的范围
-        int propSize = 3;  // 生成道具的数量
-        int last = 15000; // 道具持续时间, 单位为毫秒
-        short[] propIds = {1, 2, 3};  // 能够生成的道具id
-
-        while (getEnvPropList().size() < propSize) {
-            EnvProp envProp = new EnvProp();
-            envProp.propId = propIds[getRandom().nextInt(propIds.length)];
-            envProp.seqId = nextPropSeqId ++;
-            envProp.point.x = (int) (getRandom().nextFloat() * xRange * 1000);
-            envProp.point.y = 0;
-            envProp.point.z = (int) (getRandom().nextFloat() * zRange * 1000);
+        if (gamePropConfigMap.count == 0) return;
+        while (getEnvPropList().size() < gamePropConfigMap.count) {
+            Prop envProp = new Prop();
+            GamePropConfigMap.GamePropConfig propConfig = gamePropConfigMap.getRandomProp();
+            envProp.typeId = propConfig.propTypeId;
+            envProp.id = nextPropSeqId ++;
+            envProp.position.point = navimesh.getRandomPosition();
             envProp.createTime = System.currentTimeMillis();
-            envProp.vanishTime = envProp.createTime + last;
-            envProp.state = true;
+            envProp.vanishTime = envProp.createTime + propConfig.duration * 1000;
             getEnvPropList().add(envProp);
             getEnvPropChangedList().add(envProp);
-            log.info("created prop: {}:{}-{}:{}", gameInfo.getId(), envProp.seqId, envProp.point.x, envProp.point.z);
+            log.info("created prop: {}:{}-{}:{}", gameInfo.getId(), envProp.id, envProp.position.point.x, envProp.position.point.z);
         }
+    }
+
+    /**
+     * 获得游戏支持的道具类型
+     */
+    protected byte[] getPropIdList () {
+        return new byte[]{};
     }
 
     /**
@@ -664,18 +689,18 @@ public abstract class Game {
     }
 
     private void generateNPC(NPC.NPCConfig config) {
-        Integer count = movableNPCCountMap.get(config.id);
+        Integer count = movableNPCCountMap.get(config.typeId);
         if (count == null) {
             count = 0;
         }
-        Position position = getInitPositionById(config.id);
         for (int i = 0; i < config.count - count; i++) {
+            Position position = getInitPosition();
             int seqId = movableNPCSeqId ++;
-            getMoveableNPCMap().put(seqId, new NPC(seqId, config.id, position, config.speed));
-            if (movableNPCCountMap.get(config.id) == null) {
-                movableNPCCountMap.put(config.id, 1);
+            getMoveableNPCMap().put(seqId, new NPC(seqId, config.typeId, position, config.speed));
+            if (movableNPCCountMap.get(config.typeId) == null) {
+                movableNPCCountMap.put(config.typeId, 1);
             } else {
-                movableNPCCountMap.put(config.id, movableNPCCountMap.get(config.id) + 1);
+                movableNPCCountMap.put(config.typeId, movableNPCCountMap.get(config.typeId) + 1);
             }
 
         }
@@ -687,7 +712,7 @@ public abstract class Game {
     protected void moveNPC() {
         for (NPC npc: getMoveableNPCMap().values()) {
             if (npc.isPathEmpty()) {
-                npc.setPath(navimesh.getPath(npc.getPosition().point, 1000));
+                npc.setPath(navimesh.getPath(npc.getPosition().point, navimesh.getRandomPosition()));
             }
             npc.move(currentUpdateTime - lastUpdateTime);
         }
@@ -703,7 +728,7 @@ public abstract class Game {
     /**
      * 生成某一种动物的初始地址
      */
-    protected Position getInitPositionById(short id) {
+    protected Position getInitPosition() {
         Point point = navimesh.getRandomPosition();
         return new Position((byte)0, point, 0);
     }

@@ -38,9 +38,15 @@ public class Navimesh {
         public Point b;
         public Point c;
 
+        public Point center;
+
         Triangle ab;
         Triangle ac;
         Triangle bc;
+
+        int distanceAB;
+        int distanceAC;
+        int distanceBC;
 
         Point vectorAB;
         Point vectorBC;
@@ -80,6 +86,15 @@ public class Navimesh {
 
         Navimesh navimashJson = mapper.readValue(data.toString(), getClass());
         List<Triangle>  allTriangles = navimashJson.triangles;
+
+        // 计算中心点
+        for(Triangle t: allTriangles) {
+            t.center = new Point(
+                    t.a.x + t.b.x + t.c.x / 3,
+                    t.a.y + t.b.y + t.c.y / 3,
+                    t.a.z + t.b.z + t.c.z / 3
+            );
+        }
 
         // 计算三角形面的三条边向量
         for (Triangle t: allTriangles) {
@@ -148,6 +163,19 @@ public class Navimesh {
                         t.bc = pointTriangle;
                     }
                 }
+            }
+        }
+
+        // 计算周边三角形面的距离，中心点到中心点
+        for (Triangle t: allTriangles) {
+            if (t.ab != null) {
+                t.distanceAB = t.center.distance(t.ab.center);
+            }
+            if (t.bc != null) {
+                t.distanceBC = t.center.distance(t.bc.center);
+            }
+            if (t.ac != null) {
+                t.distanceAC = t.center.distance(t.ac.center);
             }
         }
 
@@ -322,6 +350,159 @@ public class Navimesh {
         return null;
     }
 
+    private static class PathTriangle {
+        Triangle self;
+        Triangle parent;
+        int f;
+
+        PathTriangle(Triangle self, Triangle parent, int f) {
+            this.self = self;
+            this.parent = parent;
+            this.f = f;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (!(object instanceof PathTriangle)) {
+                return false;
+            }
+            return self.equals(((PathTriangle)object).self);
+        }
+
+        @Override
+        public int hashCode() {
+            return self.hashCode();
+        }
+    }
+
+    private static class PathInfo {
+        int f;
+        int g;
+        Triangle parent;
+
+        PathInfo(int f, int g, Triangle parent) {
+            this.f = f;
+            this.g = g;
+            this.parent = parent;
+        }
+    }
+
+    public Deque<Point> getPath(Point start, Point end) {
+        LinkedList<Point> pointList = new LinkedList<>();
+
+        Map<Triangle, PathInfo> pathInfoMap = new HashMap<>();
+        Set<Triangle> openSet = new HashSet<>();
+        Set<Triangle> closeSet = new HashSet<>();
+
+        Triangle startTri = getTriangleByAxis(start.x, start.z);
+        Triangle endTri = getTriangleByAxis(end.x, end.z);
+
+        if (startTri == endTri) {
+            pointList.add(start);
+            pointList.add(end);
+            return pointList;
+        }
+
+        PathTriangle parent = null;
+        Triangle current = startTri;
+        pathInfoMap.put(current, new PathInfo(
+                0 + computerF(current, 0, end, pathInfoMap),
+                0 + computerG(current, 0, pathInfoMap),
+                null));
+        closeSet.add(current);
+        while(true) {
+            if (current.ab != null && !closeSet.contains(current.ab)) {
+                int f = computerF(current.ab, current.distanceAB, end, pathInfoMap);
+                int g = computerG(current.ab, current.distanceAB, pathInfoMap);
+                if (!openSet.contains(current.ab) || f < pathInfoMap.get(current.ab).f) {
+                    openSet.add(current.ab);
+                    pathInfoMap.put(current.ab, new PathInfo(f, g, current));
+                }
+            }
+            if (current.bc != null && !closeSet.contains(current.bc)) {
+                int f = computerF(current.bc, current.distanceBC, end, pathInfoMap);
+                int g = computerG(current.bc, current.distanceBC, pathInfoMap);
+                if (!openSet.contains(current.bc) || f < pathInfoMap.get(current.bc).f) {
+                    openSet.add(current.bc);
+                    pathInfoMap.put(current.bc, new PathInfo(f, g, current));
+                }
+            }
+            if (current.ac != null && !closeSet.contains(current.ac)) {
+                int f = computerF(current.ac, current.distanceAC, end, pathInfoMap);
+                int g = computerG(current.ac, current.distanceAC, pathInfoMap);
+                if (!openSet.contains(current.ac) || f < pathInfoMap.get(current.ac).f) {
+                    openSet.add(current.ac);
+                    pathInfoMap.put(current.ac, new PathInfo(f, g, current));
+                }
+            }
+
+            if (openSet.size() == 0 || openSet.contains(endTri)) {
+                break;
+            }
+
+            openSet.remove(current);
+            closeSet.add(current);
+            current = getSmallestTriangle(openSet, pathInfoMap);
+        }
+
+        // 如果是因为没有了节点结束了循环，也就是没有找到终结点，返回空列表
+        if (openSet.size() == 0) {
+            return pointList;
+        }
+
+        LinkedList<Triangle> triPathList = new LinkedList<>();
+        triPathList.add(endTri);
+        Triangle parentTri = pathInfoMap.get(endTri).parent;
+        while (parentTri != null) {
+            triPathList.add(parentTri);
+            parentTri = pathInfoMap.get(parentTri).parent;
+        }
+
+        triPathList.pollLast();
+        pointList.add(start);
+        while (true) {
+            Triangle currentTri = triPathList.pollLast();
+            if (currentTri == endTri) {
+                break;
+            }
+            pointList.add(getRandomPositionInTriangle(currentTri));
+        }
+        pointList.add(end);
+        return pointList;
+    }
+
+    private Triangle getSmallestTriangle(Set<Triangle> openSet, Map<Triangle, PathInfo> pathInfoMap) {
+        int smallestF = Integer.MAX_VALUE;
+        Triangle smallestTri = null;
+        for (Triangle triangle: openSet) {
+            if (pathInfoMap.get(triangle).f < smallestF) {
+                smallestTri = triangle;
+            }
+        }
+        return smallestTri;
+    }
+
+    /**
+     * 计算g值
+     */
+    private int computerG(Triangle currentTri, int distance, Map<Triangle, PathInfo> pathInfo) {
+        if (pathInfo.get(currentTri) == null || pathInfo.get(currentTri).parent == null) {
+            return 0;
+        }
+
+        Triangle parent = pathInfo.get(currentTri).parent;
+        if (pathInfo.get(parent) == null) throw new RuntimeException("parent path info not found");
+
+        return pathInfo.get(parent).g + distance;
+    }
+
+    /**
+     * 计算F值
+     */
+    private int computerF(Triangle currentTri, int distance, Point endPoint, Map<Triangle, PathInfo> pathInfo) {
+        return computerG(currentTri, distance, pathInfo) + currentTri.center.distance(endPoint);
+    }
+
     /**
      * 通过当前位置获得一条随机路径
      * 参考：https://adamswaab.wordpress.com/2009/12/11/random-point-in-a-triangle-barycentric-coordinates/
@@ -399,12 +580,14 @@ public class Navimesh {
         Navimesh navmesh = new Navimesh();
         navmesh.load("navmesh01.json");
 
+
         for(int i = 0; i < 100; i ++) {
             System.out.println("try times: " + i);
 
-            Point point = navmesh.getRandomPosition();
-            System.out.println("point: " + point);
-            Deque<Point> path = navmesh.getPath(point, 10000);
+            Point start = navmesh.getRandomPosition();
+            Point end = navmesh.getRandomPosition();
+            System.out.println("start: " + start + ", end: " + end);
+            Deque<Point> path = navmesh.getPath(start, end);
             System.out.println("path: " + path);
         }
     }

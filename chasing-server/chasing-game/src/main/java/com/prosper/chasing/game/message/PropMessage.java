@@ -1,18 +1,15 @@
 package com.prosper.chasing.game.message;
 
-import com.prosper.chasing.game.base.Game;
-import com.prosper.chasing.game.base.Prop;
 import com.prosper.chasing.game.navmesh.Point;
-import com.prosper.chasing.game.service.PropService;
 
 import java.nio.ByteBuffer;
 
 public class PropMessage extends UserMessage {
     
-    public static byte TYPE_NONE = 0;
-    public static byte TYPE_USER = 1;
-    public static byte TYPE_PROP = 2;
-    public static byte TYPE_POSITION = 3;
+    public static byte TYPE_NONE = 0; // 没有目标，默认为对自己使用
+    public static byte TYPE_USER = 1; // 对玩家使用
+    public static byte TYPE_PROP = 2; // 对道具使用
+    public static byte TYPE_POSITION = 3; // 对某一个位置使用
     
     // 道具id
     private byte propId;

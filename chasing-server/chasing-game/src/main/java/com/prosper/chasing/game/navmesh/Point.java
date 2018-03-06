@@ -17,14 +17,26 @@ public class Point {
         this.z = z;
     }
 
+    /**
+     * 移动
+     * @param point 移动方向
+     * @param ratio 移动比例
+     * @return 移动后的位置
+     */
     public Point add(Point point, double ratio) {
         return add(point.x, point.y, point.z, ratio);
     }
 
+    /**
+     * @see this.add(Point point, double ratio)
+     */
     public Point add(int x, int y, int z, double ratio) {
         return new Point(this.x + (int) (x * ratio), this.y + (int) (y * ratio), this.z + (int) (z * ratio));
     }
 
+    /**
+     * 计算两点的距离
+     */
     public int distance (Point point) {
         return (int)Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2) + Math.pow(point.z - z, 2));
     }

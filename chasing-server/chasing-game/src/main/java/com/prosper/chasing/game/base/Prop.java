@@ -1,24 +1,29 @@
 package com.prosper.chasing.game.base;
 
-public class Prop {
-    
-    private short count;
-    private int id;
+import com.prosper.chasing.game.navmesh.Point;
 
-    public short getCount() {
-        return count;
+import java.util.Deque;
+
+public class Prop extends Movable {
+
+    // 标识id
+    public int id;
+
+    // 类型id
+    public byte typeId;
+
+    // 创建时间
+    public long createTime;
+
+    // 泯灭时间
+    public long vanishTime;
+
+    /**
+     * 获取剩余生存时间, 单位为秒
+     */
+    public int getRemainSecond() {
+        int remainSecond = (int)((vanishTime - System.currentTimeMillis()) / 1000);
+        return remainSecond > 0 ? remainSecond : 0;
     }
 
-    public void setCount(short count) {
-        this.count = count;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    } 
-    
 }

@@ -300,15 +300,9 @@ public class GameManage {
                         } else {
                             if (game.getState() == GameState.PREPARE) {
                                 game.prepare();
-                                game.generatePrepareMessage();
                                 game.setState(GameState.PROCESSING);
                             } else if (game.getState() == GameState.PROCESSING) {
-                                // 执行玩家消息
-                                game.executeMessage();
-                                // 执行游戏逻辑
-                                game.logic();
-                                // 检查, 比如玩家是否掉线, 游戏是否结束
-                                game.check();
+                                game.execute();
                             } else if (game.getState() == GameState.FINISHED) {
                                 game.generateResultMessage();
                                 game.setState(GameState.RESULT_INFORMED);

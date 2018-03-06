@@ -2,13 +2,11 @@ package com.prosper.chasing.game.base;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.prosper.chasing.game.message.ReplyMessage;
-import com.prosper.chasing.game.service.BuffService;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import com.prosper.chasing.game.base.Buff.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.rmi.runtime.Log;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -85,22 +83,39 @@ public class User {
 
     // 用户同步消息队列
     @JsonIgnore
-    LinkedList<ReplyMessage> messageQueue = new LinkedList<>();
+    //LinkedList<ReplyMessage> messageQueue = new LinkedList<>();
+
+
+    TreeMap<Integer, ReplyMessage> messageSendMap = new TreeMap<>();
 
     // 下一个消息需要设置的seqId
     int messageId = 1;
 
-    // 上一次
-    int lastReplySeqId = 0;
-    long lastReplyTime = System.currentTimeMillis();
+    // 当前发送完成的消息位置
+    int sendSeqId = 0;
+
+    // 需要重发的消息位置
+    int retrySeqId = 0;
+
+    // 队列中最早的消息id
+    int earliestSeqId = 0;
+
+    // 需要重新发送的消息seqId列表
+    List<Integer> resendSeqIdList;
 
     /**
      * 设置需要发送给用户的消息偏移
      */
     public void updateMessageSeq(int seqId) {
-        while(messageQueue.peek() != null && messageQueue.peek().getSeqId() <= seqId) {
-            messageQueue.poll();
+        NavigableMap<Integer, ReplyMessage> deleteMap = messageSendMap.headMap(seqId, true);
+        List<Integer> deleteList = new LinkedList<>();
+        for (int deleteSeqId: deleteMap.keySet()) {
+            deleteList.add(deleteSeqId);
         }
+        for (int deleteSeqId: deleteList) {
+            messageSendMap.remove(deleteSeqId);
+        }
+        earliestSeqId = seqId + 1;
     }
 
     public String getName() {
@@ -266,25 +281,21 @@ public class User {
     public void offerMessage(ByteBuilder bb) {
         int seqId = messageId ++;
         bb.set(seqId, 0);
-        messageQueue.offer(new ReplyMessage(id, seqId, ByteBuffer.wrap(bb.getBytes())));
+        messageSendMap.put(seqId, new ReplyMessage(id, seqId, ByteBuffer.wrap(bb.getBytes())));
     }
 
     /**
      * 获得下一个需要发送的消息，需要发送消息的时候调用
      */
     public ReplyMessage nextMessage() {
-        if (messageQueue.peek() == null) {
+        if (resendSeqIdList != null && resendSeqIdList.size() > 0) {
+            retrySeqId = 0;
+            return messageSendMap.get(resendSeqIdList.remove(0));
+        } else if (sendSeqId < messageId) {
+            return messageSendMap.get(sendSeqId ++);
+        } else {
             return null;
         }
-        if (lastReplySeqId == messageQueue.peek().getSeqId() &&
-                System.currentTimeMillis() - lastReplyTime < REPLY_GAP) {
-            //log.info("repeated message reply, skip, last reply time: " + lastReplyTime);
-            return null;
-        }
-        lastReplySeqId = messageQueue.peek().getSeqId();
-        lastReplyTime = System.currentTimeMillis();
-        log.info("message queue size: " + messageQueue.size());
-        return messageQueue.peek();
     }
 
     /**
@@ -292,7 +303,7 @@ public class User {
      * @return
      */
     public ReplyMessage firstMessage() {
-        return messageQueue.peek();
+        return messageSendMap.get(earliestSeqId);
     }
 
     /**
@@ -359,12 +370,12 @@ public class User {
             }
             sign = (short) (sign | 2048);
             byteBuilder.append((short)game.envPropChangedList.size());
-            for (Game.EnvProp envProp: game.envPropChangedList) {
-                byteBuilder.append(envProp.propId);
-                byteBuilder.append(envProp.seqId);
-                byteBuilder.append(envProp.point.x);
-                byteBuilder.append(envProp.point.y);
-                byteBuilder.append(envProp.point.z);
+            for (Prop envProp: game.envPropChangedList) {
+                byteBuilder.append(envProp.typeId);
+                byteBuilder.append(envProp.id);
+                byteBuilder.append(envProp.position.point.x);
+                byteBuilder.append(envProp.position.point.y);
+                byteBuilder.append(envProp.position.point.z);
                 byteBuilder.append(envProp.getRemainSecond());
             }
         }
@@ -373,16 +384,25 @@ public class User {
                 byteBuilder =  new ByteBuilder();
             }
             sign = (short) (sign | 1024);
-            byteBuilder.append((short)game.getMoveableNPCMap().size());
+
+            short count = 0;
             for (NPC npc: game.getMoveableNPCMap().values()) {
                 if (npc.isPositionChanged()) {
-                    byteBuilder.append(npc.getId());
+                    count ++;
+                }
+            }
+            byteBuilder.append(count);
+
+            for (NPC npc: game.getMoveableNPCMap().values()) {
+                if (npc.isPositionChanged()) {
+                    byteBuilder.append(npc.getTypeId());
                     byteBuilder.append(npc.getSeqId());
                     byteBuilder.append(npc.getPosition().moveState);
                     byteBuilder.append(npc.getPosition().point.x);
                     byteBuilder.append(npc.getPosition().point.y);
                     byteBuilder.append(npc.getPosition().point.z);
                     byteBuilder.append(npc.getPosition().rotateY);
+                    npc.setPositionChanged(false);
                 }
             }
         }

@@ -1,8 +1,6 @@
 package com.prosper.chasing.game.games;
 
 import com.prosper.chasing.game.base.*;
-
-import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.message.TaskMessage;
 import com.prosper.chasing.game.navmesh.Point;
 import com.prosper.chasing.game.service.PropService;
@@ -63,8 +61,8 @@ public class Hunter extends Game {
 
         @Override
         public void catchUp(NPC npc) {
-            getGame().getMoveableNPCMap().remove(npc.getId());
-            Short propId = getGame().getRelatedPropByNPC(npc.getId());
+            getGame().getMoveableNPCMap().remove(npc.getTypeId());
+            Short propId = getGame().getRelatedPropByNPC(npc.getTypeId());
             if (propId != null) {
                 setProp(propId, (byte)(getProp(propId) + 1));
             }
@@ -73,11 +71,11 @@ public class Hunter extends Game {
 
     public Hunter() {
         super();
-        addMovableNPCConfig(new NPC.NPCConfig(NPC_SHEEP_ID, 20, 20)); // sheep
-        addMovableNPCConfig(new NPC.NPCConfig(NPC_DOG_ID, 15, 50)); // dog
-        addMovableNPCConfig(new NPC.NPCConfig(NPC_BULL_ID, 10, 100)); // bull
-        addMovableNPCConfig(new NPC.NPCConfig(NPC_WOLF_ID, 5, 150)); // wolf
-        addMovableNPCConfig(new NPC.NPCConfig(NPC_TIGER_ID, 2, 200)); // tiger
+        addMovableNPCConfig(new NPC.NPCConfig(NPC_SHEEP_ID,1, 1)); // sheep
+        addMovableNPCConfig(new NPC.NPCConfig(NPC_DOG_ID, 1, 2)); // dog
+        addMovableNPCConfig(new NPC.NPCConfig(NPC_BULL_ID, 0,5)); // bull
+        addMovableNPCConfig(new NPC.NPCConfig(NPC_WOLF_ID, 0, 7)); // wolf
+        addMovableNPCConfig(new NPC.NPCConfig(NPC_TIGER_ID,0, 10)); // tiger
 
         // 生成npc商人
         getStaticNPCMap().put(1, new NPC(1, NPC_PROP_MERCHANT_ID,
@@ -115,7 +113,7 @@ public class Hunter extends Game {
     public void logic() {
         removeInvalidProp();
         fetchProp();
-        //generateProp();
+        generateProp();
 
         generateMovableNPC();
         moveNPC();
@@ -125,7 +123,7 @@ public class Hunter extends Game {
     public List<Result> getResultList() {
         List<Result> resultList = new LinkedList<>();
         for(User user: getUserMap().values()) {
-            resultList.add(new Result(user, user.getProp(PropService.GEN), 0));
+            resultList.add(new Result(user, user.getProp(PropService.MONEY), 0));
         }
         Collections.sort(resultList);
         return resultList;
