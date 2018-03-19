@@ -3,11 +3,11 @@ package com.prosper.chasing.game.games;
 import com.prosper.chasing.game.base.*;
 import com.prosper.chasing.game.message.TaskMessage;
 import com.prosper.chasing.game.navmesh.Point;
-import com.prosper.chasing.game.service.PropService;
+import com.prosper.chasing.game.base.PropConfig;
 
 import java.util.*;
 
-@MetaGameAnno("hunt")
+@MetaGameAnno("hunter")
 public class Hunter extends Game {
 
     private static final short NPC_PROP_MERCHANT_ID = 1001; // 卖道具的商人
@@ -96,8 +96,7 @@ public class Hunter extends Game {
         return npcRelatedPropMap.get(npcId);
     }
 
-    @Override
-    public void loadUser(List<User> userList) {
+    public void loadUserOld(List<User> userList) {
         for (User user: userList) {
             HunterUser gemsUser = new HunterUser(user);
             int positionX = getRandom().nextInt(POSITION_X_LIMIT * 2 + 1) - POSITION_X_LIMIT;
@@ -111,19 +110,13 @@ public class Hunter extends Game {
 
     @Override
     public void logic() {
-        removeInvalidProp();
-        fetchProp();
-        generateProp();
-
-        generateMovableNPC();
-        moveNPC();
+        super.logic();
     }
 
-    @Override
     public List<Result> getResultList() {
         List<Result> resultList = new LinkedList<>();
         for(User user: getUserMap().values()) {
-            resultList.add(new Result(user, user.getProp(PropService.MONEY), 0));
+            resultList.add(new Result(user, user.getProp(PropConfig.MONEY), 0));
         }
         Collections.sort(resultList);
         return resultList;

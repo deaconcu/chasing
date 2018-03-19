@@ -6,13 +6,12 @@ import com.prosper.chasing.game.base.Position;
 import com.prosper.chasing.game.base.User;
 import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.navmesh.Point;
-import com.prosper.chasing.game.service.PropService;
+import com.prosper.chasing.game.base.PropConfig;
 import com.prosper.chasing.game.util.ByteBuilder;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import static com.prosper.chasing.game.games.Monster.MonsterUser.TYPE_MONSTER;
 
@@ -79,14 +78,15 @@ public class Monster extends Game {
         }
     }
 
-    public static class MonsterPropExecutor extends PropService {
+    public static class MonsterPropExecutor extends PropConfig {
 
         public static final byte HUNTER_MONSTER_PILL = 120;
 
         static {
-            typeMap.put(HUNTER_MONSTER_PILL, new byte[]{PropMessage.TYPE_NONE, PropMessage.TYPE_USER});
+            //typeMap.put(HUNTER_MONSTER_PILL, new byte[]{PropMessage.TYPE_SELF, PropMessage.TYPE_USER});
         }
 
+        /*
         @Override
         public void doUse(byte propId, PropMessage message, User user, User toUser,
                           Map<Integer, ? extends User> userMap, List<Game.EnvProp> envPropList) {
@@ -96,10 +96,10 @@ public class Monster extends Game {
                 user.getGame().setStep(STEP_FIND_WEAPON);
             }
         }
+        */
     }
 
-    @Override
-    public void loadUser(List<User> userList) {
+    public void loadUserOld(List<User> userList) {
         for (User user: userList) {
             MonsterUser monsterUser = new MonsterUser(user);
             Position position = new Position(
@@ -112,8 +112,7 @@ public class Monster extends Game {
 
     @Override
     public void logic() {
-        removeInvalidProp();
-        fetchProp();
+        super.logic();
 
         // 超过设置时间，随机指定一个人为monster
         if ((System.currentTimeMillis() / 1000 - startTime) > frozenTime && chosenOne == null) {
@@ -144,10 +143,8 @@ public class Monster extends Game {
             chosenOne.setLife((short)0);
         }
 
-        generateProp();
     }
 
-    @Override
     public List<Result> getResultList() {
         List<Result> resultList = new LinkedList<>();
         for(User user: getUserMap().values()) {

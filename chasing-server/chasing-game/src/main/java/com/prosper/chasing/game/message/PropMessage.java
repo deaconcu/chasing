@@ -6,8 +6,9 @@ import java.nio.ByteBuffer;
 
 public class PropMessage extends UserMessage {
     
-    public static byte TYPE_NONE = 0; // 没有目标，默认为对自己使用
-    public static byte TYPE_USER = 1; // 对玩家使用
+    public static byte TYPE_NONE = 0; // 不能使用,比如重生
+    public static byte TYPE_SELF = 0; // 对自己使用
+    public static byte TYPE_USER = 1; // 对其他玩家使用
     public static byte TYPE_PROP = 2; // 对道具使用
     public static byte TYPE_POSITION = 3; // 对某一个位置使用
     

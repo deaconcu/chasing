@@ -2,9 +2,9 @@ package com.prosper.chasing.game.base;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.prosper.chasing.game.message.ReplyMessage;
+import com.prosper.chasing.game.navmesh.Point;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
-import com.prosper.chasing.game.base.Buff.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 import static com.prosper.chasing.game.base.Game.FROZEN_TIME;
+import static com.prosper.chasing.game.util.Constant.ChasingConfig.*;
 
 public class User {
 
@@ -19,6 +20,8 @@ public class User {
 
     private static final int NEAR_DISTANCE = 10;
     private static final int REPLY_GAP = 1000;
+
+    private static final int PROP_PACKAGE_MAX_SIZE = 10;
 
     // 用户所属的游戏
     @JsonIgnore
@@ -42,6 +45,9 @@ public class User {
     // 生命值
     private short life;
 
+    // 生命最大值
+    protected short maxLife = 5;
+
     // 钱
     private int money;
     
@@ -49,9 +55,9 @@ public class User {
     private Map<Short, Byte> propMap = new HashMap<>();
     
     // Buff Map
-    private Map<Byte, BaseBuff> buffMap = new HashMap<>();
+    private Map<Byte, Buff> buffMap = new HashMap<>();
     
-    // 用户状态 @see #User.UserState
+    // 用户状态 @see #Constant.UserState
     private byte state;
 
     // 位置是否有修改
@@ -66,8 +72,14 @@ public class User {
     // 状态是否有修改
     boolean isStateChanged = false;
 
+    // 目标对象是否有修改
+    boolean isTargetChanged = false;
+
     // 自定义属性是否有变化
     public boolean isCustomPropertyChanged = false;
+
+    // 结束游戏的时间
+    public long gameOverTime;
 
     // 动作列表
     @JsonIgnore
@@ -94,37 +106,144 @@ public class User {
     // 当前发送完成的消息位置
     int sendSeqId = 0;
 
-    // 需要重发的消息位置
-    int retrySeqId = 0;
-
     // 队列中最早的消息id
     int earliestSeqId = 0;
 
     // 需要重新发送的消息seqId列表
     List<Integer> resendSeqIdList;
 
+    // 使用类型 1：用户，2：道具，3：位置
+    private byte targetType;
+
+    // 目标对象的用户id
+    private int targetId;
+
+    // 目标位置
+    private Point targetPoint;
+
+    // 追逐进度
+    private Progress progress;
+
+
+    /********************************
+     * 追逐目标和追逐进度
+     ********************************/
+
+    public enum ChasingStep {
+        CHASING, CATCHING
+    }
+
+    public static class Progress {
+        int percent;
+        long startTime;
+        ChasingStep step;
+
+        Progress() {
+            percent = 0;
+            startTime = System.currentTimeMillis();
+            step = ChasingStep.CHASING;
+        }
+    }
+
     /**
-     * 设置需要发送给用户的消息偏移
+     * 获得当前目标对象
+     * @return null 如果目标对象不存在返回null
      */
-    public void updateMessageSeq(int seqId) {
-        NavigableMap<Integer, ReplyMessage> deleteMap = messageSendMap.headMap(seqId, true);
-        List<Integer> deleteList = new LinkedList<>();
-        for (int deleteSeqId: deleteMap.keySet()) {
-            deleteList.add(deleteSeqId);
+    public GameObject getCurrentTargetObject() {
+        if (targetType != 0 && targetId != 0) {
+            return getTargetObject(targetType, targetId);
         }
-        for (int deleteSeqId: deleteList) {
-            messageSendMap.remove(deleteSeqId);
-        }
-        earliestSeqId = seqId + 1;
+        return null;
     }
 
-    public String getName() {
-        return name;
+    /**
+     * 获得指定目标对象
+     */
+    public GameObject getTargetObject(byte type, int id) {
+        if (type == Constant.TargetType.TYPE_PROP) {
+            return game.getProp(id);
+        }
+        return null;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    /**
+     * 设置目标对象
+     * @return 修改成功返回true，否则返回false
+     */
+    public boolean setTarget(byte type, int id) {
+        // 如果target和当前目标一致，不做处理
+        if (targetType == type && targetId == id) {
+            return false;
+        }
+
+        // 如果目标对象不存在，不做处理
+        Object currentTargetObject = getTargetObject(type, id);
+        if (currentTargetObject == null) {
+            return false;
+        }
+
+        // 清除之前的目标
+        Object previousTargetObject = getTargetObject(targetType, targetId);
+        if (previousTargetObject instanceof MovableObject) {
+            ((MovableObject) previousTargetObject).chasingUserSet.remove(this);
+        }
+
+        // 设置当前目标
+        targetType = type;
+        targetId = id;
+        progress = null;
+        if (currentTargetObject instanceof MovableObject) {
+            ((MovableObject) currentTargetObject).chasingUserSet.add(this);
+        }
+        isTargetChanged = true;
+        return true;
     }
+
+    /**
+     * 计算追逐进度
+     */
+    public void countMovableTargetProgress() {
+        Object target = getTargetObject(targetType, targetId);
+        if (target != null && target instanceof MovableObject) {
+            MovableObject movableObject = (MovableObject) target;
+            if (movableObject.movable) {
+                if (progress == null) progress = new Progress();
+                int distance = position.point.distance(movableObject.position.point);
+                if (distance > DISTANCE_CHASING) {
+                    progress.percent = 0;
+                    progress.startTime = System.currentTimeMillis();
+                } else if (distance > DISTANCE_CATCHING && progress.step == ChasingStep.CHASING) {
+                    float percent = (float) (System.currentTimeMillis() - progress.startTime) / SECOND_CHASING * 1000;
+                    progress.percent = percent > 1 ? 1 : (int) percent * 100;
+                } else if (distance > DISTANCE_CATCHING && progress.step == ChasingStep.CATCHING) {
+                    progress.step = ChasingStep.CHASING;
+                    progress.percent = 0;
+                } else if (distance < DISTANCE_CATCHING && progress.step == ChasingStep.CHASING) {
+                    progress.step = ChasingStep.CATCHING;
+                    progress.percent = 0;
+                } else {
+                    if (progress.percent < 1) {
+                        float percent = (float) (System.currentTimeMillis() - progress.startTime) / SECOND_CATCHING * 1000;
+                        progress.percent = percent > 1 ? 1 : (int) percent * 100;
+                    }
+
+                    if (progress.percent == 1) {
+                        movableObject.catched(this);
+                    }
+                }
+            } else {
+                int minDistance = 0;
+                int distance = position.point.distance(movableObject.position.point);
+                if (distance < DISTANCE_CATCHING_STATIC && distance < minDistance) {
+                    movableObject.catched(this);
+                }
+            }
+        }
+    }
+
+    /********************************
+     * 动作相关
+     ********************************/
 
     // 动作类
     private static class Action {
@@ -147,24 +266,175 @@ public class User {
         }
     }
 
-    // 检查道具是否满足要求的数量
+    /********************************
+     * 道具相关
+     ********************************/
+
+    /**
+     * 检查道具是否满足要求的数量
+     */
     public boolean checkProp(byte propId, byte need) {
-        Byte count = propMap.get(propId);
-        if (count == null) {
-            return false;
-        }
+        Byte count = getProp(propId);
         if (count < need) {
             return false;
         }
         return true;
     }
 
-    public void useProp(byte propId) {
-        if (propMap.get(propId) > 0) {
-            setProp(propId, (byte)(propMap.get(propId) - 1));
+    /**
+     * 减少道具,用于使用道具和转移道具
+     * @return true 执行成功 false 执行失败
+     */
+    public boolean reduceProp(byte propId, byte count) {
+        if (getProp(propId) < count) {
+            return false;
+        }
+        setProp(propId, (byte)(propMap.get(propId) - count));
+        return true;
+    }
+
+    /**
+     * 增加道具
+     * @return true 执行成功 false 执行失败
+     */
+    public boolean increaseProp(byte propId, byte count) {
+        if (getPropCount() + count > PROP_PACKAGE_MAX_SIZE) {
+            return false;
+        }
+        setProp(propId, (byte)(propMap.get(propId) + count));
+        return true;
+    }
+
+    public Map<Short, Byte> getPropMap() {
+        return propMap;
+    }
+
+    public void setPropMap(Map<Short, Byte> propMap) {
+        this.propMap = propMap;
+    }
+
+    public void setProp(short propId, byte count) {
+        propMap.put(propId, count);
+        propChangedSet.add(propId);
+    }
+
+    public byte getProp(short propId) {
+        Byte count = propMap.get(propId);
+        if (count == null) {
+            return 0;
+        }
+        return count;
+    }
+
+    /**
+     * 获取用户拥有的道具总数
+     */
+    public int getPropCount() {
+        int count = 0;
+        for (int value: propMap.values()) {
+            count += value;
+        }
+        return count;
+    }
+
+    /**
+     * 购买道具
+     */
+    public void purchaseProp(short propId, int price) {
+        if (price > money) {
+            return;
+        }
+        money -= price;
+        setProp(propId, (byte)(getProp(propId) + 1));
+    }
+
+    public boolean isPackageFull() {
+        return false;
+    }
+
+
+    /********************************
+     * buff 相关
+     ********************************/
+
+    /**
+     * 增加buff
+     * @param buffId buff id
+     * @param values buff附带的一些信息, 比如跟随的时候需要跟随的用户id
+     */
+    public void addBuff(byte buffId, Object values) {
+        if (BuffConfig.getBuff(buffId) == null) {
+            log.warn("buff is not exist" + buffId);
+        }
+        buffMap.put(buffId, new Buff(BuffConfig.getBuff(buffId), values));
+        buffChangedSet.add(buffId);
+    }
+
+    /**
+     * 增加buff
+     */
+    public void addBuff(byte buffId) {
+        addBuff(buffId, null);
+    }
+
+    /**
+     * 移除buff
+     */
+    public void removeBuff(byte buffId) {
+        buffMap.remove(buffId);
+    }
+
+    /**
+     * 判断用户是否有buff
+     */
+    public boolean hasBuffer(byte bufferId) {
+        return buffMap.containsKey(bufferId);
+    }
+
+    /**
+     * 用32个bit位表示buff
+     */
+    private int getBuffBytes() {
+        int value = 0;
+        for (Buff buff: buffMap.values()) {
+            value = value | (1 << (buff.id - 1));
+        }
+        return value;
+    }
+
+    /********************************
+     * 生命值相关
+     ********************************/
+
+    public short getLife() {
+        return life;
+    }
+
+    public void setLife(short life) {
+        if (this.life == life || life > maxLife) return;
+        this.life = life;
+        isLifeChanged = true;
+    }
+
+    public void addOneLife() {
+        if (this.life >= maxLife) return;
+        else this.life ++;
+    }
+
+    public void reduceOnelife() {
+        if (this.life > 0) {
+            this.life --;
         }
     }
-    
+
+    public void maxLife() {
+        this.life = maxLife;
+    }
+
+    /********************************
+     * 其他一些属性
+     ********************************/
+
     public int getId() {
         return id;
     }
@@ -175,6 +445,13 @@ public class User {
 
     public Position getPosition() {
         return position;
+    }
+
+    public Point getPositionPoint() {
+        if (position != null) {
+            return position.point;
+        }
+        return null;
     }
 
     public void setPosition(Position position) {
@@ -201,50 +478,12 @@ public class User {
         isSpeedChanged = true;
     }
 
-    public short getLife() {
-        return life;
+    public String getName() {
+        return name;
     }
 
-    public void setLife(short life) {
-        if (this.life == life) return;
-        this.life = life;
-        isLifeChanged = true;
-    }
-
-    public Map<Short, Byte> getPropMap() {
-        return propMap;
-    }
-
-    public void setPropMap(Map<Short, Byte> propMap) {
-        this.propMap = propMap;
-    }
-
-    public void setProp(short propId, byte count) {
-        propMap.put(propId, count);
-        propChangedSet.add(propId);
-    }
-
-    public byte getProp(short propId) {
-        Byte count = propMap.get(propId);
-        if (count == null) {
-            return 0;
-        }
-        return count;
-    }
-
-    public Map<Byte, Buff.BaseBuff> getBuffMap() {
-        return buffMap;
-    }
-
-    public void setBuff(BaseBuff buff) {
-        if (buffMap.get(buff.id) != null) {
-            BaseBuff exist = buffMap.get(buff.id);
-            exist.last = buff.last;
-            exist.startSecond = buff.startSecond;
-        } else {
-            buffMap.put(buff.id, buff);
-        }
-        buffChangedSet.add(buff.id);
+    public void setName(String name) {
+        this.name = name;
     }
 
     public byte getState() {
@@ -278,7 +517,32 @@ public class User {
         this.game = game;
     }
 
+    /********************************
+     * 消息相关
+     ********************************/
+
+    /**
+     * 设置需要发送给用户的消息偏移
+     */
+    public void updateMessageSeq(int seqId) {
+        NavigableMap<Integer, ReplyMessage> deleteMap = messageSendMap.headMap(seqId, true);
+        List<Integer> deleteList = new LinkedList<>();
+        for (int deleteSeqId: deleteMap.keySet()) {
+            deleteList.add(deleteSeqId);
+        }
+        for (int deleteSeqId: deleteList) {
+            messageSendMap.remove(deleteSeqId);
+        }
+        earliestSeqId = seqId + 1;
+    }
+
+    /**
+     * 发送消息到发送队列
+     */
     public void offerMessage(ByteBuilder bb) {
+        if (bb == null || bb.getSize() == 0) {
+            return;
+        }
         int seqId = messageId ++;
         bb.set(seqId, 0);
         messageSendMap.put(seqId, new ReplyMessage(id, seqId, ByteBuffer.wrap(bb.getBytes())));
@@ -289,7 +553,6 @@ public class User {
      */
     public ReplyMessage nextMessage() {
         if (resendSeqIdList != null && resendSeqIdList.size() > 0) {
-            retrySeqId = 0;
             return messageSendMap.get(resendSeqIdList.remove(0));
         } else if (sendSeqId < messageId) {
             return messageSendMap.get(sendSeqId ++);
@@ -307,23 +570,13 @@ public class User {
     }
 
     /**
-     * 用32个bit位表示buff
-     */
-    private int getBuffBytes() {
-        int value = 0;
-        for (BaseBuff buff: buffMap.values()) {
-            value = value | (1 << (buff.id - 1));
-        }
-        return value;
-    }
-
-    /**
      * 将修改写成byte[]，用来同步客户端用户数据
      * 格式：
      * seqId(4)
      * messageType(1)
      * sign(2)
      * time(8)
+     * targetType(1)|targetId(4)|
      * step(1)
      * envPropCount(2)|list<EnvProp>|
      * NPCCount(2)|list<NPC>|
@@ -338,9 +591,8 @@ public class User {
      * userCount(1)|list<UserPosition>
      * userCount(1)|list<UserBuff>
      *
-     * sign: reserved(3bit)|step|envProp(1bit)|npc(1bit)|action(1bit)|state(1bit)|
-     *       position(1bit)|life(1bit)|speed(1bit)|buff(1bit)||
-     *       prop(1bit)|customProperty(1bit)|otherUserPosition(1bit)|otherUserBuff(1bit)|
+     * sign: reserved(2bit)|target|step|envProp|npc|action|state|
+     *       position|life|speed|buff|prop|customProperty|otherUserPosition|otherUserBuff|
      * EnvProp: id(2)|seqId(4)|positionX(4)|positionY(4)|positionZ(4)|remainSecond(4)|
      * NPC: id(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * Action: id(2)|code(1)|type(1)|value(4)|
@@ -357,6 +609,14 @@ public class User {
         short sign = 0;
         byteBuilder.append(sign);
         byteBuilder.append(System.currentTimeMillis());
+        if (isTargetChanged) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 8192);
+            byteBuilder.append(targetType);
+            byteBuilder.append(targetId);
+        }
         if (game.isStepChanged()) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
@@ -460,7 +720,7 @@ public class User {
             sign = (short) (sign | 16);
             byteBuilder.append((byte)buffChangedSet.size());
             for (byte buffId: buffChangedSet) {
-                BaseBuff buff = buffMap.get(buffId);
+                Buff buff = buffMap.get(buffId);
                 byteBuilder.append(buff.id);
                 byteBuilder.append(buff.getRemainSecond());
             }
@@ -531,6 +791,7 @@ public class User {
      * 在同步数据后清空修改状态位和数据
      */
     public void clearAfterSync() {
+        isTargetChanged = false;
         isLifeChanged = false;
         isPositionChanged = false;
         isSpeedChanged = false;
@@ -541,29 +802,17 @@ public class User {
         propChangedSet.clear();
     }
 
+    /********************************
+     * 其它
+     ********************************/
+
     /**
-     * 获取用户拥有的道具总数
-     * @return
+     * 检查用户，比如是否掉线，是否结束游戏，移除无效buff等
      */
-    public int getPropCount() {
-        int count = 0;
-        for (int value: propMap.values()) {
-            count += value;
-        }
-        return count;
-    }
-
-    public void purchaseProp(short propId, int price) {
-        if (price > money) {
-            return;
-        }
-        money -= price;
-        setProp(propId, (byte)(getProp(propId) + 1));
-    }
-
     public void check() {
+        // 检查buff是否有效，移除无效buff
         List<Byte> removeIdList = new LinkedList<>();
-        for(BaseBuff buff: buffMap.values()) {
+        for(Buff buff: buffMap.values()) {
             if (!checkBuff(buff)) {
                 removeIdList.add(buff.id);
             }
@@ -582,12 +831,15 @@ public class User {
                 //log.info("user is offline, user id: {}", getId());
             }
         }
+
+        checkIfEnd();
     }
 
     /**
      * 当buff无效时，返回false, 否则返回true
      */
-    protected boolean checkBuff(BaseBuff buff) {
+    protected boolean checkBuff(Buff buff) {
+        /*
         if (buff instanceof ChasingBuff) {
             ChasingBuff chasingBuff = (ChasingBuff) buff;
             if (chasingBuff.type == ChasingBuff.USER) {
@@ -604,6 +856,7 @@ public class User {
                 }
             }
         }
+        */
 
         if (buff.getRemainSecond() <= 0) {
             return false;
@@ -611,10 +864,25 @@ public class User {
         return true;
     }
 
+    /************************************
+     * 以下是可以override的方法
+     ************************************/
+
     /**
      * 捕获NPC后的行为
      */
     protected void catchUp(NPC npc) {
 
     }
+
+    /**
+     * 检查是否用户已经完成游戏，比如死亡或者胜利之类的，默认生命为0为结束游戏
+     */
+    protected void checkIfEnd() {
+        if (life == 0) {
+            setState(Constant.UserState.GAME_OVER);
+            gameOverTime = System.currentTimeMillis();
+        }
+    }
+
 }

@@ -61,8 +61,7 @@ public class CommonConstant {
 		public static final byte PREPARE = 4;    		//准备中
         public static final byte PROCESSING = 5;    	//进行中
 		public static final byte FINISHED = 6;    		//完成
-		public static final byte RESULT_INFORMED = 7; 	//已通知结果
-        public static final byte DESTROYING = 8;    	//完成
+        public static final byte DESTROYING = 7;    	//完成
 	}
 	
 	

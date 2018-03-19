@@ -9,7 +9,7 @@ import static java.lang.Math.random;
 /**
  * Created by deacon on 2017/12/30.
  */
-public class NPC {
+public class NPC implements GameObject {
 
     private static Random random = new Random();
 
@@ -65,6 +65,11 @@ public class NPC {
                 break;
             }
         }
+    }
+
+    @Override
+    public Point getPositionPoint() {
+        return position.point;
     }
 
     public boolean isPathEmpty() {

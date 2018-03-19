@@ -11,7 +11,7 @@ import java.util.concurrent.*;
 import javax.annotation.PostConstruct;
 
 import com.prosper.chasing.game.message.*;
-import com.prosper.chasing.game.navmesh.Navimesh;
+import com.prosper.chasing.game.navmesh.NaviMesh;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import org.apache.thrift.TException;
@@ -65,7 +65,9 @@ public class GameManage {
     Jedis jedis;
 
     @Autowired
-    Navimesh navimesh;
+    NaviMesh navimesh;
+    @Autowired
+    PropService propService;
 
     /**
      * 初始化游戏管理，主要实现把现有的游戏类加载到game class map里
@@ -142,7 +144,7 @@ public class GameManage {
 
             // 加载游戏用户
             List<UserTr> userTrList = thriftClient.gameDataServiceClient().getGameUsers(gameInfo.getId());
-            List<User> userList = ViewTransformer.transferList(userTrList, User.class);
+            List<? extends User> userList = ViewTransformer.transferList(userTrList, game.getUserClass());
 
             for (User user: userList) {
                 List<UserPropTr> propList = thriftClient.propDataServiceClient().getUserProp(user.getId());
@@ -304,9 +306,6 @@ public class GameManage {
                             } else if (game.getState() == GameState.PROCESSING) {
                                 game.execute();
                             } else if (game.getState() == GameState.FINISHED) {
-                                game.generateResultMessage();
-                                game.setState(GameState.RESULT_INFORMED);
-                            } else if (game.getState() == GameState.RESULT_INFORMED) {
                                 // 执行玩家退出消息
                                 game.executeMessage();
                                 game.check();

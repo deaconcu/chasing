@@ -1,7 +1,6 @@
 package com.prosper.chasing.game.navmesh;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.prosper.chasing.game.base.Game;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -19,7 +18,7 @@ import java.util.stream.Stream;
  * Created by deacon on 2018/2/2.
  */
 @Component
-public class Navimesh {
+public class NaviMesh {
 
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -84,7 +83,7 @@ public class Navimesh {
 
         System.out.println(data.toString());
 
-        Navimesh navimashJson = mapper.readValue(data.toString(), getClass());
+        NaviMesh navimashJson = mapper.readValue(data.toString(), getClass());
         List<Triangle>  allTriangles = navimashJson.triangles;
 
         // 计算中心点
@@ -560,7 +559,7 @@ public class Navimesh {
         return pointList;
     }
 
-    public Point getRandomPosition() {
+    public Point getRandomPositionPoint() {
         Triangle triangle = triangles.get(random.nextInt(triangles.size()));
         return getRandomPositionInTriangle(triangle);
     }
@@ -577,18 +576,20 @@ public class Navimesh {
     }
 
     public static void main(String[] s) throws IOException, URISyntaxException {
-        Navimesh navmesh = new Navimesh();
+        NaviMesh navmesh = new NaviMesh();
         navmesh.load("navmesh01.json");
 
 
         for(int i = 0; i < 100; i ++) {
             System.out.println("try times: " + i);
 
-            Point start = navmesh.getRandomPosition();
-            Point end = navmesh.getRandomPosition();
+            Point start = navmesh.getRandomPositionPoint();
+            Point end = navmesh.getRandomPositionPoint();
             System.out.println("start: " + start + ", end: " + end);
             Deque<Point> path = navmesh.getPath(start, end);
             System.out.println("path: " + path);
+
+            System.out.println("head: " + path.peek());
         }
     }
 

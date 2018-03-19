@@ -43,11 +43,13 @@ public class SkillService {
             return;
         }
 
+        /*
         if (skillId == CHASING) {
             if (message.getType() == SkillMessage.TYPE_NPC) {
                 user.setBuff(new ChasingBuff(
                         BuffService.CHASING, (short)3000, ChasingBuff.NPC, message.getToNPCSeqId()));
             }
         }
+        */
     }
 }

@@ -26,7 +26,9 @@ public class GamePropConfigMap {
 
     /**
      * 添加道具
-     * 如果rate的值总数超过100, 抛出一个警告
+     * 如果rate的值总数超过1000, 需要抛出一个警告
+     * @param rate rate为千分制
+     * @param duration duration为千分制
      */
     public GamePropConfigMap add(byte propTypeId, short rate, short duration, boolean movable) {
         configMap.put(propTypeId, new GamePropConfig(propTypeId, rate, duration, movable));
@@ -57,7 +59,7 @@ public class GamePropConfigMap {
         // 道具持续时间, 0为不消失
         public short duration;
 
-        // 道具移动速度，0为静止道具
+        // 道具是否移动
         public boolean movable;
 
         /**

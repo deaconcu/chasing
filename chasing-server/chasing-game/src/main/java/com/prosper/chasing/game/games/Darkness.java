@@ -1,54 +1,48 @@
 package com.prosper.chasing.game.games;
 
 import com.prosper.chasing.game.base.*;
-
-import com.prosper.chasing.game.base.PropConfig;
 import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 
-@MetaGameAnno("killer")
-public class Killer extends Game {
+@MetaGameAnno("darkness")
+public class Darkness extends Game {
+
+    public static byte PROP_TRANSFER_DISTANCE = 2;
 
     /***********************
      * 自定义User
      ***********************/
-    public static class KillerUser extends User {
+    public static class DarknessUser extends User {
+
+        private int genCount;
+        private byte lightening;
 
     }
 
     /***********************
      * 新的Prop
      ***********************/
-    public static final byte PROP_SCEPTER = 50;
+    public static final byte PROP_GEN = 70;
 
-    public static class Scepter extends PropConfig.Prop {
+    public static class Gen extends PropConfig.Prop {
 
-        public Scepter() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF};
-            propTypeId = PROP_SCEPTER;
-            autoUse = true;
+        public Gen() {
+            allowTargetType = new byte[]{PropMessage.TYPE_NONE};
+            propTypeId = PROP_GEN;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
-            user.addBuff(BUFF_SCEPTER);
-            return true;
+            return false;
         }
     }
-
-    /***********************
-     * 新的Buff
-     ***********************/
-    public static final byte BUFF_SCEPTER = 50;
-
 
     /**
      * 一些设定
      */
     static {
-        PropConfig.putProp(new Scepter());
-        BuffConfig.putBuff(new BuffConfig(BUFF_SCEPTER, (short)20));
+        PropConfig.putProp(new Gen());
 
         // prop配置
         /*
@@ -86,12 +80,29 @@ public class Killer extends Game {
 
     @Override
     public Class<? extends User> getUserClass() {
-        return KillerUser.class;
+        return DarknessUser.class;
     }
 
     @Override
     public void logic() {
         super.logic();
+    }
+
+    /**
+     * 必须在定义距离内，而且宝石数量多的哪一方能抢少的那一方的所有宝石
+     */
+    @Override
+    protected boolean checkIfPropCanTransfer(User user, User targetUser, byte propId) {
+        if (propId != PROP_GEN) {
+            return false;
+        }
+        if (user.getPositionPoint().distance(user.getPositionPoint()) > PROP_TRANSFER_DISTANCE) {
+            return false;
+        }
+        if (user.getProp(propId) < targetUser.getProp(propId)) {
+            return true;
+        }
+        return false;
     }
 
     @Override

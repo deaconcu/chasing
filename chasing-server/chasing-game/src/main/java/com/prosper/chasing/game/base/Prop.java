@@ -1,10 +1,6 @@
 package com.prosper.chasing.game.base;
 
-import com.prosper.chasing.game.navmesh.Point;
-
-import java.util.Deque;
-
-public class Prop extends Movable {
+public class Prop extends MovableObject {
 
     // 标识id
     public int id;
@@ -26,4 +22,12 @@ public class Prop extends Movable {
         return remainSecond > 0 ? remainSecond : 0;
     }
 
+    /**
+     * 捕获之后的处理
+     */
+    @Override
+    protected void catched(User user) {
+        user.setProp(typeId, (byte)(user.getProp(typeId) + 1));
+        vanishTime = System.currentTimeMillis();
+    }
 }

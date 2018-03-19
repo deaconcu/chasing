@@ -44,7 +44,7 @@ public class NettyUDPServer implements ApplicationListener<ContextRefreshedEvent
         watch.start();
         channel.writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer(data), sourceMap.get(key)));
         watch.stop();
-        log.info("send data cost:" + watch.getLastTaskTimeMillis());
+        //log.info("send data cost:" + watch.getLastTaskTimeMillis());
     }
 
     @Override

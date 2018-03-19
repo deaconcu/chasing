@@ -46,8 +46,7 @@ public class Marathon extends Game {
         }
     }
 
-    @Override
-    public void loadUser(List<User> userList) {
+    public void loadUserOld(List<User> userList) {
         for (User user: userList) {
             MarathonUser marathonUser = new MarathonUser(user);
             Position position = new Position(
@@ -60,8 +59,7 @@ public class Marathon extends Game {
 
     @Override
     public void logic() {
-        removeInvalidProp();
-        fetchProp();
+        super.logic();
 
         // 判断是否到路径点
         for (int flagIndex = 0; flagIndex < flagList.length; flagIndex++) {
@@ -88,7 +86,6 @@ public class Marathon extends Game {
         generateProp();
     }
 
-    @Override
     public List<Result> getResultList() {
         List<Result> resultList = new LinkedList<>();
         for(User user: getUserMap().values()) {

@@ -37,8 +37,7 @@ public class Legion extends Game {
         }
     }
 
-    @Override
-    public void loadUser(List<User> userList) {
+    public void loadUserOld(List<User> userList) {
         Collections.shuffle(userList);
         for (int i = 0; i < userList.size(); i++) {
             LegionUser legionUser = new LegionUser(userList.get(i));
@@ -57,9 +56,8 @@ public class Legion extends Game {
 
     @Override
     public void logic() {
-        removeInvalidProp();
-        fetchProp();
-
+        super.logic();
+        /*
         if ((System.currentTimeMillis() / 1000 - currentRoundStartTime) > roundTime) {
             if (currentLegionTeam == 1) {
                 currentLegionTeam = 2;
@@ -68,11 +66,10 @@ public class Legion extends Game {
             }
             currentRoundStartTime = (int) System.currentTimeMillis() / 1000;
         }
+        */
 
-        generateProp();
     }
 
-    @Override
     public List<Result> getResultList() {
         List<Result> team1ResultList = new LinkedList<>();
         int team1Remain = 0;

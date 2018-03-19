@@ -26,8 +26,7 @@ public class Position {
             return false;
         }
         Position position = (Position) obj;
-        if (moveState == position.moveState && point.equals(((Position) obj).point)
-                && position.rotateY == position.rotateY) {
+        if (moveState == position.moveState && point.equals(position.point) && rotateY == position.rotateY) {
             return true;
         }
         return false;

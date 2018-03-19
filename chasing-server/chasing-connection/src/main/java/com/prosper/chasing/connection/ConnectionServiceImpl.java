@@ -1,6 +1,7 @@
 package com.prosper.chasing.connection;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ public class ConnectionServiceImpl implements ConnectionService.Iface {
 
             // 通过udpserver和userId发送bytes
             server.sendData(userId, data);
+            //log.info("reply user message: {}:{}", userId, Arrays.toString(data));
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
