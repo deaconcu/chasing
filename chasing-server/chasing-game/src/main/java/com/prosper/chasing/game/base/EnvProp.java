@@ -1,18 +1,19 @@
 package com.prosper.chasing.game.base;
 
-public class Prop extends MovableObject {
-
-    // 标识id
-    public int id;
+public class EnvProp extends MovableObject {
 
     // 类型id
-    public byte typeId;
+    public short typeId;
 
     // 创建时间
     public long createTime;
 
     // 泯灭时间
     public long vanishTime;
+
+    public EnvProp(Game game) {
+        super(game);
+    }
 
     /**
      * 获取剩余生存时间, 单位为秒

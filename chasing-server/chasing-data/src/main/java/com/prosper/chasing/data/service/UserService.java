@@ -9,6 +9,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.prosper.chasing.data.bean.Metagame;
+import com.prosper.chasing.data.mapper.MetagameMapper;
 import com.prosper.chasing.data.util.Constant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,8 @@ public class UserService {
     private UserMapper userMapper;
     @Autowired
     private UserDataMapper userDataMapper;
+    @Autowired
+    private MetagameMapper metagameMapper;
     @Autowired
     private FriendMapper friendMapper;
     @Autowired
@@ -263,8 +267,8 @@ public class UserService {
      * 加入系统自动创建的游戏用户队列
      * @param userId 用户id
      */
-    public void joinSystemUserList(Integer userId) {
-        userQueueService.addUser(0, userId);
+    public void joinSystemUserList(Integer userId, String gameCode) {
+        userQueueService.addUser(userId, getUserLevel(), gameCode);
     }
 
     /**
@@ -272,7 +276,9 @@ public class UserService {
      * @param userId 用户id
      */
     public void quitSystemUserList(Integer userId) {
-        userQueueService.removeUser(0, userId);
+        for(Metagame metagame: metagameMapper.selectAll()) {
+            userQueueService.removeUser(userId);
+        }
     }
 
     /**
@@ -280,9 +286,7 @@ public class UserService {
      * @param userId 用户id
      */
     public int getUserGameState(Integer userId) {
-        String userStateKey = CacheName.userState + userId.toString();
-        String userState = jedis.get(userStateKey);
-
+        String userState = jedis.hget(CacheName.userState, userId.toString());
         if (userState == null) {
             return 0;
         }
@@ -329,11 +333,12 @@ public class UserService {
         return passwordBuilder.toString();
     }
 
-    
-
-    
-
-    
-
-    
+    /**
+     * 获得用户跑步等级，也就是速度
+     * @return
+     */
+    public int getUserLevel() {
+        // TODO 需要返回用户当前的跑步等级
+        return 1;
+    }
 }

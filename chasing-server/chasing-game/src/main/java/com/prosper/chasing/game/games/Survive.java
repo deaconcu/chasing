@@ -26,8 +26,8 @@ public class Survive extends Game {
      ***********************/
     public static class SurviveUser extends User {
         byte teamId;
-        byte thirsty;
-        byte hungry;
+        byte thirsty = MAX_THIRSTY;
+        byte hungry = MAX_HUNGRY;
 
         private void addHungry(byte value) {
             hungry = (byte)((hungry + value) > MAX_HUNGRY ? MAX_HUNGRY : (hungry + value));
@@ -39,7 +39,7 @@ public class Survive extends Game {
 
         protected void checkIfEnd() {
             if (thirsty == 0 || hungry == 0) {
-                setState(Constant.UserState.GOAST);
+                setState(Constant.UserState.GHOST);
                 gameOverTime = System.currentTimeMillis();
             }
 
@@ -49,7 +49,7 @@ public class Survive extends Game {
                     allGone = false;
                 }
             }
-            if (allGone == true && getState() == Constant.UserState.GOAST) {
+            if (allGone == true && getState() == Constant.UserState.GHOST) {
                 setState(Constant.UserState.GAME_OVER);
             }
         }
@@ -58,12 +58,12 @@ public class Survive extends Game {
     /***********************
      * 新的Prop
      ***********************/
-    public static final byte PROP_FOOD_LEVEL_1 = 60;
-    public static final byte PROP_FOOD_LEVEL_2 = 61;
-    public static final byte PROP_FOOD_LEVEL_3 = 62;
-    public static final byte PROP_WATER_LEVEL_1 = 63;
-    public static final byte PROP_WATER_LEVEL_2 = 64;
-    public static final byte PROP_WATER_LEVEL_3 = 65;
+    public static final short PROP_FOOD_LEVEL_1 = 201;
+    public static final short PROP_FOOD_LEVEL_2 = 202;
+    public static final short PROP_FOOD_LEVEL_3 = 203;
+    public static final short PROP_WATER_LEVEL_1 = 204;
+    public static final short PROP_WATER_LEVEL_2 = 205;
+    public static final short PROP_WATER_LEVEL_3 = 206;
 
     public static class FoodLevel1 extends PropConfig.Prop {
 
@@ -244,7 +244,7 @@ public class Survive extends Game {
     }
 
     @Override
-    public ByteBuilder generateResultMessage(User user) {
+    public byte[] generateCustomResultMessage(User user) {
         int rank = 1;
         for (User gameUser: getUserMap().values()) {
             if (gameUser.gameOverTime == 0 || gameUser.gameOverTime > user.gameOverTime) {
@@ -253,11 +253,14 @@ public class Survive extends Game {
         }
 
         ByteBuilder bb = new ByteBuilder();
-        bb.append(Constant.MessageType.RESULT);
         bb.append(rank);
         bb.append(0);
+        return bb.getBytes();
+    }
 
-        return bb;
+    @Override
+    protected List<NPC> generateNPC() {
+        return null;
     }
 
     /**

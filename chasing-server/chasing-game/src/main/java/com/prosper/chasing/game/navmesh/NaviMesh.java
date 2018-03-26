@@ -17,7 +17,6 @@ import java.util.stream.Stream;
 /**
  * Created by deacon on 2018/2/2.
  */
-@Component
 public class NaviMesh {
 
     private Logger log = LoggerFactory.getLogger(this.getClass());
@@ -65,7 +64,6 @@ public class NaviMesh {
 
     }
 
-    @PostConstruct
     public void load() throws IOException, URISyntaxException {
         load("navmesh01.json");
     }
@@ -577,7 +575,7 @@ public class NaviMesh {
 
     public static void main(String[] s) throws IOException, URISyntaxException {
         NaviMesh navmesh = new NaviMesh();
-        navmesh.load("navmesh01.json");
+        navmesh.load("navimesh/king.json");
 
 
         for(int i = 0; i < 100; i ++) {

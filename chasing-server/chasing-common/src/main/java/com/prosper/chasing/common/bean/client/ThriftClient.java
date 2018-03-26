@@ -22,7 +22,6 @@ import com.prosper.chasing.common.bean.wrapper.NettyWebSocketServer;
 import com.prosper.chasing.common.interfaces.connection.ConnectionService;
 import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.interfaces.data.GameTr;
-import com.prosper.chasing.common.interfaces.data.MetagameDataService;
 import com.prosper.chasing.common.interfaces.data.MetagameTr;
 import com.prosper.chasing.common.interfaces.data.PropDataService;
 import com.prosper.chasing.common.interfaces.data.UserDataService;
@@ -53,10 +52,6 @@ public class ThriftClient {
 
     public GameDataServiceClient gameDataServiceClient() {
         return new GameDataServiceClient();
-    }
-
-    public MetagameDataServiceClient metagameDataServiceClient() {
-        return new MetagameDataServiceClient(); 
     }
 
     public PropDataServiceClient propDataServiceClient() {
@@ -185,32 +180,6 @@ public class ThriftClient {
                 }
             }
         }
-    }
-
-    public class MetagameDataServiceClient implements MetagameDataService.Iface {
-
-        @Override
-        public List<MetagameTr> getMetagame(List<Integer> metagameIdList) throws TException {
-            TTransport transport = null;
-            Pair<String, Integer> ipAndPort = getServiceAddr(gameDataServerZkName);
-            try {
-                transport = thriftTransportPool.borrowObject(ipAndPort.getX(), ipAndPort.getY());
-                TBinaryProtocol protocol = new TBinaryProtocol(transport);
-                TMultiplexedProtocol mp = new TMultiplexedProtocol(protocol, metagameDataServiceRegisterName);
-                MetagameDataService.Client service = new MetagameDataService.Client(mp);
-
-                return service.getMetagame(metagameIdList);
-            } catch (TTransportException e) {
-                thriftTransportPool.removeObject(ipAndPort.getX(), ipAndPort.getY(), transport);
-                transport = null;
-                return null;
-            } finally {
-                if (transport != null) {
-                    thriftTransportPool.returnObject(ipAndPort.getX(), ipAndPort.getY(), transport);
-                }
-            }
-        }
-
     }
 
     public class PropDataServiceClient implements PropDataService.Iface {

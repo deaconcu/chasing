@@ -15,7 +15,7 @@ public class EchoMessage extends UserMessage {
 
     public EchoMessage(UserMessage message) {
         super(message);
-        retryType = message.getContent().get(0);
+        retryType = message.getContent().get();
 
         if (retryType == Constant.MessageRetryType.SINGLE) {
             missingMessageSeqIdList = new LinkedList<>();

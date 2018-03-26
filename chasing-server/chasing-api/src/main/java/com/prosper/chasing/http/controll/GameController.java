@@ -44,23 +44,9 @@ public class GameController {
 
     @RequestMapping(value="/metagames",method=RequestMethod.GET)
     public Object addMetagame(
-            @RequestParam(value="ids", required=false) String ids,
             @RequestParam(value="page", defaultValue="1") int page,
             @RequestParam(value="pageLength", defaultValue="50") int pageLength){
-        if (ids != null && !"".equals(ids)) {
-            List<Integer> idList = new LinkedList<>();
-            String[] idStrings = ids.split(",");
-            for (String idString: idStrings) {
-                try {
-                    idList.add(Integer.parseInt(idString));
-                } catch (NumberFormatException e) {
-                    throw new InvalidArgumentException("id is not integer");
-                }
-            }
-            return gameService.getMetagames(idList);
-        } else {
-            return gameService.getMetagames(page, pageLength);
-        }
+        return gameService.getMetagames(page, pageLength);
     }
 
     @RequestMapping(value="/metagames",method=RequestMethod.POST)

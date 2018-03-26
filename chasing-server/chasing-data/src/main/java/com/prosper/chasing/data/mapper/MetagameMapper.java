@@ -9,5 +9,6 @@ import com.prosper.chasing.data.bean.Prop;
 
 public interface MetagameMapper extends MapperI<Metagame>{
 
-    
+    List<Metagame> selectAll();
+
 }

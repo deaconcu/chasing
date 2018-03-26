@@ -7,7 +7,7 @@
 
 	<resultMap id="gameMap" type="Game">
 		<result property="id" column="pk_id" />
-		<result property="metagameId" column="fk_metagame_id" />
+		<result property="metagameCode" column="fk_metagame_code" />
 		<result property="duration" column="duration" />
 		<result property="state" column="state" />
 		<result property="server" column="server" />
@@ -58,7 +58,7 @@
     
     <insert id="insert" parameterType="Game" useGeneratedKeys="true" keyProperty="id" keyColumn="pk_id">
 		INSERT INTO t_game
-		SET fk_metagame_id = #{metagameId},
+		SET fk_metagame_code = #{metagameCode},
 		    duration = #{duration},
 		    state = #{state},
 		    server = #{server},

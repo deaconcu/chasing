@@ -7,7 +7,7 @@ exception GameException {
 
 struct GameTr {
     1: i32 id,
-    2: i32 metagameId,
+    2: string metagameCode,
     3: i32 duration,
     4: i8 state,
     5: i32 creatorId,
@@ -69,15 +69,6 @@ service GameDataService {
     i32 getUserGame(1: i32 userId),
 }
 
-service MetagameDataService {
-
-    /*
-     * 获取元游戏列表
-     * @param metagameId: 元游戏ID
-     */
-    list<MetagameTr> getMetagame(1: list<i32> metagameIdList),
-}
-    
 service UserDataService {
     /*
      * 获取用户信息

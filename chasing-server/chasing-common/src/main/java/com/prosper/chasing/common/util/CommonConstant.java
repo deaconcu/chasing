@@ -60,8 +60,10 @@ public class CommonConstant {
         public static final byte LOADING = 3;         	//加载中
 		public static final byte PREPARE = 4;    		//准备中
         public static final byte PROCESSING = 5;    	//进行中
-		public static final byte FINISHED = 6;    		//完成
-        public static final byte DESTROYING = 7;    	//完成
+		public static final byte FINISHED = 6;    		//游戏完成, 比如玩家都挂了，等待统计排名等
+        public static final byte DESTROYING = 7;    	//正在退出
+		public static final byte DESTROYED = 8;      	//已退出
+
 	}
 	
 	

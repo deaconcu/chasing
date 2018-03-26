@@ -14,7 +14,7 @@ public class GamePropConfigMap {
     // 生成道具总数
     public int count;
 
-    public Map<Byte, GamePropConfig> configMap = new HashMap<>();
+    public Map<Short, GamePropConfig> configMap = new HashMap<>();
 
     private Random random = new Random();
 
@@ -30,7 +30,7 @@ public class GamePropConfigMap {
      * @param rate rate为千分制
      * @param duration duration为千分制
      */
-    public GamePropConfigMap add(byte propTypeId, short rate, short duration, boolean movable) {
+    public GamePropConfigMap add(short propTypeId, short rate, short duration, boolean movable) {
         configMap.put(propTypeId, new GamePropConfig(propTypeId, rate, duration, movable));
         totalRate += rate;
         return this;
@@ -51,7 +51,7 @@ public class GamePropConfigMap {
 
     public static class GamePropConfig {
         // 道具类型id
-        public byte propTypeId;
+        public short propTypeId;
 
         // 生成该道具的概率, 千分制
         public short rate;
@@ -65,7 +65,7 @@ public class GamePropConfigMap {
         /**
          * rate是千分制, duration单位是秒
          */
-        public GamePropConfig(byte propTypeId, short rate, short duration, boolean movable) {
+        public GamePropConfig(short propTypeId, short rate, short duration, boolean movable) {
             this.propTypeId = propTypeId;
             this.rate = rate;
             this.duration = duration;

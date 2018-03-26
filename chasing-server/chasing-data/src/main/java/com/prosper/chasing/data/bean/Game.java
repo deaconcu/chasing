@@ -3,7 +3,7 @@ package com.prosper.chasing.data.bean;
 public class Game {
 
     private Integer id;
-    private Integer metagameId;
+    private String metagameCode;
     private int duration;
     private int state;
     private int creatorId;
@@ -61,11 +61,11 @@ public class Game {
     public void setServer(String server) {
         this.server = server;
     }
-    public Integer getMetagameId() {
-        return metagameId;
+    public String getMetagameCode() {
+        return metagameCode;
     }
-    public void setMetagameId(Integer metagameId) {
-        this.metagameId = metagameId;
+    public void setMetagameCode(String metagameCode) {
+        this.metagameCode = metagameCode;
     }
 
     public String getAttendance() {

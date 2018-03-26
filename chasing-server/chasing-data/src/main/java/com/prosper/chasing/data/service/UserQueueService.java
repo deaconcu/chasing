@@ -1,5 +1,6 @@
 package com.prosper.chasing.data.service;
 
+import com.prosper.chasing.common.exception.ResourceNotExistException;
 import com.prosper.chasing.data.util.Constant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,20 +15,22 @@ public class UserQueueService {
     @Autowired
     private Jedis jedis;
 
-    public void addUser(int type, int userId) {
-        String userListKey = Constant.CacheName.systemUserList + "0";
-        jedis.lrem(userListKey, 0L, Integer.toString(userId));
-        jedis.rpush(userListKey, Integer.toString(userId));
+    public void addUser(int userId, int userLevel, String gameCode) {
+        if (gameCode == null || gameCode.equals("")) {
+            throw new ResourceNotExistException("game code not exist");
+        }
 
-        String userStateKey = Constant.CacheName.userState + Integer.toString(userId);
-        jedis.set(userStateKey, "1");
+        // TODO 有一个问题是先加入map的用户可能被后安排进游戏
+        jedis.hset(Constant.CacheName.userQueue,
+                Integer.toString(userId), Integer.toString(userLevel) + "-" + gameCode);
+
+        // 设置用户当前是否加入游戏
+        jedis.hset(Constant.CacheName.userState, Integer.toString(userId), "1");
     }
 
-    public void removeUser(int type, int userId) {
-        String userListKey = Constant.CacheName.systemUserList + "0";
-        jedis.lrem(userListKey, 0L, Integer.toString(userId));
-
-        String userStateKey = Constant.CacheName.userState + Integer.toString(userId);
-        jedis.del(userStateKey);
+    public void removeUser(int userId) {
+        jedis.hdel(Constant.CacheName.userQueue, Integer.toString(userId));
+        jedis.hdel(Constant.CacheName.userState, Integer.toString(userId));
     }
+
 }

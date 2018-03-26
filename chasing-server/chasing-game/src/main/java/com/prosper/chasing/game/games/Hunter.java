@@ -64,13 +64,14 @@ public class Hunter extends Game {
             getGame().getMoveableNPCMap().remove(npc.getTypeId());
             Short propId = getGame().getRelatedPropByNPC(npc.getTypeId());
             if (propId != null) {
-                setProp(propId, (byte)(getProp(propId) + 1));
+                setProp(propId, (short)(getProp(propId) + 1));
             }
         }
     }
 
     public Hunter() {
         super();
+        /*
         addMovableNPCConfig(new NPC.NPCConfig(NPC_SHEEP_ID,1, 1)); // sheep
         addMovableNPCConfig(new NPC.NPCConfig(NPC_DOG_ID, 1, 2)); // dog
         addMovableNPCConfig(new NPC.NPCConfig(NPC_BULL_ID, 0,5)); // bull
@@ -84,6 +85,7 @@ public class Hunter extends Game {
                 new Position((byte)0, new Point(0, 0, 2), 0), 0));
         getStaticNPCMap().put(1, new NPC(1, NPC_CHEST_MERCHANT_ID,
                 new Position((byte)0, new Point(0, 0, 3), 0), 0));
+                */
     }
 
     @Override
@@ -132,9 +134,14 @@ public class Hunter extends Game {
                 int value = entry.getValue();
 
                 amount += user.getProp(propId) * value;
-                user.setProp(propId, (byte)0);
+                user.setProp(propId, (short)0);
             }
             user.addMoney(amount);
         }
+    }
+
+    @Override
+    protected List<NPC> generateNPC() {
+        return null;
     }
 }

@@ -9,11 +9,7 @@ import com.prosper.chasing.common.exception.ResourceNotExistException;
 import com.prosper.chasing.data.bean.Game;
 import com.prosper.chasing.data.service.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.prosper.chasing.data.bean.User;
 import com.prosper.chasing.data.bean.UserData;
@@ -70,10 +66,11 @@ public class UserController {
     }
 
     @NeedLogin
-    @RequestMapping(value="/userList",method=RequestMethod.POST)
-    public Object joinUserList(HttpServletRequest request) {
+    @RequestMapping(value="/userList/{gameCode}",method=RequestMethod.POST)
+    public Object joinUserList(HttpServletRequest request,
+                               @PathVariable("gameCode") String gameCode) {
         int userId = Integer.parseInt(request.getHeader("userId"));
-        userService.joinSystemUserList(userId);
+        userService.joinSystemUserList(userId, gameCode);
         return null;
     }
 

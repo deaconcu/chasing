@@ -1,54 +1,104 @@
 package com.prosper.chasing.game.games;
 
 import com.prosper.chasing.game.base.*;
-
-import com.prosper.chasing.game.base.PropConfig;
 import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 
-@MetaGameAnno("killer")
-public class Killer extends Game {
+import java.util.List;
+
+@MetaGameAnno("love")
+public class Love extends Game {
+
+    public static byte LOVE_TYPE_SINGLE = 1; // 单身狗
+    public static byte LOVE_TYPE_IN_LOVE = 2; // 有对象
+
+    public static byte NPC_ID_COMPERE = 1;
 
     /***********************
      * 自定义User
      ***********************/
-    public static class KillerUser extends User {
+    public static class LoveUser extends User {
+        public int loverUserId;
+        public byte loveType;
 
+        public byte gender;
+        public int flowerCount;
+
+        public String question;
+        public List<Character> loverQuestion;
+        public List<Character> haterQuestion;
+
+        public int marryUserId;
+    }
+
+    /***********************
+     * 自定义NPC
+     ***********************/
+
+    /**
+     * 主婚人
+     */
+    public static class Compere extends NPC {
+
+        public Compere(Game game) {
+            super(game);
+        }
+
+        @Override
+        public void action(User user, byte actionId, Object[] actionValues) {
+            int userId = 0;
+            if (actionValues.length > 1 && actionValues[0] instanceof Integer && actionValues[0] != null) {
+                userId = (int) actionValues[0];
+            } else {
+                return;
+            }
+
+            if (actionId == 1) {
+            }
+
+        }
     }
 
     /***********************
      * 新的Prop
      ***********************/
-    public static final byte PROP_SCEPTER = 50;
+    public static final short PROP_ANSWER = 401;
+    public static final short PROP_FLOWER = 402;
 
-    public static class Scepter extends PropConfig.Prop {
+    public static class ANSWER extends PropConfig.Prop {
 
-        public Scepter() {
+        public ANSWER() {
             allowTargetType = new byte[]{PropMessage.TYPE_SELF};
-            propTypeId = PROP_SCEPTER;
-            autoUse = true;
+            propTypeId = PROP_ANSWER;
+            isInPackage = true;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
-            user.addBuff(BUFF_SCEPTER);
-            return true;
+            return false;
         }
     }
 
-    /***********************
-     * 新的Buff
-     ***********************/
-    public static final byte BUFF_SCEPTER = 50;
+    public static class Flower extends PropConfig.Prop {
 
+        public Flower() {
+            allowTargetType = new byte[]{PropMessage.TYPE_NONE};
+            propTypeId = PROP_FLOWER;
+            isInPackage = false;
+        }
+
+        @Override
+        public boolean doUse(PropMessage message, User user, Game game) {
+            return false;
+        }
+    }
 
     /**
      * 一些设定
      */
     static {
-        PropConfig.putProp(new Scepter());
-        BuffConfig.putBuff(new BuffConfig(BUFF_SCEPTER, (short)20));
+        PropConfig.putProp(new Flower());
 
         // prop配置
         /*
@@ -86,12 +136,20 @@ public class Killer extends Game {
 
     @Override
     public Class<? extends User> getUserClass() {
-        return KillerUser.class;
+        return LoveUser.class;
     }
 
     @Override
     public void logic() {
         super.logic();
+    }
+
+    /**
+     * 必须在定义距离内，而且宝石数量多的哪一方能抢少的那一方的所有宝石
+     */
+    @Override
+    protected boolean checkIfPropCanTransfer(User user, User targetUser, byte propId) {
+        return false;
     }
 
     @Override
@@ -104,11 +162,15 @@ public class Killer extends Game {
         }
 
         ByteBuilder bb = new ByteBuilder();
-        bb.append(Constant.MessageType.RESULT);
         bb.append(rank);
         bb.append(0);
 
         return bb;
+    }
+
+    @Override
+    protected List<NPC> generateNPC() {
+        return null;
     }
 
 }

@@ -26,6 +26,11 @@ public abstract class MovableObject implements GameObject {
     private static final int PERIOD_MIN_SECOND = 5; // 运动模式持续时间最小值
     private static final int PERIOD_MAX_SECOND = 20; // 运动模式持续时间最大值
 
+    // 标识id
+    protected int id;
+
+    protected Game game;
+
     protected Set<User> chasingUserSet = new HashSet<>();
 
     // 是否可移动
@@ -38,7 +43,7 @@ public abstract class MovableObject implements GameObject {
     protected Position position;
 
     // 移动速度
-    private int speed;
+    protected int speed;
 
     // 是否位置有变化
     private boolean isPositionChanged;
@@ -50,19 +55,21 @@ public abstract class MovableObject implements GameObject {
     private long currentMoveEndMillis = 0;
 
     // 当前状态
-    private MoveState state = MoveState.WANDERING;
+    protected MoveState state = MoveState.WANDERING;
 
     public enum MoveState {
         WANDERING, CHASING
     }
 
-
+    public MovableObject(Game game) {
+        this.game = game;
+    }
 
     public void setPositionChanged(boolean positionChanged) {
         isPositionChanged = positionChanged;
     }
 
-    public boolean getPositionChanged() {
+    public boolean isPositionChanged() {
         return isPositionChanged;
     }
 
@@ -220,4 +227,19 @@ public abstract class MovableObject implements GameObject {
         return false;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public Position getPosition() {
+        return position;
+    }
+
+    public void setPosition(Position position) {
+        this.position = position;
+    }
 }

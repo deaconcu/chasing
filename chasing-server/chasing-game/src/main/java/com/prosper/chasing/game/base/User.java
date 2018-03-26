@@ -14,7 +14,7 @@ import java.util.*;
 import static com.prosper.chasing.game.base.Game.FROZEN_TIME;
 import static com.prosper.chasing.game.util.Constant.ChasingConfig.*;
 
-public class User {
+public class User implements GameObject {
 
     private Logger log = LoggerFactory.getLogger(getClass());
 
@@ -43,7 +43,7 @@ public class User {
     private int speed;
 
     // 生命值
-    private short life;
+    private short life = 5;
 
     // 生命最大值
     protected short maxLife = 5;
@@ -52,7 +52,7 @@ public class User {
     private int money;
     
     // 所拥有的道具
-    private Map<Short, Byte> propMap = new HashMap<>();
+    private Map<Short, Short> propMap = new HashMap<>();
     
     // Buff Map
     private Map<Byte, Buff> buffMap = new HashMap<>();
@@ -273,8 +273,8 @@ public class User {
     /**
      * 检查道具是否满足要求的数量
      */
-    public boolean checkProp(byte propId, byte need) {
-        Byte count = getProp(propId);
+    public boolean checkProp(short propId, int need) {
+        int count = getProp(propId);
         if (count < need) {
             return false;
         }
@@ -285,11 +285,11 @@ public class User {
      * 减少道具,用于使用道具和转移道具
      * @return true 执行成功 false 执行失败
      */
-    public boolean reduceProp(byte propId, byte count) {
+    public boolean reduceProp(short propId, short count) {
         if (getProp(propId) < count) {
             return false;
         }
-        setProp(propId, (byte)(propMap.get(propId) - count));
+        setProp(propId, (short) (propMap.get(propId) - count));
         return true;
     }
 
@@ -297,29 +297,29 @@ public class User {
      * 增加道具
      * @return true 执行成功 false 执行失败
      */
-    public boolean increaseProp(byte propId, byte count) {
-        if (getPropCount() + count > PROP_PACKAGE_MAX_SIZE) {
+    public boolean increaseProp(short propId, short count) {
+        if (getPackagePropCount() + count > PROP_PACKAGE_MAX_SIZE) {
             return false;
         }
-        setProp(propId, (byte)(propMap.get(propId) + count));
+        setProp(propId, (short) (propMap.get(propId) + count));
         return true;
     }
 
-    public Map<Short, Byte> getPropMap() {
+    public Map<Short, Short> getPropMap() {
         return propMap;
     }
 
-    public void setPropMap(Map<Short, Byte> propMap) {
+    public void setPropMap(Map<Short, Short> propMap) {
         this.propMap = propMap;
     }
 
-    public void setProp(short propId, byte count) {
+    public void setProp(short propId, short count) {
         propMap.put(propId, count);
         propChangedSet.add(propId);
     }
 
-    public byte getProp(short propId) {
-        Byte count = propMap.get(propId);
+    public Short getProp(short propId) {
+        Short count = propMap.get(propId);
         if (count == null) {
             return 0;
         }
@@ -329,10 +329,13 @@ public class User {
     /**
      * 获取用户拥有的道具总数
      */
-    public int getPropCount() {
+    public int getPackagePropCount() {
         int count = 0;
-        for (int value: propMap.values()) {
-            count += value;
+        for (short propTypeId: propMap.keySet()) {
+            PropConfig.Prop prop = PropConfig.getProp(propTypeId);
+            if (prop.isInPackage) {
+                count += propMap.get(propTypeId);
+            }
         }
         return count;
     }
@@ -340,15 +343,18 @@ public class User {
     /**
      * 购买道具
      */
-    public void purchaseProp(short propId, int price) {
+    public void purchaseProp(byte propId, int price) {
         if (price > money) {
             return;
         }
         money -= price;
-        setProp(propId, (byte)(getProp(propId) + 1));
+        setProp(propId, (short) (getProp(propId) + 1));
     }
 
-    public boolean isPackageFull() {
+    public boolean isPackageFull(int count) {
+        if (getPackagePropCount() + count > PROP_PACKAGE_MAX_SIZE) {
+            return true;
+        }
         return false;
     }
 
@@ -387,7 +393,7 @@ public class User {
     /**
      * 判断用户是否有buff
      */
-    public boolean hasBuffer(byte bufferId) {
+    public boolean hasBuffer(short bufferId) {
         return buffMap.containsKey(bufferId);
     }
 
@@ -597,7 +603,7 @@ public class User {
      * NPC: id(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * Action: id(2)|code(1)|type(1)|value(4)|
      * Buff: buffId(1)|remainSecond(4)|
-     * Prop: propId(2)|count(1)|
+     * Prop: propId(2)|count(2)|
      * UserPosition userId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * UserBuff userId(4)|buffByte(4)
      */
@@ -630,7 +636,7 @@ public class User {
             }
             sign = (short) (sign | 2048);
             byteBuilder.append((short)game.envPropChangedList.size());
-            for (Prop envProp: game.envPropChangedList) {
+            for (EnvProp envProp: game.envPropChangedList) {
                 byteBuilder.append(envProp.typeId);
                 byteBuilder.append(envProp.id);
                 byteBuilder.append(envProp.position.point.x);
@@ -656,7 +662,7 @@ public class User {
             for (NPC npc: game.getMoveableNPCMap().values()) {
                 if (npc.isPositionChanged()) {
                     byteBuilder.append(npc.getTypeId());
-                    byteBuilder.append(npc.getSeqId());
+                    byteBuilder.append(npc.getId());
                     byteBuilder.append(npc.getPosition().moveState);
                     byteBuilder.append(npc.getPosition().point.x);
                     byteBuilder.append(npc.getPosition().point.y);

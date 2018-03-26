@@ -4,9 +4,7 @@ import java.util.List;
 
 public class Metagame {
 
-    private Integer id;
     private String code;
-    private String name;
     private Integer duration;
     private Integer state;
     private List<MetagameType> metagameTypeList;
@@ -14,12 +12,6 @@ public class Metagame {
     private String createTime;
     private String updateTime;
     
-    public String getName() {
-        return name;
-    }
-    public void setName(String name) {
-        this.name = name;
-    }
     public int getDuration() {
         return duration;
     }
@@ -62,12 +54,4 @@ public class Metagame {
     public void setCode(String code) {
         this.code = code;
     }
-    public Integer getId() {
-        return id;
-    }
-    public void setId(Integer id) {
-        this.id = id;
-    }
-    
-    
 }

@@ -1,9 +1,6 @@
 package com.prosper.chasing.game.games;
 
-import com.prosper.chasing.game.base.Game;
-import com.prosper.chasing.game.base.MetaGameAnno;
-import com.prosper.chasing.game.base.Position;
-import com.prosper.chasing.game.base.User;
+import com.prosper.chasing.game.base.*;
 import com.prosper.chasing.game.navmesh.Point;
 
 import java.util.Collections;
@@ -68,6 +65,11 @@ public class Legion extends Game {
         }
         */
 
+    }
+
+    @Override
+    protected List<NPC> generateNPC() {
+        return null;
     }
 
     public List<Result> getResultList() {

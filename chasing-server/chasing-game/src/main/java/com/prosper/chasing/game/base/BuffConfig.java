@@ -3,6 +3,7 @@ package com.prosper.chasing.game.base;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -12,7 +13,7 @@ public class BuffConfig {
 
     private static Logger log = LoggerFactory.getLogger(PropConfig.class);
 
-    public static Map<Byte, BuffConfig> buffConfigMap;
+    public static Map<Byte, BuffConfig> buffConfigMap = new HashMap<>();
 
     public static final byte FLASH_LEVEL_1 = 1;
     public static final byte FLASH_LEVEL_2 = 2;

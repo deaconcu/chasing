@@ -1,12 +1,6 @@
 package com.prosper.chasing.data.service;
 
-import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 import com.prosper.chasing.common.interfaces.data.UserTr;
 import org.slf4j.Logger;
@@ -17,7 +11,6 @@ import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 
 import com.prosper.chasing.data.bean.CacheGame;
-import com.prosper.chasing.data.bean.Friend;
 import com.prosper.chasing.data.bean.Game;
 import com.prosper.chasing.data.bean.GameUser;
 import com.prosper.chasing.data.bean.Metagame;
@@ -37,11 +30,8 @@ import com.prosper.chasing.data.mapper.UserMapper;
 import com.prosper.chasing.data.util.Config;
 import com.prosper.chasing.data.util.Constant;
 import com.prosper.chasing.data.util.Constant.CacheName;
-import com.prosper.chasing.data.util.Constant.FriendState;
-import com.prosper.chasing.data.util.Constant.FriendType;
 import com.prosper.chasing.data.util.Constant.GameState;
 import com.prosper.chasing.data.util.Constant.MetagameState;
-import com.prosper.chasing.common.interfaces.data.GameDataService;
 import com.prosper.chasing.common.util.CommonUtil;
 
 /**
@@ -53,6 +43,8 @@ public class GameService {
     private Logger log = LoggerFactory.getLogger(this.getClass());
     @Autowired
     private UserQueueService userQueueService;
+    @Autowired
+    private UserService userService;
     @Autowired
     private MetagameMapper metagameMapper;
     @Autowired
@@ -130,14 +122,6 @@ public class GameService {
      */
     public List<Metagame> getMetagames(int page, int pageLength) {
         List<Metagame> metagameList = metagameMapper.selectListByPage(pageLength, pageLength * (page - 1));
-        return getTypeForMetagame(metagameList);
-    }
-
-    /**
-     * 通过id获取metagame列表
-     */
-    public List<Metagame> getMetagames(List<Integer> idList) {
-        List<Metagame> metagameList = metagameMapper.selectListByIds(idList);
         return getTypeForMetagame(metagameList);
     }
 
@@ -274,59 +258,103 @@ public class GameService {
 
 
     /**
-     * 系统自动创建游戏
+     * 系统自动创建游戏，开始的时候，量不会很大，效率低可以接受，之后需要再优化
+     * TODO 现在加入队列和创建游戏是两个不同的线程，有可能会有问题，需要修改
      * 单线程运行
      */
     public int createGameBySystem() {
+        int count = 0;
+        // 查询当前有效的游戏code
+        Set<String> metagameCodeSet = new HashSet<>();
+        for (Metagame metagame: metagameMapper.selectAll()) {
+            metagameCodeSet.add(metagame.getCode());
+        }
+
         log.info("start create game");
 
-        String userListKey = CacheName.systemUserList + "0";
-        List<Integer> userList = new LinkedList<>();
-        String attendance = "";
-        long userCount = jedis.llen(userListKey);
-        if (userCount >= config.minUserCount) {
-            for (int i = 0; i < config.minUserCount; i++) {
-                int userId = Integer.parseInt(jedis.lindex(userListKey, i));
+        // 获取当前在等待的所有用户，并找到人数大于20的队列
+        Map<String, String> userMap = jedis.hgetAll(CacheName.userQueue);
+        Map<String, Integer> userCountMap = new HashMap<>();
+        for (Map.Entry<String, String> userInfo: userMap.entrySet()) {
+            if (userCountMap.containsKey(userInfo.getKey())) {
+                userCountMap.put(userInfo.getValue(), userCountMap.get(userInfo.getKey()) + 1);
+            } else {
+                userCountMap.put(userInfo.getValue(), 1);
+            }
+        }
+
+        for(Iterator<Map.Entry<String, Integer>> it = userCountMap.entrySet().iterator(); it.hasNext(); ) {
+            if (it.next().getValue() < config.minUserCount) {
+                it.remove();
+            }
+        }
+
+        // 获取有效队列的所有用户
+        Map<String, List<Integer>> gameMap = new HashMap<>();
+        for (Map.Entry<String, String> userInfo: userMap.entrySet()) {
+            if (userCountMap.containsKey(userInfo.getValue())) {
+                gameMap.putIfAbsent(userInfo.getValue(), new LinkedList<>());
+                gameMap.get(userInfo.getValue()).add(Integer.parseInt(userInfo.getKey()));
+            }
+        }
+
+        // 创建游戏，并设置用户状态
+        for(String gameKey: gameMap.keySet()) {
+            List<Integer> userList = gameMap.get(gameKey);
+
+            String[] gameInfo = gameKey.split("-");
+            String level = gameInfo[0];
+            String metaGameCode = gameInfo[1];
+            String attendance = "";
+
+            if (!metagameCodeSet.contains(metaGameCode)) {
+                for (int i = 0; i < userList.size(); i++) {
+                    userQueueService.removeUser(userList.get(i));
+                }
+                continue;
+            }
+
+            List<Integer> singleGameUserList = new LinkedList<>();
+            for (int i = 0; i < userList.size(); i++) {
+                int userId = userList.get(i);
                 if (!isUserInGame(userId)) {
-                    userList.add(userId);
+                    singleGameUserList.add(userId);
                     attendance += Integer.toString(userId) + ",";
                 }
-            }
-        }
-        
-        if (userList.size() == config.minUserCount) {
-            // create game
-            Game game = new Game();
-            game.setMetagameId(1);
-            game.setCreatorId(0);
-            game.setState(GameState.POST_START);
-            game.setServer("");
-            game.setDuration(7000);
-            game.setAttendance(attendance.substring(0, attendance.length() - 1));
-            game.setCreateTime(CommonUtil.getTime(new Date()));
-            game.setUpdateTime(CommonUtil.getTime(new Date()));
-            gameMapper.insert(game);
 
-            // add game user
-            for (int userId: userList) {
-                GameUser gameUserInDb = gameUserMapper.selectOneByGameUser(game.getId(), userId);
-                if (gameUserInDb != null) {
-                    throw new InvalidArgumentException("user is exist");
+                if (singleGameUserList.size() == config.minUserCount) {
+                    // create game
+                    Game game = new Game();
+                    game.setMetagameCode(metaGameCode);
+                    game.setCreatorId(0);
+                    game.setState(GameState.POST_START);
+                    game.setServer("");
+                    game.setDuration(7000);
+                    game.setAttendance(attendance.substring(0, attendance.length() - 1));
+                    game.setCreateTime(CommonUtil.getTime(new Date()));
+                    game.setUpdateTime(CommonUtil.getTime(new Date()));
+                    gameMapper.insert(game);
+
+                    // add game user
+                    for (int singleGameUserId : singleGameUserList) {
+                        GameUser gameUserInDb = gameUserMapper.selectOneByGameUser(game.getId(), singleGameUserId);
+                        if (gameUserInDb != null) {
+                            throw new InvalidArgumentException("user is exist");
+                        }
+                        GameUser gameUser = new GameUser();
+                        gameUser.setGameId(game.getId());
+                        gameUser.setUserId(singleGameUserId);
+                        gameUser.setCreateTime(CommonUtil.getTime(new Date()));
+                        gameUserMapper.insert(gameUser);
+                        userQueueService.removeUser(singleGameUserId);
+                    }
+                    userDataMapper.updateUserIntoGame(userList, game.getId(), Constant.UserState.GAMING);
+                    log.info("create game success, game id:" + game.getId());
+                    count++;
                 }
-                GameUser gameUser = new GameUser();
-                gameUser.setGameId(game.getId());
-                gameUser.setUserId(userId);
-                gameUser.setCreateTime(CommonUtil.getTime(new Date()));
-                gameUserMapper.insert(gameUser);
-
-                // remove game user from cache list
-                userQueueService.removeUser(0, userId);
             }
-            userDataMapper.updateUserIntoGame(userList, game.getId(), Constant.UserState.GAMING);
-            log.info("create game success, game id:" + game.getId());
-            return 1;
         }
-        return 0;
+        return count;
     }
 
     /**

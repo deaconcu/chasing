@@ -1,9 +1,6 @@
 package com.prosper.chasing.game.games;
 
-import com.prosper.chasing.game.base.Game;
-import com.prosper.chasing.game.base.MetaGameAnno;
-import com.prosper.chasing.game.base.Position;
-import com.prosper.chasing.game.base.User;
+import com.prosper.chasing.game.base.*;
 import com.prosper.chasing.game.navmesh.Point;
 
 import java.util.Collections;
@@ -66,7 +63,8 @@ public class Marathon extends Game {
             for (User user: getUserMap().values()) {
                 MarathonUser mUser = (MarathonUser) user;
                 if (flagIndex == mUser.pointIndex) {
-                    boolean isNear = isNear(flagList[flagIndex], user.getPosition().point, FETCH_DISTANCE);
+                    //boolean isNear = isNear(flagList[flagIndex], user.getPosition().point, FETCH_DISTANCE);
+                    boolean isNear = false;
                     if (isNear) {
                         if ((mUser.pointIndex == flagList.length - 1) && (mUser.loop == loopCount - 1)) {
                             mUser.loop++;
@@ -84,6 +82,11 @@ public class Marathon extends Game {
         }
 
         generateProp();
+    }
+
+    @Override
+    protected List<NPC> generateNPC() {
+        return null;
     }
 
     public List<Result> getResultList() {

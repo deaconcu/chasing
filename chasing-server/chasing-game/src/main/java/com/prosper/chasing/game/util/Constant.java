@@ -18,7 +18,7 @@ public class Constant {
     public static class UserState {
         public static byte LOADED = 1;   // 加载完成状态
         public static byte ACTIVE = 2;   // 活动状态
-        public static byte GOAST = 3;   // 活动状态
+        public static byte GHOST = 3;   // 活动状态
         public static byte GAME_OVER = 4;  // 游戏结束状态
         public static byte RESULT_INFORMED = 5; // 排名及奖励信息已通知
         public static byte OFFLINE = 6;  // 离线状态

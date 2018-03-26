@@ -11,7 +11,7 @@ import java.util.concurrent.*;
 import javax.annotation.PostConstruct;
 
 import com.prosper.chasing.game.message.*;
-import com.prosper.chasing.game.navmesh.NaviMesh;
+import com.prosper.chasing.game.navmesh.NaviMeshGroup;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import org.apache.thrift.TException;
@@ -65,9 +65,7 @@ public class GameManage {
     Jedis jedis;
 
     @Autowired
-    NaviMesh navimesh;
-    @Autowired
-    PropService propService;
+    NaviMeshGroup navimeshGroup;
 
     /**
      * 初始化游戏管理，主要实现把现有的游戏类加载到game class map里
@@ -119,6 +117,7 @@ public class GameManage {
             // 获取game的信息
             GameInfo gameInfo = ViewTransformer.transferObject(gameTr, GameInfo.class);
 
+            /*
             // 通过rpc获取meta game的信息
             List<Integer> metagameIdList = new LinkedList<Integer>();
             metagameIdList.add(gameInfo.getMetagameId());
@@ -126,11 +125,12 @@ public class GameManage {
 
             // 获取metagame的code
             String metagameCode = metagameTrList.get(0).getCode();
+            */
 
             // 通过metagame code或者game class，然后初始化game
-            Class<? extends Game> gameClass = gameClassMap.get(metagameCode);
+            Class<? extends Game> gameClass = gameClassMap.get(gameInfo.getMetagameCode());
             if (gameClass == null) {
-                log.error("metagame implement is not exist:" + metagameCode);
+                log.error("metagame implement is not exist:" + gameInfo.getMetagameCode());
             }
             Game game = null;
             try {
@@ -140,7 +140,7 @@ public class GameManage {
             }
             game.setGameInfo(gameInfo);
             game.setGameManage(this);
-            game.setNavimesh(navimesh);
+            game.setNavimeshGroup(navimeshGroup);
 
             // 加载游戏用户
             List<UserTr> userTrList = thriftClient.gameDataServiceClient().getGameUsers(gameInfo.getId());
@@ -178,7 +178,7 @@ public class GameManage {
     public void finishGame(int gameId) {
         Game game = gameMap.get(gameId);
         GameInfo gameInfo = game.getGameInfo();
-        gameInfo.setState(game.getState());
+        gameInfo.setState(GameState.DESTROYED);
         GameTr gameTr = ViewTransformer.transferObject(gameInfo, GameTr.class);
         try {
             thriftClient.gameDataServiceClient().updateGame(gameTr);
@@ -298,6 +298,7 @@ public class GameManage {
                     for (Game game: gameMap.values()) {
                         // 如果游戏已是等待销毁状态，则销毁游戏, 否则执行游戏逻辑
                         if (game.getState() == GameState.DESTROYING) {
+                            // TODO 需要彻底隔离游戏主线程和其他线程
                             finishGame(game.getGameInfo().getId());
                         } else {
                             if (game.getState() == GameState.PREPARE) {
@@ -392,18 +393,25 @@ public class GameManage {
                         user = userQueue.take();
                         // TODO try 3 times
                         UserTr userTr = ViewTransformer.transferObject(user, UserTr.class);
-                        Map<Short, Byte> propMap = user.getPropMap();
+
+                        // TODO 不需要了，删除，然后需要更新用户的钱
+                        /*
+                        Map<Short, Short> propMap = user.getPropMap();
                         List<UserPropTr> propList = new LinkedList<>();
-                        for (Map.Entry<Short, Byte> entry: propMap.entrySet()) {
+                        for (Map.Entry<Short, Short> entry: propMap.entrySet()) {
                             UserPropTr userPropTr = new UserPropTr();
                             userPropTr.setPropId(entry.getKey());
                             userPropTr.setCount(entry.getValue());
                             propList.add(userPropTr);
                         }
+                        */
 
                         userTr.setState((byte)1);
                         userTr.setGameId(-1);
-                        thriftClient.wrapperServiceClient().updateUserProp(userTr, propList);
+
+                        // TODO 不需要了，删除
+                        //thriftClient.wrapperServiceClient().updateUserProp(userTr, propList);
+
                         thriftClient.UserDataServiceClient().updateUser(userTr);
                         recieveData(new QuitCompleteMessage(user.getGame().getGameInfo().getId(), user.getId()));
                     } catch(Exception e) {

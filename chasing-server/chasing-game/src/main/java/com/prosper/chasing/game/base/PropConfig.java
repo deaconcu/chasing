@@ -5,6 +5,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.navmesh.NaviMesh;
+import com.prosper.chasing.game.navmesh.NaviMeshGroup;
 import com.prosper.chasing.game.util.Constant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,47 +27,47 @@ public class PropConfig {
      ********************************/
 
     // 位置相关
-    public static final byte MARK = 1; // 单人位置显示 随机标记一个人
-    public static final byte INVISIBLE_LEVEL_1 = 2;   // 隐身30秒，不能被标记，可以移动
-    public static final byte INVISIBLE_LEVEL_2 = 3;   // 隐身5分钟，不能被标记，不能移动
-    public static final byte ANTI_INVISIBLE = 4;  // 对玩家所在地点使用，以该地点为中心点的周围200米距离内，使用了隐形药水的玩家立即显形
+    public static final short MARK = 1; // 单人位置显示 随机标记一个人
+    public static final short INVISIBLE_LEVEL_1 = 2;   // 隐身30秒，不能被标记，可以移动
+    public static final short INVISIBLE_LEVEL_2 = 3;   // 隐身5分钟，不能被标记，不能移动
+    public static final short ANTI_INVISIBLE = 4;  // 对玩家所在地点使用，以该地点为中心点的周围200米距离内，使用了隐形药水的玩家立即显形
 
     // 运动相关
-    public static final byte RETURN_TO_INIT_POSITION = 5;  // 单人模式下使用，回到出发点
-    public static final byte RANDOM_POSITION = 6; // 随机传送到一个位置
-    public static final byte FLASH_LEVEL_1 = 7;  // 立即传送到被标记目标2米范围内
-    public static final byte FLASH_LEVEL_2 = 8;  // 向被标记目标前进50米
-    public static final byte FOLLOW = 9; // 跟随某一个目标移动，两人速度为正常值的一半
+    public static final short RETURN_TO_INIT_POSITION = 5;  // 单人模式下使用，回到出发点
+    public static final short RANDOM_POSITION = 6; // 随机传送到一个位置
+    public static final short FLASH_LEVEL_1 = 7;  // 立即传送到被标记目标2米范围内
+    public static final short FLASH_LEVEL_2 = 8;  // 向被标记目标前进50米
+    public static final short FOLLOW = 9; // 跟随某一个目标移动，两人速度为正常值的一半
 
     // 速度相关
-    public static final byte SPEED_UP_LEVEL_1 = 10; // 加速道具 20%
-    public static final byte SPEED_UP_LEVEL_2 = 11; // 加速道具 40%
-    public static final byte SPEED_DOWN_LEVEL_1 = 12; // 减速道具 20%
-    public static final byte SPEED_DOWN_LEVEL_2 = 13; // 减速道具 20%
-    public static final byte HOLD_POSITION = 14; // 停止移动
+    public static final short SPEED_UP_LEVEL_1 = 10; // 加速道具 20%
+    public static final short SPEED_UP_LEVEL_2 = 11; // 加速道具 40%
+    public static final short SPEED_DOWN_LEVEL_1 = 12; // 减速道具 20%
+    public static final short SPEED_DOWN_LEVEL_2 = 13; // 减速道具 20%
+    public static final short HOLD_POSITION = 14; // 停止移动
 
     // 生命相关
-    public static final byte BLOOD_PILL = 15; // 加血一点
-    public static final byte BLOOD_BAG = 16; // 加血到满
-    public static final byte REBIRTH = 17; // 加血一点
+    public static final short BLOOD_PILL = 15; // 加血一点
+    public static final short BLOOD_BAG = 16; // 加血到满
+    public static final short REBIRTH = 17; // 加血一点
 
     // 视野
-    public static final byte DARK_VISION = 18; // 让目标视野变黑
+    public static final short DARK_VISION = 18; // 让目标视野变黑
 
     // buff
-    public static final byte IMMUNITY_LEVEL_1 = 19; // 对所有道具免疫5分钟，不能移动
-    public static final byte IMMUNITY_LEVEL_2 = 20;  // 对所有道具免疫30秒，可以移动
-    public static final byte REBOUND = 21;            // 反弹，持续3分钟
+    public static final short IMMUNITY_LEVEL_1 = 19; // 对所有道具免疫5分钟，不能移动
+    public static final short IMMUNITY_LEVEL_2 = 20;  // 对所有道具免疫30秒，可以移动
+    public static final short REBOUND = 21;            // 反弹，持续3分钟
 
     // 提醒
-    public static final byte NEAR_ENEMY_REMIND = 22;     // 100米接近提醒，正常为50米
+    public static final short NEAR_ENEMY_REMIND = 22;     // 100米接近提醒，正常为50米
 
     // 攻击道具
-    public static final byte PROP_BOMB = 23;  // 摧毁目标道具
+    public static final short PROP_BOMB = 23;  // 摧毁目标道具
 
     // 其他
-    public static final byte MONEY = 24;  // 摧毁目标道具
-    public static final byte GIFT_BOX = 25;  // 摧毁目标道具
+    public static final short MONEY = 24;  // 摧毁目标道具
+    public static final short GIFT_BOX = 25;  // 摧毁目标道具
 
     /********************************
      * 以下为子游戏:killer使用的道具
@@ -75,7 +76,7 @@ public class PropConfig {
     public static final byte Scepter = 50;
 
 
-    public static Map<Byte, Prop> typeMap = new HashMap<>();
+    public static Map<Short, Prop> typeMap = new HashMap<>();
 
     static {
         ClassPathScanningCandidateComponentProvider provider =
@@ -96,7 +97,7 @@ public class PropConfig {
         }
     }
 
-    public static Prop getProp(byte propId) {
+    public static Prop getProp(short propId) {
         return typeMap.get(propId);
     }
 
@@ -108,24 +109,35 @@ public class PropConfig {
         typeMap.put(prop.propTypeId, prop);
     }
 
+    /**
+     * 获得某个商品的价格
+     */
+    public static int getPrice(short propId) {
+        // TODO
+        return -1;
+    }
+
     public static abstract class Prop {
 
         private Logger log = LoggerFactory.getLogger(getClass());
 
         @Autowired
-        private NaviMesh navimesh;
+        private NaviMeshGroup navimeshGroup;
 
         // 道具允许使用的对象类型
         protected byte[] allowTargetType;
 
         // 道具类型id
-        protected byte propTypeId;
+        protected short propTypeId;
 
         // 是否自动使用,比如killer里边的权杖,捡到就使用，不放到包里,默认为false
         protected boolean autoUse = false;
 
-        protected NaviMesh getNavimesh() {
-            return navimesh;
+        // 是否在道具包中
+        protected boolean isInPackage = true;
+
+        protected NaviMeshGroup getNavimeshGroup() {
+            return navimeshGroup;
         }
 
         /**
@@ -228,8 +240,8 @@ public class PropConfig {
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
             // 如果存在隐身1级，去除该buff
-            if (user.hasBuffer(INVISIBLE_LEVEL_1)) {
-                user.removeBuff(INVISIBLE_LEVEL_1);
+            if (user.hasBuffer(BuffConfig.INVISIBLE_LEVEL_1)) {
+                user.removeBuff(BuffConfig.INVISIBLE_LEVEL_1);
             }
             user.addBuff(BuffConfig.INVISIBLE_LEVEL_2);
             return true;
@@ -253,8 +265,8 @@ public class PropConfig {
                     continue;
                 }
                 if (gameUser.getPosition().point.distance(user.getPosition().point) < 200) {
-                    gameUser.removeBuff(INVISIBLE_LEVEL_1);
-                    gameUser.removeBuff(INVISIBLE_LEVEL_2);
+                    gameUser.removeBuff(BuffConfig.INVISIBLE_LEVEL_1);
+                    gameUser.removeBuff(BuffConfig.INVISIBLE_LEVEL_2);
                 }
             }
             return true;
@@ -290,7 +302,8 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
-            user.setPosition(new Position(Constant.MoveState.IDLE, getNavimesh().getRandomPositionPoint(), 0));
+            user.setPosition(new Position(Constant.MoveState.IDLE,
+                    getNavimeshGroup().getRandomPositionPoint(game.getGameInfo().getMetagameCode()), 0));
             return true;
         }
     }
@@ -380,11 +393,11 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
-            if (user.hasBuffer(SPEED_DOWN_LEVEL_2)) {
+            if (user.hasBuffer(BuffConfig.SPEED_DOWN_LEVEL_2)) {
                 return false;
             }
-            user.removeBuff(SPEED_DOWN_LEVEL_1);
-            user.removeBuff(SPEED_DOWN_LEVEL_2);
+            user.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_1);
+            user.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_2);
             user.addBuff(BuffConfig.SPEED_UP_LEVEL_1);
             return true;
         }
@@ -402,9 +415,9 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
-            user.removeBuff(SPEED_UP_LEVEL_1);
-            user.removeBuff(SPEED_DOWN_LEVEL_1);
-            user.removeBuff(SPEED_DOWN_LEVEL_2);
+            user.removeBuff(BuffConfig.SPEED_UP_LEVEL_1);
+            user.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_1);
+            user.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_2);
             user.addBuff(BuffConfig.SPEED_UP_LEVEL_2);
             return true;
         }
@@ -422,11 +435,11 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
-            if (user.hasBuffer(SPEED_DOWN_LEVEL_2)) {
+            if (user.hasBuffer(BuffConfig.SPEED_DOWN_LEVEL_2)) {
                 return false;
             }
-            user.removeBuff(SPEED_UP_LEVEL_1);
-            user.removeBuff(SPEED_UP_LEVEL_2);
+            user.removeBuff(BuffConfig.SPEED_UP_LEVEL_1);
+            user.removeBuff(BuffConfig.SPEED_UP_LEVEL_2);
             user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_1);
             return true;
         }
@@ -444,9 +457,9 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
-            user.removeBuff(SPEED_DOWN_LEVEL_1);
-            user.removeBuff(SPEED_UP_LEVEL_1);
-            user.removeBuff(SPEED_UP_LEVEL_2);
+            user.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_1);
+            user.removeBuff(BuffConfig.SPEED_UP_LEVEL_1);
+            user.removeBuff(BuffConfig.SPEED_UP_LEVEL_2);
             user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_2);
             return true;
         }
@@ -464,10 +477,10 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
-            user.removeBuff(SPEED_UP_LEVEL_1);
-            user.removeBuff(SPEED_UP_LEVEL_2);
-            user.removeBuff(SPEED_DOWN_LEVEL_1);
-            user.removeBuff(SPEED_DOWN_LEVEL_2);
+            user.removeBuff(BuffConfig.SPEED_UP_LEVEL_1);
+            user.removeBuff(BuffConfig.SPEED_UP_LEVEL_2);
+            user.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_1);
+            user.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_2);
             user.addBuff(BuffConfig.HOLD_POSITION);
             return true;
         }
@@ -572,7 +585,7 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
-            user.removeBuff(IMMUNITY_LEVEL_1);
+            user.removeBuff(BuffConfig.IMMUNITY_LEVEL_1);
             user.addBuff(BuffConfig.IMMUNITY_LEVEL_2);
             return true;
         }

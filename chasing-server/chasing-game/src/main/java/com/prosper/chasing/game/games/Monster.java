@@ -1,12 +1,8 @@
 package com.prosper.chasing.game.games;
 
-import com.prosper.chasing.game.base.Game;
-import com.prosper.chasing.game.base.MetaGameAnno;
-import com.prosper.chasing.game.base.Position;
-import com.prosper.chasing.game.base.User;
+import com.prosper.chasing.game.base.*;
 import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.navmesh.Point;
-import com.prosper.chasing.game.base.PropConfig;
 import com.prosper.chasing.game.util.ByteBuilder;
 
 import java.util.Collections;
@@ -129,9 +125,8 @@ public class Monster extends Game {
                 if (monsterUser.type == TYPE_MONSTER) {
                     continue;
                 }
-                boolean isNear = isNear(
-                        chosenOne.getPosition().point,
-                        monsterUser.getPosition().point, FETCH_DISTANCE);
+
+                boolean isNear = false;
                 if (isNear) {
                     monsterUser.setLife((short)0);
                     monsterUser.endTime = (int) System.currentTimeMillis() / 1000;
@@ -143,6 +138,11 @@ public class Monster extends Game {
             chosenOne.setLife((short)0);
         }
 
+    }
+
+    @Override
+    protected List<NPC> generateNPC() {
+        return null;
     }
 
     public List<Result> getResultList() {

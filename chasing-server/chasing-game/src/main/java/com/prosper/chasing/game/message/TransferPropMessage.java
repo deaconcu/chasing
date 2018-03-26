@@ -18,12 +18,16 @@ public class TransferPropMessage extends UserMessage {
     // 交易类型
     private byte type;
 
+    // 交易数量
+    private short count;
+
     public TransferPropMessage(UserMessage message) {
         super(message);
         ByteBuffer content = message.getContent();
         this.type = content.get();
         this.targetUserId = content.getInt();
         this.propId = content.get();
+        this.count = content.getShort();
     }
 
     public byte getPropId() {
@@ -36,5 +40,9 @@ public class TransferPropMessage extends UserMessage {
 
     public byte getType() {
         return type;
+    }
+
+    public short getCount() {
+        return count;
     }
 }
