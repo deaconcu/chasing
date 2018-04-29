@@ -21,6 +21,8 @@ public class Survive extends Game {
     public static byte PROP_TRANSFER_DISTANCE = 2;
     public static byte PROP_TRANSFER_CATCH_DISTANCE = 5;
 
+    protected static GamePropConfigMap gamePropConfigMap;
+
     /***********************
      * 自定义User
      ***********************/
@@ -225,9 +227,17 @@ public class Survive extends Game {
                 .add(PropService.MONEY, (short)40, (short)15, true)
                 .add(PropService.GIFT_BOX, (short)40, (short)15, true);
                 */
-        gamePropConfigMap = new GamePropConfigMap(1)
-                .add(PropConfig.MONEY, (short)500, (short)300, true)
-                .add(PropConfig.GIFT_BOX, (short)500, (short)150, true);
+        gamePropConfigMap = new GamePropConfigMap(50)
+                .add(PropConfig.SPEED_UP_LEVEL_1, (short)100, (short)6000, false)
+                .add(PropConfig.SPEED_UP_LEVEL_2, (short)100, (short)6000, false)
+                .add(PropConfig.SPEED_DOWN_LEVEL_1, (short)100, (short)6000, false)
+                .add(PropConfig.SPEED_DOWN_LEVEL_2, (short)100, (short)6000, false)
+                .add(PropConfig.BLOOD_PILL, (short)100, (short)6000, false)
+                .add(PropConfig.BLOOD_BAG, (short)100, (short)6000, false)
+                .add(PropConfig.FLASH_LEVEL_1, (short)100, (short)6000, false)
+                .add(PropConfig.FLASH_LEVEL_2, (short)100, (short)6000, false);
+                //.add(PropConfig.MONEY, (short)100, (short)60, true)
+                //.add(PropConfig.GIFT_BOX, (short)100, (short)60, true);
     }
 
     @Override
@@ -308,6 +318,21 @@ public class Survive extends Game {
             }
         }
         return teamUserList;
+    }
+
+    @Override
+    public GamePropConfigMap getGamePropConfigMap() {
+        return gamePropConfigMap;
+    }
+
+    @Override
+    protected int getCustomPropPrice(short propTypeId) {
+        return 0;
+    }
+
+    @Override
+    protected short[] getStorePropIds() {
+        return new short[0];
     }
 
 }

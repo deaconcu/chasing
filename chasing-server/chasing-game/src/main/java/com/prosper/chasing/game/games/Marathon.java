@@ -54,6 +54,20 @@ public class Marathon extends Game {
         }
     }
 
+    /**
+     * 马拉松图地形生成的原则:
+     * 1. 起点在一头（0，0），终点在另外一头（1000，1000），边界是一个正方形，这样玩家可以有交集，不至于玩的人都看不见
+     * 2. 是一个网状图
+     */
+    @Override
+    public void generateTerrainBlock() {
+        Point2D start = new Point2D(0, 0);
+        Point2D end = new Point2D(1000, 1000);
+
+        // 随机产生5组线条，从起点到终点，越靠近边界，方向越确定指向边界反方向
+
+    }
+
     @Override
     public void logic() {
         super.logic();
@@ -98,5 +112,20 @@ public class Marathon extends Game {
         }
         Collections.sort(resultList);
         return resultList;
+    }
+
+    @Override
+    public GamePropConfigMap getGamePropConfigMap() {
+        return null;
+    }
+
+    @Override
+    protected int getCustomPropPrice(short propTypeId) {
+        return 0;
+    }
+
+    @Override
+    protected short[] getStorePropIds() {
+        return new short[0];
     }
 }

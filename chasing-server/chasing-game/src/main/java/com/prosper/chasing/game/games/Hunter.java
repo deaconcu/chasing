@@ -50,6 +50,8 @@ public class Hunter extends Game {
         npcRelatedPropMap.put(NPC_TIGER_ID, PROP_TIGER_ID);
     }
 
+    protected static GamePropConfigMap gamePropConfigMap;
+
     public static class HunterUser extends User {
         public HunterUser(User user) {
             setId(user.getId());
@@ -143,5 +145,20 @@ public class Hunter extends Game {
     @Override
     protected List<NPC> generateNPC() {
         return null;
+    }
+
+    @Override
+    public GamePropConfigMap getGamePropConfigMap() {
+        return gamePropConfigMap;
+    }
+
+    @Override
+    protected int getCustomPropPrice(short propTypeId) {
+        return 0;
+    }
+
+    @Override
+    protected short[] getStorePropIds() {
+        return new short[0];
     }
 }

@@ -16,6 +16,8 @@ public class Star extends Game {
 
     public static byte PROP_TRANSFER_DISTANCE = 2;
 
+    protected static GamePropConfigMap gamePropConfigMap;
+
     /***********************
      * 自定义User
      ***********************/
@@ -132,6 +134,21 @@ public class Star extends Game {
     @Override
     protected List<NPC> generateNPC() {
         return null;
+    }
+
+    @Override
+    public GamePropConfigMap getGamePropConfigMap() {
+        return gamePropConfigMap;
+    }
+
+    @Override
+    protected int getCustomPropPrice(short propTypeId) {
+        return 0;
+    }
+
+    @Override
+    protected short[] getStorePropIds() {
+        return new short[0];
     }
 
 }

@@ -3,9 +3,7 @@ package com.prosper.chasing.game.navmesh;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -24,6 +22,8 @@ public class NaviMesh {
     private Random random = new Random();
 
     private Map<String, List<Triangle>> triangleCellMap =  new HashMap<>();
+
+    private ArrayList<String> triangleCellIdList = new ArrayList<>();
 
     public List<Triangle> triangles;
 
@@ -79,7 +79,7 @@ public class NaviMesh {
         lines.forEach(line -> data.append(line).append("\n"));
         lines.close();
 
-        System.out.println(data.toString());
+        //System.out.println(data.toString());
 
         NaviMesh navimashJson = mapper.readValue(data.toString(), getClass());
         List<Triangle>  allTriangles = navimashJson.triangles;
@@ -246,6 +246,7 @@ public class NaviMesh {
                     String cellId = getCellIdByAxis(x, z);
                     if (!triangleCellMap.containsKey(cellId)) {
                         triangleCellMap.put(cellId, new ArrayList<>());
+                        triangleCellIdList.add(cellId);
                     }
                     triangleCellMap.get(cellId).add(triangle);
                     triangle.cellList.add(cellId);
@@ -306,12 +307,11 @@ public class NaviMesh {
             int as_x = x - triangle.a.x;
             int as_z = z - triangle.a.z;
 
-            boolean s_ab = (triangle.b.x - triangle.a.x) * as_z - (triangle.b.z - triangle.a.z)*as_x > 0;
-            if((triangle.c.x - triangle.a.x) * as_z - (triangle.c.z - triangle.a.z)*as_x > 0 == s_ab) continue;
+            boolean s_ab = (triangle.b.x - triangle.a.x) * as_z - (triangle.b.z - triangle.a.z) * as_x > 0;
+            if((triangle.c.x - triangle.a.x) * as_z - (triangle.c.z - triangle.a.z) * as_x
+                    > 0 == s_ab) continue;
             if((triangle.c.x - triangle.b.x) * (z - triangle.b.z) - (triangle.c.z - triangle.b.z) * (x - triangle.b.x)
-                    > 0 != s_ab)
-                continue;
-
+                    > 0 != s_ab) continue;
             return triangle;
         }
         return null;
@@ -391,8 +391,14 @@ public class NaviMesh {
         Set<Triangle> openSet = new HashSet<>();
         Set<Triangle> closeSet = new HashSet<>();
 
+        // TODO 有可能存在null的情况
         Triangle startTri = getTriangleByAxis(start.x, start.z);
         Triangle endTri = getTriangleByAxis(end.x, end.z);
+
+        if(startTri == null || endTri == null) {
+            log.warn("point is not in navmesh");
+            return pointList;
+        }
 
         if (startTri == endTri) {
             pointList.add(start);
@@ -400,7 +406,6 @@ public class NaviMesh {
             return pointList;
         }
 
-        PathTriangle parent = null;
         Triangle current = startTri;
         pathInfoMap.put(current, new PathInfo(
                 0 + computerF(current, 0, end, pathInfoMap),
@@ -433,17 +438,19 @@ public class NaviMesh {
                 }
             }
 
+            openSet.remove(current);
+            closeSet.add(current);
+
             if (openSet.size() == 0 || openSet.contains(endTri)) {
                 break;
             }
 
-            openSet.remove(current);
-            closeSet.add(current);
             current = getSmallestTriangle(openSet, pathInfoMap);
         }
 
         // 如果是因为没有了节点结束了循环，也就是没有找到终结点，返回空列表
         if (openSet.size() == 0) {
+            log.warn("can't get path");
             return pointList;
         }
 
@@ -502,6 +509,7 @@ public class NaviMesh {
 
     /**
      * 通过当前位置获得一条随机路径
+     * @deprecated
      * 参考：https://adamswaab.wordpress.com/2009/12/11/random-point-in-a-triangle-barycentric-coordinates/
      */
     public Deque<Point> getPath(Point point, int minDistance) {
@@ -558,8 +566,19 @@ public class NaviMesh {
     }
 
     public Point getRandomPositionPoint() {
-        Triangle triangle = triangles.get(random.nextInt(triangles.size()));
-        return getRandomPositionInTriangle(triangle);
+        // TODO 随机得到的点有可能不在选定的面上，临时处理
+        Triangle triangle;
+        Triangle triangleByAxis;
+        Point point;
+        do {
+            List<Triangle> triangleList = triangleCellMap.get(
+                    triangleCellIdList.get(random.nextInt(triangleCellIdList.size())));
+            triangle = triangleList.get(random.nextInt(triangleList.size()));
+            point = getRandomPositionInTriangle(triangle);
+
+            triangleByAxis = getTriangleByAxis(point.x, point.z);
+        } while (triangleByAxis == null || triangleByAxis != triangle);
+        return point;
     }
 
     private Point getRandomPositionInTriangle(Triangle triangle) {
@@ -570,6 +589,7 @@ public class NaviMesh {
             r = 1 - r;
             s = 1 - s;
         }
+
         return triangle.a.add(triangle.vectorAB, r).add(triangle.vectorAC, s);
     }
 
@@ -577,17 +597,18 @@ public class NaviMesh {
         NaviMesh navmesh = new NaviMesh();
         navmesh.load("navimesh/king.json");
 
-
-        for(int i = 0; i < 100; i ++) {
+        for(int i = 0; i < 100000; i ++) {
             System.out.println("try times: " + i);
 
             Point start = navmesh.getRandomPositionPoint();
             Point end = navmesh.getRandomPositionPoint();
             System.out.println("start: " + start + ", end: " + end);
             Deque<Point> path = navmesh.getPath(start, end);
-            System.out.println("path: " + path);
 
-            System.out.println("head: " + path.peek());
+            if (path.size() == 0) {
+                throw new RuntimeException("path is empty");
+            }
+            System.out.println("path: " + path);
         }
     }
 

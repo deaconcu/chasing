@@ -13,6 +13,7 @@
 		<result property="river" column="river" />
 		<result property="state" column="state" />
 		<result property="gameId" column="fk_game_id" />
+		<result property="steps" column="steps" />
 		<result property="createTime" column="create_time" />
 		<result property="updateTime" column="update_time" />
 	</resultMap>
@@ -46,6 +47,7 @@
             river = #{river},
 			state = #{state},
 			fk_game_id = #{gameId},
+			steps = steps,
             create_time = #{createTime},
             update_time = #{updateTime}
 	</insert>
@@ -58,6 +60,7 @@
             river = #{river},
 			state = #{state},
 			fk_game_id = #{gameId},
+			steps = steps,
             create_time = #{createTime},
             update_time = #{updateTime}
 		WHERE pk_id = #{id}

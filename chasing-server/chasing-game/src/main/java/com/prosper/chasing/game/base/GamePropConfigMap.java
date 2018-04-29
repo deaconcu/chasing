@@ -28,7 +28,7 @@ public class GamePropConfigMap {
      * 添加道具
      * 如果rate的值总数超过1000, 需要抛出一个警告
      * @param rate rate为千分制
-     * @param duration duration为千分制
+     * @param duration duration单位为秒
      */
     public GamePropConfigMap add(short propTypeId, short rate, short duration, boolean movable) {
         configMap.put(propTypeId, new GamePropConfig(propTypeId, rate, duration, movable));

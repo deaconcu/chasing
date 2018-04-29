@@ -4,7 +4,7 @@ import com.prosper.chasing.game.base.Position;
 
 /**
  * 格式：
- * seqId(4)|messageType(1)|time(8)|moveState(4)|positionX(4)|positionY(4)|positionZ(4)|rotationY(4)
+ * seqId(4)|messageType(1)|time(8)|moveState(4)|positionX(4)|positionY(4)|positionZ(4)|rotationY(4)|steps(2)
  */
 public class PositionMessage extends UserMessage {
 
@@ -14,6 +14,7 @@ public class PositionMessage extends UserMessage {
     public int positionY;
     public int positionZ;
     public int rotationY;
+    public short steps;
     
     public PositionMessage(UserMessage message) {
         super(message);
@@ -23,6 +24,7 @@ public class PositionMessage extends UserMessage {
         positionY = message.getContent().getInt(18);
         positionZ = message.getContent().getInt(22);
         rotationY = message.getContent().getInt(26);
+        steps = message.getContent().getShort(30);
     }
 
 }

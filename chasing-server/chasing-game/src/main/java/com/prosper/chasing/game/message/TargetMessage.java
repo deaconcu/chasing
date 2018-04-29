@@ -6,7 +6,7 @@ import static com.prosper.chasing.game.util.Constant.TargetType.*;
 
 public class TargetMessage extends UserMessage {
 
-    // 使用类型 1：用户，2：道具，3：位置
+    // 使用类型 Constant.TargetType
     private byte type;
 
     // 目标对象的id

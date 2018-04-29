@@ -36,7 +36,8 @@ struct UserTr {
     5: i32 hill,
     6: i32 river,
     7: i8 state,
-    8: i32 gameId;
+    8: i32 gameId,
+    9: i32 steps
 }
 
 struct UserPropTr {

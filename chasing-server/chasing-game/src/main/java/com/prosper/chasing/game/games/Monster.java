@@ -162,4 +162,19 @@ public class Monster extends Game {
         }
         return resultList;
     }
+
+    @Override
+    public GamePropConfigMap getGamePropConfigMap() {
+        return null;
+    }
+
+    @Override
+    protected int getCustomPropPrice(short propTypeId) {
+        return 0;
+    }
+
+    @Override
+    protected short[] getStorePropIds() {
+        return new short[0];
+    }
 }

@@ -7,13 +7,15 @@ import com.prosper.chasing.game.util.Constant;
 
 import java.util.List;
 
-@MetaGameAnno("love")
-public class Love extends Game {
+@MetaGameAnno("lover")
+public class Lover extends Game {
 
     public static byte LOVE_TYPE_SINGLE = 1; // 单身狗
     public static byte LOVE_TYPE_IN_LOVE = 2; // 有对象
 
     public static byte NPC_ID_COMPERE = 1;
+
+    protected static GamePropConfigMap gamePropConfigMap;
 
     /***********************
      * 自定义User
@@ -139,6 +141,10 @@ public class Love extends Game {
         return LoveUser.class;
     }
 
+    public void generateGameMap() {
+
+    }
+
     @Override
     public void logic() {
         super.logic();
@@ -171,6 +177,21 @@ public class Love extends Game {
     @Override
     protected List<NPC> generateNPC() {
         return null;
+    }
+
+    @Override
+    public GamePropConfigMap getGamePropConfigMap() {
+        return gamePropConfigMap;
+    }
+
+    @Override
+    protected int getCustomPropPrice(short propTypeId) {
+        return 0;
+    }
+
+    @Override
+    protected short[] getStorePropIds() {
+        return new short[0];
     }
 
 }

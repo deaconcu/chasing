@@ -6,11 +6,11 @@ package com.prosper.chasing.game.message;
  */
 public class PurchaseMessage extends UserMessage {
 
-    public byte itemId;
+    public short itemId;
 
     public PurchaseMessage(UserMessage message) {
         super(message);
-        itemId = message.getContent().get();
+        itemId = message.getContent().getShort();
     }
 
 }

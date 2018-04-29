@@ -57,6 +57,9 @@ public abstract class MovableObject implements GameObject {
     // 当前状态
     protected MoveState state = MoveState.WANDERING;
 
+    // 是否是第一次同步信息，有些数据只同步一次，比如id，名称之类的
+    protected boolean firstSync = true;
+
     public enum MoveState {
         WANDERING, CHASING
     }

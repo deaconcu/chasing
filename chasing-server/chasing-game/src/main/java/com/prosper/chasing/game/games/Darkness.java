@@ -29,6 +29,7 @@ public class Darkness extends Game {
     public static byte LIGHTING = 1;
     public static byte NOT_LIGHTING = 1;
 
+    protected static GamePropConfigMap gamePropConfigMap;
 
     /***********************
      * 自定义User
@@ -243,6 +244,21 @@ public class Darkness extends Game {
         truck.setPath(null);
         npcList.add(truck);
         return npcList;
+    }
+
+    @Override
+    public GamePropConfigMap getGamePropConfigMap() {
+        return gamePropConfigMap;
+    }
+
+    @Override
+    protected int getCustomPropPrice(short propTypeId) {
+        return 0;
+    }
+
+    @Override
+    protected short[] getStorePropIds() {
+        return new short[0];
     }
 
 }

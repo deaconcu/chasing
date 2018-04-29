@@ -11,7 +11,8 @@ public class UserData {
     private String updateTime;
     private Short state;
     private int gameId;
-    
+    private int steps;
+
     public int getId() {
         return id;
     }
@@ -69,5 +70,13 @@ public class UserData {
 
     public void setGameId(int gameId) {
         this.gameId = gameId;
+    }
+
+    public int getSteps() {
+        return steps;
+    }
+
+    public void setSteps(int steps) {
+        this.steps = steps;
     }
 }

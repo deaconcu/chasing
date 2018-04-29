@@ -25,7 +25,7 @@ public abstract class Game {
     public static final int FROZEN_TIME = 10000;
 
     // 游戏中的道具配置
-    protected static GamePropConfigMap gamePropConfigMap = new GamePropConfigMap(0);
+    public static Map<Short, Integer> propPriceMap = new HashMap<>();
 
     // 游戏加载状态
     private int state;
@@ -41,6 +41,9 @@ public abstract class Game {
 
     // 玩家消息队列
     private Queue<Message> messageQueue = new LinkedList<>();
+
+    // 地形map
+    protected Map<Integer, TerrainBlock> terrainBlockMap = new HashMap<>();
 
     // 游戏场景内的道具信息
     private List<EnvProp> envPropList = new LinkedList<>();
@@ -65,13 +68,14 @@ public abstract class Game {
     private JsonUtil jsonUtil = new JsonUtil();
 
     // 一些外部依赖
-    private NaviMeshGroup navimeshGroup;
+    protected NaviMeshGroup navimeshGroup;
 
     private Random random = new Random();
 
     protected boolean isStepChanged = false;
     // 每一次同步的时候有位置变化和buff变化的用户map
     List<EnvProp> envPropChangedList = new LinkedList<>();
+    List<NPC> npcChangedList = new LinkedList<>();
     Set<Integer> positionChangedSet = new HashSet<>();
     Set<Integer> buffChangedSet = new HashSet<>();
 
@@ -82,9 +86,48 @@ public abstract class Game {
     public Game() {
         this.state = GameState.CREATE;
         userMap = new HashMap<>();
+
+        propPriceMap.put(PropConfig.MARK, 20);
+        propPriceMap.put(PropConfig.INVISIBLE_LEVEL_1, 20);
+        propPriceMap.put(PropConfig.INVISIBLE_LEVEL_2, 20);
+        propPriceMap.put(PropConfig.ANTI_INVISIBLE, 20);
+        propPriceMap.put(PropConfig.RETURN_TO_INIT_POSITION, 20);
+        propPriceMap.put(PropConfig.RANDOM_POSITION, 20);
+        propPriceMap.put(PropConfig.FLASH_LEVEL_1, 20);
+        propPriceMap.put(PropConfig.FLASH_LEVEL_2, 20);
+        propPriceMap.put(PropConfig.FOLLOW, 20);
+        propPriceMap.put(PropConfig.SPEED_UP_LEVEL_1, 20);
+        propPriceMap.put(PropConfig.SPEED_UP_LEVEL_2, 20);
+        propPriceMap.put(PropConfig.SPEED_DOWN_LEVEL_1, 20);
+        propPriceMap.put(PropConfig.SPEED_DOWN_LEVEL_2, 20);
+        propPriceMap.put(PropConfig.HOLD_POSITION, 20);
+        propPriceMap.put(PropConfig.BLOOD_PILL, 20);
+        propPriceMap.put(PropConfig.BLOOD_BAG, 20);
+        propPriceMap.put(PropConfig.REBIRTH, 20);
+        propPriceMap.put(PropConfig.DARK_VISION, 20);
+        propPriceMap.put(PropConfig.IMMUNITY_LEVEL_1, 20);
+        propPriceMap.put(PropConfig.IMMUNITY_LEVEL_2, 20);
+        propPriceMap.put(PropConfig.REBOUND, 20);
+        propPriceMap.put(PropConfig.NEAR_ENEMY_REMIND, 20);
+        propPriceMap.put(PropConfig.PROP_BOMB, 20);
+        propPriceMap.put(PropConfig.MONEY, 20);
+        propPriceMap.put(PropConfig.GIFT_BOX, 20);
     }
 
+    /**
+     * 生成游戏场景中的对象
+     */
+    public void generateGameObjects() {
+        generateTerrainBlock();
+        generateStaticStuff();
+        generateDecorations();
+    }
 
+    public void generateTerrainBlock() {}
+
+    public void generateStaticStuff() {}
+
+    public void generateDecorations() {}
 
     /**
      * 结束后的成绩
@@ -274,6 +317,7 @@ public abstract class Game {
         }
 
         envPropChangedList.clear();
+        npcChangedList.clear();
         positionChangedSet.clear();
         buffChangedSet.clear();
         isStepChanged = false;
@@ -303,8 +347,8 @@ public abstract class Game {
     /**
      * 同步游戏开始之后的一些数据，比如用户名, 游戏时间等，格式如下
      *
-     * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]|NPCCount(2)|list<NPC>|
-     * NPC: id(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
+     * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]|propCount(2)|list<PropPrice>|
+     * PropPrice: id(2)|price(4)
      *
      * User: userId(4)|nameLength(1)|name
      */
@@ -320,19 +364,12 @@ public abstract class Game {
             bb.append(user.getName().getBytes());
         }
 
-        if (getStaticNPCMap().size() != 0) {
-            bb.append((short)getStaticNPCMap().size());
-            for (NPC npc: getStaticNPCMap().values()) {
-                bb.append(npc.getTypeId());
-                bb.append(npc.getId());
-                bb.append(npc.getPosition().moveState);
-                bb.append(npc.getPosition().point.x);
-                bb.append(npc.getPosition().point.y);
-                bb.append(npc.getPosition().point.z);
-                bb.append(npc.getPosition().rotateY);
-            }
-        } else {
-            bb.append(0);
+        short[] storePropIds = getStorePropIds();
+        bb.append((short)storePropIds.length);
+        for (short storePropId: storePropIds) {
+            int price = getPropPrice(storePropId);
+            bb.append(storePropId);
+            bb.append(price);
         }
 
         if (bb.getSize() > 0) {
@@ -341,6 +378,7 @@ public abstract class Game {
             }
         }
     }
+
 
     /**
      * 为单个用户生成排名及奖励信息
@@ -406,6 +444,7 @@ public abstract class Game {
                 message.moveState, new Point(message.positionX, message.positionY, message.positionZ),
                 message.rotationY);
         user.setPosition(position);
+        user.addSteps(message.steps);
     }
     
     /**
@@ -420,7 +459,7 @@ public abstract class Game {
             toUser = user;
         }
         // check if user prop is enough
-        byte propId = message.getPropId();
+        short propId = message.getPropId();
         if (user.checkProp(propId, (byte)1)) {
             PropConfig.getProp(propId).use(message, user, this);
         }
@@ -447,7 +486,7 @@ public abstract class Game {
         User user = getUser(message.getUserId(), true);
         if (user.getState() == UserState.GAME_OVER) return;
 
-        int price = PropConfig.getPrice(message.itemId);
+        int price = getPropPrice(message.itemId);
         if (price == -1) {
             return;
         }
@@ -463,17 +502,12 @@ public abstract class Game {
         // for override
     }
 
-
-
     /**
      * 处理使用技能消息
      */
     public void executeTargetMessage(TargetMessage message) {
         User user = getUser(message.getUserId(), true);
-        user.setTarget(message.getType(), message.getId());
-        if (message.getType() == TYPE_PROP) {
-            EnvProp prop = getProp(message.getId());
-        }
+        user.setTarget(message.getType(), message.getId(), message.getPoint());
     }
     
     /**
@@ -581,6 +615,8 @@ public abstract class Game {
      * prop 相关
      ********************************/
 
+    public abstract GamePropConfigMap getGamePropConfigMap();
+
     /**
      * 执行转移道具
      */
@@ -623,6 +659,7 @@ public abstract class Game {
         ListIterator<EnvProp> iterator = getEnvPropList().listIterator();
         while(iterator.hasNext()) {
             EnvProp prop = iterator.next();
+            if(!prop.movable) continue;
             // 设置路径
             if (prop.isPathEmpty()) {
                 prop.setPath(navimeshGroup.getPath(
@@ -643,10 +680,10 @@ public abstract class Game {
      * 补充新的道具
      */
     protected void generateProp() {
-        if (gamePropConfigMap.count == 0) return;
-        while (getEnvPropList().size() < gamePropConfigMap.count) {
+        if (getGamePropConfigMap().count == 0) return;
+        while (getEnvPropList().size() < getGamePropConfigMap().count) {
             EnvProp envProp = new EnvProp(this);
-            GamePropConfigMap.GamePropConfig propConfig = gamePropConfigMap.getRandomProp();
+            GamePropConfigMap.GamePropConfig propConfig = getGamePropConfigMap().getRandomProp();
             if (propConfig == null) continue;
 
             envProp.typeId = propConfig.propTypeId;
@@ -658,7 +695,8 @@ public abstract class Game {
             envProp.movable = propConfig.movable;
             getEnvPropList().add(envProp);
             getEnvPropChangedList().add(envProp);
-            log.info("created prop: {}:{}-{}:{}", gameInfo.getId(), envProp.id, envProp.position.point.x, envProp.position.point.z);
+            log.info("created prop: {}:{}-{}:{}:{}", gameInfo.getId(), envProp.id,
+                    envProp.position.point.x, envProp.position.point.y, envProp.position.point.z);
         }
     }
 
@@ -674,6 +712,28 @@ public abstract class Game {
         return null;
     }
 
+    /**
+     * 获取道具价格
+     */
+    public int getPropPrice(short propTypeId) {
+        // TODO 有可能默认的price也不存在，就会抛错
+        int customPropPrice = getCustomPropPrice(propTypeId);
+        if (customPropPrice == -1) {
+            return propPriceMap.get(propTypeId);
+        }
+        return customPropPrice;
+    }
+
+    /**
+     * 自定义道具价格，需要override
+     */
+    protected abstract int getCustomPropPrice(short propTypeId);
+
+    /**
+     * 自定义游戏可以购买的道具id
+     */
+    protected abstract short[] getStorePropIds();
+
     /********************************
      * NPC 相关
      ********************************/
@@ -683,6 +743,7 @@ public abstract class Game {
         if (npcList == null) return;
         for(NPC npc: generateNPC()) {
             getMoveableNPCMap().put(npc.id, npc);
+            npcChangedList.add(npc);
         }
     }
 
@@ -696,13 +757,23 @@ public abstract class Game {
      */
     protected void moveNPC() {
         for (NPC npc: getMoveableNPCMap().values()) {
-            if (npc.isPathEmpty()) {
+            if (npc.movable && npc.isPathEmpty()) {
                 npc.setPath(navimeshGroup.getPath(
                         gameInfo.getMetagameCode(), npc.position.point,
                         navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode())));
             }
             npc.move();
+            if (npc.isPositionChanged()) {
+                npcChangedList.add(npc);
+            }
         }
+    }
+
+    /**
+     * 根据id获取NPC
+     */
+    public NPC getNPC(int id) {
+        return getMoveableNPCMap().get(id);
     }
 
     /************************************

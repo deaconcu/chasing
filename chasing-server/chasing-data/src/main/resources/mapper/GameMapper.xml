@@ -5,7 +5,7 @@
 
 <mapper namespace="com.prosper.chasing.data.mapper.GameMapper">
 
-	<resultMap id="gameMap" type="Game">
+	<resultMap id="gameMapCreator" type="Game">
 		<result property="id" column="pk_id" />
 		<result property="metagameCode" column="fk_metagame_code" />
 		<result property="duration" column="duration" />
@@ -17,20 +17,20 @@
 		<result property="updateTime" column="update_time" />
 	</resultMap>
 
-	<select id="selectOne" parameterType="Map" resultMap="gameMap">
+	<select id="selectOne" parameterType="Map" resultMap="gameMapCreator">
 		SELECT * 
 		FROM t_game
 		WHERE pk_id = #{id}
 	</select>
 	
-	<select id="selectListByPage" parameterType="Map" resultMap="gameMap">
+	<select id="selectListByPage" parameterType="Map" resultMap="gameMapCreator">
         SELECT * 
         FROM t_game
         LIMIT #{limit}
         OFFSET #{offset}
     </select>
     
-    <select id="selectListByIds" parameterType="Map" resultMap="gameMap">
+    <select id="selectListByIds" parameterType="Map" resultMap="gameMapCreator">
         SELECT * 
         FROM t_game
         WHERE pk_id IN
@@ -39,7 +39,7 @@
 	    </foreach>
     </select>
     
-    <select id="selectListByStatePage" parameterType="Map" resultMap="gameMap">
+    <select id="selectListByStatePage" parameterType="Map" resultMap="gameMapCreator">
         SELECT * 
         FROM t_game
         WHERE state = #{state}
@@ -47,7 +47,7 @@
         OFFSET #{offset}
     </select>
     
-     <select id="selectListByStateAndServer" parameterType="Map" resultMap="gameMap">
+     <select id="selectListByStateAndServer" parameterType="Map" resultMap="gameMapCreator">
         SELECT * 
         FROM t_game
         WHERE state = #{state}

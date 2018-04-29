@@ -5,6 +5,7 @@ import com.prosper.chasing.game.message.ReplyMessage;
 import com.prosper.chasing.game.navmesh.Point;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
+import com.sun.tools.internal.jxc.ap.Const;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,9 @@ public class User implements GameObject {
 
     // 出生位置
     private Position initPosition = new Position();
+
+    // 运动步数
+    private int steps;
 
     // 速度
     private int speed;
@@ -125,6 +129,7 @@ public class User implements GameObject {
     private Progress progress;
 
 
+
     /********************************
      * 追逐目标和追逐进度
      ********************************/
@@ -162,6 +167,10 @@ public class User implements GameObject {
     public GameObject getTargetObject(byte type, int id) {
         if (type == Constant.TargetType.TYPE_PROP) {
             return game.getProp(id);
+        } else if (type == Constant.TargetType.TYPE_NPC) {
+            return game.getNPC(id);
+        } else if (type == Constant.TargetType.TYPE_USER) {
+            return game.getUser(id);
         }
         return null;
     }
@@ -170,16 +179,35 @@ public class User implements GameObject {
      * 设置目标对象
      * @return 修改成功返回true，否则返回false
      */
-    public boolean setTarget(byte type, int id) {
-        // 如果target和当前目标一致，不做处理
-        if (targetType == type && targetId == id) {
-            return false;
-        }
+    public boolean setTarget(byte type, int id, Point point) {
+        if (type == Constant.TargetType.TYPE_POSITION)  {
+            if (targetType == type && targetPoint.equals(point)) {
+                return false;
+            }
 
-        // 如果目标对象不存在，不做处理
-        Object currentTargetObject = getTargetObject(type, id);
-        if (currentTargetObject == null) {
-            return false;
+            // 设置当前目标
+            targetType = type;
+            targetPoint = point;
+            progress = null;
+        } else {
+            // 如果target和当前目标一致，不做处理
+            if (targetType == type && targetId == id) {
+                return false;
+            }
+
+            // 如果目标对象不存在，不做处理
+            Object currentTargetObject = getTargetObject(type, id);
+            if (currentTargetObject == null) {
+                return false;
+            }
+
+            // 设置当前目标
+            targetType = type;
+            targetId = id;
+            progress = null;
+            if (currentTargetObject instanceof MovableObject) {
+                ((MovableObject) currentTargetObject).chasingUserSet.add(this);
+            }
         }
 
         // 清除之前的目标
@@ -188,13 +216,6 @@ public class User implements GameObject {
             ((MovableObject) previousTargetObject).chasingUserSet.remove(this);
         }
 
-        // 设置当前目标
-        targetType = type;
-        targetId = id;
-        progress = null;
-        if (currentTargetObject instanceof MovableObject) {
-            ((MovableObject) currentTargetObject).chasingUserSet.add(this);
-        }
         isTargetChanged = true;
         return true;
     }
@@ -232,9 +253,8 @@ public class User implements GameObject {
                     }
                 }
             } else {
-                int minDistance = 0;
                 int distance = position.point.distance(movableObject.position.point);
-                if (distance < DISTANCE_CATCHING_STATIC && distance < minDistance) {
+                if (distance < DISTANCE_CATCHING_STATIC) {
                     movableObject.catched(this);
                 }
             }
@@ -343,7 +363,7 @@ public class User implements GameObject {
     /**
      * 购买道具
      */
-    public void purchaseProp(byte propId, int price) {
+    public void purchaseProp(short propId, int price) {
         if (price > money) {
             return;
         }
@@ -523,6 +543,19 @@ public class User implements GameObject {
         this.game = game;
     }
 
+    public int getSteps() {
+        return steps;
+    }
+
+    public void setSteps(int steps) {
+        this.steps = steps;
+    }
+
+    public void addSteps(short steps) {
+        this.steps += steps;
+    }
+
+
     /********************************
      * 消息相关
      ********************************/
@@ -621,7 +654,13 @@ public class User implements GameObject {
             }
             sign = (short) (sign | 8192);
             byteBuilder.append(targetType);
-            byteBuilder.append(targetId);
+            if (targetType == Constant.TargetType.TYPE_POSITION) {
+                byteBuilder.append(targetPoint.x);
+                byteBuilder.append(targetPoint.y);
+                byteBuilder.append(targetPoint.z);
+            } else {
+                byteBuilder.append(targetId);
+            }
         }
         if (game.isStepChanged()) {
             if (byteBuilder == null) {
@@ -645,29 +684,58 @@ public class User implements GameObject {
                 byteBuilder.append(envProp.getRemainSecond());
             }
         }
-        if (game.getMoveableNPCMap().size() != 0) {
+
+        if (game.npcChangedList.size() > 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
             sign = (short) (sign | 1024);
 
-            short count = 0;
-            for (NPC npc: game.getMoveableNPCMap().values()) {
-                if (npc.isPositionChanged()) {
-                    count ++;
-                }
-            }
-            byteBuilder.append(count);
+            byteBuilder.append((short)game.npcChangedList.size());
+            for (NPC npc: game.npcChangedList) {
+                if (npc.firstSync || npc.isPositionChanged()) {
+                    if (npc instanceof Merchant) {
+                        byteBuilder.append(Constant.NPCType.MERCHANT);
+                        if (((Merchant) npc).firstSync) {
+                            byteBuilder.append(Constant.FirstSync.TRUE);
 
-            for (NPC npc: game.getMoveableNPCMap().values()) {
-                if (npc.isPositionChanged()) {
-                    byteBuilder.append(npc.getTypeId());
-                    byteBuilder.append(npc.getId());
-                    byteBuilder.append(npc.getPosition().moveState);
-                    byteBuilder.append(npc.getPosition().point.x);
-                    byteBuilder.append(npc.getPosition().point.y);
-                    byteBuilder.append(npc.getPosition().point.z);
-                    byteBuilder.append(npc.getPosition().rotateY);
+                            byteBuilder.append(npc.getTypeId());
+                            byteBuilder.append(npc.getId());
+                            byteBuilder.append(npc.getPosition().moveState);
+                            byteBuilder.append(npc.getPosition().point.x);
+                            byteBuilder.append(npc.getPosition().point.y);
+                            byteBuilder.append(npc.getPosition().point.z);
+                            byteBuilder.append(npc.getPosition().rotateY);
+
+                            Merchant merchant = (Merchant) npc;
+                            byte[] nameBytes = merchant.getName().getBytes();
+                            byteBuilder.append(nameBytes.length);
+                            byteBuilder.append(nameBytes);
+                                    byteBuilder.append(merchant.getPropIds().length);
+                            for (short propId: merchant.getPropIds()) {
+                                byteBuilder.append(propId);
+                            }
+                        } else {
+                            byteBuilder.append(Constant.FirstSync.TRUE);
+                            byteBuilder.append(npc.getTypeId());
+                            byteBuilder.append(npc.getId());
+                            byteBuilder.append(npc.getPosition().moveState);
+                            byteBuilder.append(npc.getPosition().point.x);
+                            byteBuilder.append(npc.getPosition().point.y);
+                            byteBuilder.append(npc.getPosition().point.z);
+                            byteBuilder.append(npc.getPosition().rotateY);
+                        }
+                    } else {
+                        byteBuilder.append(Constant.NPCType.OTHER);
+                        byteBuilder.append(npc.getTypeId());
+                        byteBuilder.append(npc.getId());
+                        byteBuilder.append(npc.getPosition().moveState);
+                        byteBuilder.append(npc.getPosition().point.x);
+                        byteBuilder.append(npc.getPosition().point.y);
+                        byteBuilder.append(npc.getPosition().point.z);
+                        byteBuilder.append(npc.getPosition().rotateY);
+                    }
+                    npc.firstSync = false;
                     npc.setPositionChanged(false);
                 }
             }

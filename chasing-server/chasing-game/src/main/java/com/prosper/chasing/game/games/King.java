@@ -7,17 +7,18 @@ import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 
+import java.util.LinkedList;
 import java.util.List;
 
 @MetaGameAnno("king")
 public class King extends Game {
 
+    protected static GamePropConfigMap gamePropConfigMap;
+
     /***********************
      * 自定义User
      ***********************/
-    public static class KillerUser extends User {
-
-    }
+    public static class KingUser extends User {}
 
     /***********************
      * 新的Prop
@@ -51,44 +52,51 @@ public class King extends Game {
     static {
         PropConfig.putProp(new Scepter());
         BuffConfig.putBuff(new BuffConfig(BUFF_SCEPTER, (short)20));
-
-        // prop配置
         /*
         gamePropConfigMap = new GamePropConfigMap(50)
-                .add(PropService.MARK, (short)40, (short)15, false)
-                .add(PropService.INVISIBLE_LEVEL_1, (short)40, (short)15, false)
-                .add(PropService.INVISIBLE_LEVEL_2, (short)40, (short)15, false)
-                .add(PropService.ANTI_INVISIBLE, (short)40, (short)15, false)
-                .add(PropService.RETURN_TO_INIT_POSITION, (short)40, (short)15, false)
-                .add(PropService.TRANSPORT, (short)40, (short)15, false)
-                .add(PropService.RANDOM_POSITION, (short)40, (short)15, false)
-                .add(PropService.MOVE_FORWARD, (short)40, (short)15, false)
-                .add(PropService.FOLLOW, (short)40, (short)15, false)
-                .add(PropService.SPEED_UP_LEVEL_1, (short)40, (short)15, false)
-                .add(PropService.SPEED_UP_LEVEL_2, (short)40, (short)15, false)
-                .add(PropService.SPEED_DOWN_LEVEL_1, (short)40, (short)15, false)
-                .add(PropService.SPEED_DOWN_LEVEL_2, (short)40, (short)15, false)
-                .add(PropService.HOLD_POSITION, (short)40, (short)15, false)
-                .add(PropService.BLOOD_PILL, (short)40, (short)15, false)
-                .add(PropService.BLOOD_BAG, (short)40, (short)15, false)
-                .add(PropService.REBIRTH, (short)40, (short)15, false)
-                .add(PropService.DARK_VISION, (short)40, (short)15, false)
-                .add(PropService.IMMUNITY_ALLOW_MOVE, (short)40, (short)15, false)
-                .add(PropService.IMMUNITY_NOT_MOVE, (short)40, (short)15, false)
-                .add(PropService.REBOUND, (short)40, (short)15, false)
-                .add(PropService.NEAR_ENEMY_REMIND, (short)40, (short)15, false)
-                .add(PropService.PROP_BOMB, (short)40, (short)15, false)
-                .add(PropService.MONEY, (short)40, (short)15, true)
-                .add(PropService.GIFT_BOX, (short)40, (short)15, true);
+                .add(PropConfig.MARK, (short)40, (short)15, false)
+                .add(PropConfig.INVISIBLE_LEVEL_1, (short)40, (short)15, false)
+                .add(PropConfig.INVISIBLE_LEVEL_2, (short)40, (short)15, false)
+                .add(PropConfig.ANTI_INVISIBLE, (short)40, (short)15, false)
+                .add(PropConfig.RETURN_TO_INIT_POSITION, (short)40, (short)15, false)
+                .add(PropConfig.TRANSPORT, (short)40, (short)15, false)
+                .add(PropConfig.RANDOM_POSITION, (short)40, (short)15, false)
+                .add(PropConfig.MOVE_FORWARD, (short)40, (short)15, false)
+                .add(PropConfig.FOLLOW, (short)40, (short)15, false)
+                .add(PropConfig.SPEED_UP_LEVEL_1, (short)40, (short)15, false)
+                .add(PropConfig.SPEED_UP_LEVEL_2, (short)40, (short)15, false)
+                .add(PropConfig.SPEED_DOWN_LEVEL_1, (short)40, (short)15, false)
+                .add(PropConfig.SPEED_DOWN_LEVEL_2, (short)40, (short)15, false)
+                .add(PropConfig.HOLD_POSITION, (short)40, (short)15, false)
+                .add(PropConfig.BLOOD_PILL, (short)40, (short)15, false)
+                .add(PropConfig.BLOOD_BAG, (short)40, (short)15, false)
+                .add(PropConfig.REBIRTH, (short)40, (short)15, false)
+                .add(PropConfig.DARK_VISION, (short)40, (short)15, false)
+                .add(PropConfig.IMMUNITY_ALLOW_MOVE, (short)40, (short)15, false)
+                .add(PropConfig.IMMUNITY_NOT_MOVE, (short)40, (short)15, false)
+                .add(PropConfig.REBOUND, (short)40, (short)15, false)
+                .add(PropConfig.NEAR_ENEMY_REMIND, (short)40, (short)15, false)
+                .add(PropConfig.PROP_BOMB, (short)40, (short)15, false)
+                .add(PropConfig.MONEY, (short)40, (short)15, true)
+                .add(PropConfig.GIFT_BOX, (short)40, (short)15, true);
                 */
-        gamePropConfigMap = new GamePropConfigMap(1)
-                .add(PropConfig.MONEY, (short)500, (short)20, true)
-                .add(PropConfig.GIFT_BOX, (short)500, (short)20, true);
+
+        gamePropConfigMap = new GamePropConfigMap(10)
+                .add(PropConfig.SPEED_UP_LEVEL_1, (short)100, (short)60, false)
+                .add(PropConfig.SPEED_UP_LEVEL_2, (short)100, (short)60, false)
+                .add(PropConfig.SPEED_DOWN_LEVEL_1, (short)100, (short)60, false)
+                .add(PropConfig.SPEED_DOWN_LEVEL_2, (short)100, (short)60, false)
+                .add(PropConfig.BLOOD_PILL, (short)100, (short)60, false)
+                .add(PropConfig.BLOOD_BAG, (short)100, (short)60, false)
+                .add(PropConfig.FLASH_LEVEL_1, (short)100, (short)60, false)
+                .add(PropConfig.FLASH_LEVEL_2, (short)100, (short)60, false)
+                .add(PropConfig.MONEY, (short)100, (short)60, true)
+                .add(PropConfig.GIFT_BOX, (short)100, (short)60, true);
     }
 
     @Override
     public Class<? extends User> getUserClass() {
-        return KillerUser.class;
+        return KingUser.class;
     }
 
     @Override
@@ -114,8 +122,29 @@ public class King extends Game {
     }
 
     @Override
+    public GamePropConfigMap getGamePropConfigMap() {
+        return gamePropConfigMap;
+    }
+
+    @Override
+    protected int getCustomPropPrice(short propTypeId) {
+        if (propTypeId == PropConfig.MARK) return 10;
+        else return -1;
+    }
+
+    @Override
+    protected short[] getStorePropIds() {
+        return new short[]{1,2,3,4,5,6,7,8,9,10};
+    }
+
+    @Override
     protected List<NPC> generateNPC() {
-        return null;
+        List<NPC> npcList = new LinkedList<>();
+        npcList.add(new Merchant(
+                this, 1, (short)1, "范蠡", false, new short[]{1,2,3,4,5},
+                new Position((byte)0, navimeshGroup.getRandomPositionPoint("king"), 0)));
+        return npcList;
     }
 
 }
+

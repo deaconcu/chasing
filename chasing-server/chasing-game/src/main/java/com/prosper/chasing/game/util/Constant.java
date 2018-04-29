@@ -33,16 +33,18 @@ public class Constant {
     }
 
     public static class MessageRetryType {
-        public static byte NONE = 0;
-        public static byte ALL = 1;
-        public static byte SINGLE = 2;
+        public static byte NONE = 1;
+        public static byte ALL = 2;
+        public static byte SINGLE = 3;
     }
 
     public static class TargetType {
+        public static byte TYPE_SELF = 0; // 自身
         public static byte TYPE_USER = 1; // 玩家
         public static byte TYPE_PROP = 2; // 道具
         public static byte TYPE_NPC = 3; // npc
         public static byte TYPE_POSITION = 4; // 位置
+        public static byte TYPE_NONE = 5; // 没有对象
     }
 
     public static class ChasingConfig {
@@ -52,6 +54,52 @@ public class Constant {
 
         public static int SECOND_CHASING = 10;  // 追逐保持时间
         public static int SECOND_CATCHING = 10;  // 捕获保持时间
+    }
+
+    public static class NPCType {
+        public static byte OTHER = 1;
+        public static byte MERCHANT = 2;
+    }
+
+    public static class FirstSync {
+        public static byte TRUE = 1;
+        public static byte FALSE = 2;
+    }
+
+    public static class MapBlockType {
+        public static byte WALL = 0;
+        public static byte BLOCK_AREA = 1;
+        public static byte MAIN_ROAD = 2;
+        public static byte SHORTCUT = 3;
+        public static byte BRANCH = 4;
+    }
+
+    public static class Direction {
+        public static byte RIGHT = 0;
+        public static byte DOWN = 1;
+        public static byte LEFT = 2;
+        public static byte UP = 3;
+    }
+
+    public static class TerrainType {
+        public static byte ROAD = 1;
+        public static byte GRASS = 2;
+        public static byte VEGETABLE = 3;
+        public static byte LAVA = 4;
+        public static byte WATER = 5;
+        public static byte FOREST = 6;
+        public static byte ROCK = 7;
+        public static byte BLANK = 8;
+        public static byte RAIN = 9;
+        public static byte SNOW = 10;
+        public static byte WIND = 11;
+        public static byte WILDWIND = 12;
+        public static byte SAND = 13;
+        public static byte SWAMP = 14;
+        public static byte WHEAT = 15;
+        public static byte FOG = 16;
+        public static byte UPLAND = 17;
+        public static byte ANIMAL = 18;
     }
 
 }

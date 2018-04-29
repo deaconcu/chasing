@@ -200,7 +200,7 @@ public class PropConfig {
             }
             if (activeUserList.size() > 0) {
                 User targetUser = activeUserList.get(ThreadLocalRandom.current().nextInt(activeUserList.size()));
-                user.setTarget(Constant.TargetType.TYPE_USER, targetUser.getId());
+                user.setTarget(Constant.TargetType.TYPE_USER, targetUser.getId(), null);
             }
             return true;
         }

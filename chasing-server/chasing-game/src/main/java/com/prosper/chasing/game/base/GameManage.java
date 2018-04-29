@@ -97,6 +97,7 @@ public class GameManage {
                     log.warn("metagame type exist, skip game implement:" + className);
                 } else {
                     gameClassMap.put(metagameCode, gameClass);
+                    log.info("load game class, game code: " + metagameCode);
                 }
             }
         }
@@ -136,10 +137,11 @@ public class GameManage {
             try {
                 game = gameClass.newInstance();
             } catch (Exception e) {
-                log.error("create game failed, game class:" + Game.class.getName());
+                log.error("create game failed, game class:" + Game.class.getName(), e);
             }
             game.setGameInfo(gameInfo);
             game.setGameManage(this);
+            game.generateGameObjects();
             game.setNavimeshGroup(navimeshGroup);
 
             // 加载游戏用户
@@ -152,7 +154,8 @@ public class GameManage {
                 for (UserPropTr propTr: propList) {
                     propMap.put((byte)propTr.getPropId(), (byte)propTr.getCount());
                 }
-                //user.setPropMap(propMap);
+                // TODO DELETE FOR TEST
+                user.addMoney(20000);
                 user.setState(Constant.UserState.LOADED);
                 user.setGame(game);
             }
