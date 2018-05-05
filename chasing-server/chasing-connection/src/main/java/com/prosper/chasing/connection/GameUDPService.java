@@ -80,18 +80,14 @@ public class GameUDPService implements UDPService {
             int messageType = in.readByte();
             if (messageType == 1) {
                 // 获取用户参加的游戏id，没有游戏id返回
-                log.info("aaaaa");
                 int gameId = thriftClient.gameDataServiceClient().getUserGame(userId);
-                log.info("bbbbb");
                 if (gameId <= 0) {
                     return 0;
                 }
                 userInfo.put("gameId", gameId);
 
                 // 通过游戏id获取对应的游戏服务器ip和port
-                log.info("cccccc");
                 byte[] serverBytes = zkClient.get(config.gameZKName + "/" + gameId, true);
-                log.info("dddddd");
                 if (serverBytes == null) {
                     return userId;
                 }
@@ -109,13 +105,9 @@ public class GameUDPService implements UDPService {
             }
             in.resetReaderIndex();
             int length = in.readableBytes();
-            log.info("eeeee");
             ByteBuffer buffer = ByteBuffer.allocate(length);
-            log.info("fffff");
             in.readBytes(buffer);
-            log.info("hhhhhh");
             buffer.flip();
-            log.info("gggggg");
 
             /*
             // 在zookeeper写入当前用户所在的连接服务器

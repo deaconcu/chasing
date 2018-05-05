@@ -2,7 +2,6 @@ package com.prosper.chasing.game.base;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -10,6 +9,8 @@ import java.util.concurrent.*;
 
 import javax.annotation.PostConstruct;
 
+import com.prosper.chasing.game.map.GameMap;
+import com.prosper.chasing.game.map.MapCreator;
 import com.prosper.chasing.game.message.*;
 import com.prosper.chasing.game.navmesh.NaviMeshGroup;
 import com.prosper.chasing.game.util.ByteBuilder;
@@ -27,7 +28,6 @@ import org.springframework.stereotype.Component;
 import com.prosper.chasing.common.bean.client.ThriftClient;
 import com.prosper.chasing.common.bean.client.ZkClient;
 import com.prosper.chasing.common.interfaces.data.GameTr;
-import com.prosper.chasing.common.interfaces.data.MetagameTr;
 import com.prosper.chasing.common.interfaces.data.UserPropTr;
 import com.prosper.chasing.common.interfaces.data.UserTr;
 import com.prosper.chasing.common.util.ViewTransformer;
@@ -42,7 +42,7 @@ public class GameManage {
 
     private static String gameImplScanPackage = "com.prosper.chasing.game.games";
     private Map<String, Class<? extends Game>> gameClassMap = new HashMap<>();
-    private Map<Integer, Game> gameMap = new HashMap<>();
+    private Map<Integer, Game> gamePool = new HashMap<>();
 
     // 进入的消息队列
     private BlockingQueue<Message> receiveMessageQueue;
@@ -61,6 +61,8 @@ public class GameManage {
     private Config config;
     @Autowired
     ExecutorService executorService;
+    @Autowired
+    MapCreator mapCreator;
     @Autowired
     Jedis jedis;
 
@@ -140,9 +142,14 @@ public class GameManage {
                 log.error("create game failed, game class:" + Game.class.getName(), e);
             }
             game.setGameInfo(gameInfo);
+            GameMap gameMap = mapCreator.getMap(gameInfo.getMetagameCode());
+            if (gameMap == null) {
+                throw new RuntimeException("map is null");
+            }
+            game.setGameMap(gameMap);
             game.setGameManage(this);
             game.generateGameObjects();
-            game.setNavimeshGroup(navimeshGroup);
+            //game.setNavimeshGroup(navimeshGroup);
 
             // 加载游戏用户
             List<UserTr> userTrList = thriftClient.gameDataServiceClient().getGameUsers(gameInfo.getId());
@@ -163,7 +170,7 @@ public class GameManage {
             game.setState(GameState.PREPARE);
 
             // 把加载好的游戏放到map中
-            gameMap.put(gameInfo.getId(), game);
+            gamePool.put(gameInfo.getId(), game);
 
             // 创建zookeeper节点
             String serverAddr = config.serverIp + ":" + config.rpcPort;
@@ -179,13 +186,13 @@ public class GameManage {
      * 完成游戏
      */
     public void finishGame(int gameId) {
-        Game game = gameMap.get(gameId);
+        Game game = gamePool.get(gameId);
         GameInfo gameInfo = game.getGameInfo();
         gameInfo.setState(GameState.DESTROYED);
         GameTr gameTr = ViewTransformer.transferObject(gameInfo, GameTr.class);
         try {
             thriftClient.gameDataServiceClient().updateGame(gameTr);
-            gameMap.remove(gameId);
+            gamePool.remove(gameId);
             log.info("game finished, game: {}", game.getGameInfo().getId());
         } catch (TException e) {
             log.error("finish game failed, game id: " + gameId, e);
@@ -277,7 +284,7 @@ public class GameManage {
 
                         Integer gameId = message.getGameId();
                         if (gameId != null) {
-                            Game game = gameMap.get(gameId);
+                            Game game = gamePool.get(gameId);
                             // 如果game不存在，返回一个游戏不存在的消息
                             if (game == null) {
                                 log.warn("game is not exist, game id: {}", gameId);
@@ -298,7 +305,7 @@ public class GameManage {
                     }
 
                     long start = System.currentTimeMillis();
-                    for (Game game: gameMap.values()) {
+                    for (Game game: gamePool.values()) {
                         // 如果游戏已是等待销毁状态，则销毁游戏, 否则执行游戏逻辑
                         if (game.getState() == GameState.DESTROYING) {
                             // TODO 需要彻底隔离游戏主线程和其他线程

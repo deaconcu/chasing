@@ -28,6 +28,31 @@ public class Block {
         this.distanceToFinish = 0;
     }
 
+    public Block(Point2D position, int blockId, byte type, byte terrainType) {
+        this(position, blockId, type);
+        this.terrainType = terrainType;
+    }
+
+    public int getBlockId() {
+        return blockId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Block)) return false;
+        Block block = (Block) o;
+        if (block == null || block.blockId != blockId) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return blockId;
+    }
+
+    @Override
     public String toString() {
         return "block id: " + blockId + ", type: " + type + ", position x: " + position.x + ", position y: " +
                 position.y + ", distance to finish: " + distanceToFinish;

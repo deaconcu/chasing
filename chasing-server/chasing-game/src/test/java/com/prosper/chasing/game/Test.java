@@ -13,8 +13,9 @@ public class Test {
     }
 
     public static void main(String[] args) {
-        B b = new B();
-        System.out.println(b.a);
+        for (int i = 1; i < 2; i ++) {
+            System.out.println(i);
+        }
     }
 }
 

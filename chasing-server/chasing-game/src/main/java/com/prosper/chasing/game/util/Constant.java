@@ -82,24 +82,35 @@ public class Constant {
     }
 
     public static class TerrainType {
-        public static byte ROAD = 1;
-        public static byte GRASS = 2;
-        public static byte VEGETABLE = 3;
-        public static byte LAVA = 4;
-        public static byte WATER = 5;
-        public static byte FOREST = 6;
-        public static byte ROCK = 7;
-        public static byte BLANK = 8;
-        public static byte RAIN = 9;
-        public static byte SNOW = 10;
-        public static byte WIND = 11;
-        public static byte WILDWIND = 12;
-        public static byte SAND = 13;
-        public static byte SWAMP = 14;
-        public static byte WHEAT = 15;
-        public static byte FOG = 16;
-        public static byte UPLAND = 17;
-        public static byte ANIMAL = 18;
+        public static byte ANIMAL = 1;
+        public static byte BLANK = 2;
+        public static byte BUILDING = 3;
+        public static byte FOG = 4;
+        public static byte FOREST = 5;
+        public static byte GRASS = 6;
+        public static byte LAVA = 7;
+        public static byte RAIN = 8;
+        public static byte ROAD = 9;
+        public static byte ROCK = 10;
+        public static byte SAND = 11;
+        public static byte SNOW = 12;
+        public static byte SWAMP = 13;
+        public static byte VEGETABLE = 14;
+        public static byte VIEW = 15;
+        public static byte WATER = 16;
+        public static byte WHEAT = 17;
+        public static byte WILDWIND = 18;
+        public static byte WIND = 19;
+        public static byte UPLAND = 20;
+    }
+
+    public static class BuildingType {
+        public static byte WAREHOUSE = 1;
+        public static byte STORE = 2;
+        public static byte TALL_TREE = 3;
+        public static byte GRAVEYARD = 4;
+        public static byte WELL = 5;
+        public static byte JACKSTRAW = 6;
     }
 
 }

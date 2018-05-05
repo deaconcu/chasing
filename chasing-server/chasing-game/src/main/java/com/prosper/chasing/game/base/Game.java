@@ -2,6 +2,9 @@ package com.prosper.chasing.game.base;
 
 import java.util.*;
 
+import com.prosper.chasing.game.map.Block;
+import com.prosper.chasing.game.map.Building;
+import com.prosper.chasing.game.map.GameMap;
 import com.prosper.chasing.game.message.*;
 import com.prosper.chasing.game.navmesh.NaviMeshGroup;
 import com.prosper.chasing.game.navmesh.Point;
@@ -68,7 +71,9 @@ public abstract class Game {
     private JsonUtil jsonUtil = new JsonUtil();
 
     // 一些外部依赖
-    protected NaviMeshGroup navimeshGroup;
+    //protected NaviMeshGroup navimeshGroup;
+
+    protected GameMap gameMap;
 
     private Random random = new Random();
 
@@ -347,10 +352,13 @@ public abstract class Game {
     /**
      * 同步游戏开始之后的一些数据，比如用户名, 游戏时间等，格式如下
      *
-     * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]|propCount(2)|list<PropPrice>|
-     * PropPrice: id(2)|price(4)
+     * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]|propCount(2)|list<PropPrice>|Map
      *
      * User: userId(4)|nameLength(1)|name
+     * PropPrice: id(2)|price(4)
+     * Map: boundX(4)|boundY(4)|blockCount|List<Block>|buildingCount|List<Building>
+     * Block: id(4)|terrainType(1)
+     * Building: id(4)|type(1)|positionX(4)|positionY(4)
      */
     public void generatePrepareMessage() {
         ByteBuilder bb = new ByteBuilder();
@@ -372,8 +380,24 @@ public abstract class Game {
             bb.append(price);
         }
 
+        bb.append(gameMap.boundX);
+        bb.append(gameMap.boundY);
+        bb.append(gameMap.occupiedBlockMap.size());
+        for (Block block: gameMap.occupiedBlockMap.values()) {
+            bb.append(block.blockId);
+            bb.append(block.terrainType);
+        }
+        bb.append(gameMap.buildingMap.size());
+        for (Map.Entry<Integer, Building> entry: gameMap.buildingMap.entrySet()) {
+            bb.append(entry.getKey());
+            bb.append(entry.getValue().type);
+            bb.append(entry.getValue().point2D.x);
+            bb.append(entry.getValue().point2D.y);
+        }
+
         if (bb.getSize() > 0) {
             for (User user: userMap.values()) {
+                log.info("prepare message offered");
                 user.offerMessage(bb);
             }
         }
@@ -660,6 +684,9 @@ public abstract class Game {
         while(iterator.hasNext()) {
             EnvProp prop = iterator.next();
             if(!prop.movable) continue;
+
+            // TODO  navimesh is no longer used
+            /*
             // 设置路径
             if (prop.isPathEmpty()) {
                 prop.setPath(navimeshGroup.getPath(
@@ -669,6 +696,7 @@ public abstract class Game {
 
             // 移动道具
             prop.move();
+            */
             if (prop.isPositionChanged()) {
                 getEnvPropChangedList().add(prop);
                 prop.setPositionChanged(false);
@@ -689,7 +717,12 @@ public abstract class Game {
             envProp.typeId = propConfig.propTypeId;
             envProp.id = nextPropSeqId ++;
             envProp.position = new Position();
-            envProp.position.point = navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode());
+
+            //envProp.position.point = navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode());
+            int randomBlockId = gameMap.getRandomMainRoadBlockId();
+            int x = gameMap.getX(randomBlockId);
+            int y = gameMap.getY(randomBlockId);
+            envProp.position.point = new Point(x * 1000, 1100, y * 1000);
             envProp.createTime = System.currentTimeMillis();
             envProp.vanishTime = envProp.createTime + propConfig.duration * 1000;
             envProp.movable = propConfig.movable;
@@ -757,12 +790,15 @@ public abstract class Game {
      */
     protected void moveNPC() {
         for (NPC npc: getMoveableNPCMap().values()) {
+            // TODO
+            /*
             if (npc.movable && npc.isPathEmpty()) {
                 npc.setPath(navimeshGroup.getPath(
                         gameInfo.getMetagameCode(), npc.position.point,
                         navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode())));
             }
             npc.move();
+            */
             if (npc.isPositionChanged()) {
                 npcChangedList.add(npc);
             }
@@ -786,7 +822,9 @@ public abstract class Game {
     public void setUserInitPosition(User user) {
         Position userPosition = new Position();
         userPosition.rotateY = 0;
-        userPosition.point = navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode());
+        //userPosition.point = navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode());
+        Block block = gameMap.mainRoad.blockList.get(0);
+        userPosition.point = new Point(block.position.x * 1000, 1000, block.position.y * 1000);
         //userPosition.point.y = 0;
         userPosition.moveState = Constant.MoveState.IDLE;
         user.setPosition(userPosition);
@@ -874,6 +912,14 @@ public abstract class Game {
         this.step = step;
     }
 
+    public GameMap getGameMap() {
+        return gameMap;
+    }
+
+    public void setGameMap(GameMap gameMap) {
+        this.gameMap = gameMap;
+    }
+
     public boolean isStepChanged() {
         return isStepChanged;
     }
@@ -886,7 +932,7 @@ public abstract class Game {
     }
 
     public void setNavimeshGroup(NaviMeshGroup navimeshGroup) {
-        this.navimeshGroup = navimeshGroup;
+        //this.navimeshGroup = navimeshGroup;
     }
 
 }

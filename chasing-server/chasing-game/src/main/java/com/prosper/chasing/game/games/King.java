@@ -140,9 +140,12 @@ public class King extends Game {
     @Override
     protected List<NPC> generateNPC() {
         List<NPC> npcList = new LinkedList<>();
+        // TODO
+        /*
         npcList.add(new Merchant(
                 this, 1, (short)1, "范蠡", false, new short[]{1,2,3,4,5},
                 new Position((byte)0, navimeshGroup.getRandomPositionPoint("king"), 0)));
+                */
         return npcList;
     }
 

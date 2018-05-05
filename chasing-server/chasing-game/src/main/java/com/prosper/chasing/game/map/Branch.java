@@ -18,6 +18,11 @@ public class Branch implements Comparable<Branch> {
         tail = null;
     }
 
+    public Branch(Block head, Block tail) {
+        this(head);
+        this.tail = tail;
+    }
+
     public int size() {
         return blockList.size();
     }
