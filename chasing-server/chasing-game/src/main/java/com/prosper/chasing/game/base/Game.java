@@ -357,8 +357,9 @@ public abstract class Game {
      * User: userId(4)|nameLength(1)|name
      * PropPrice: id(2)|price(4)
      * Map: boundX(4)|boundY(4)|blockCount|List<Block>|buildingCount|List<Building>
+     * Map: boundX(4)|boundY(4)|blockCount|List<byte>|buildingCount|List<Building>
      * Block: id(4)|terrainType(1)
-     * Building: id(4)|type(1)|positionX(4)|positionY(4)
+     * Building: id(4)|type(1)|positionX(4)|positionY(4)|orientation(1)
      */
     public void generatePrepareMessage() {
         ByteBuilder bb = new ByteBuilder();
@@ -382,17 +383,28 @@ public abstract class Game {
 
         bb.append(gameMap.boundX);
         bb.append(gameMap.boundY);
+
+        int blockCount = gameMap.boundX * gameMap.boundY;
+        bb.append(blockCount);
+
+        for (int i = 1; i <= blockCount; i ++) {
+            Block block = gameMap.occupiedBlockMap.get(i);
+            bb.append(block.type.getValue());
+        }
+        /*
         bb.append(gameMap.occupiedBlockMap.size());
         for (Block block: gameMap.occupiedBlockMap.values()) {
             bb.append(block.blockId);
-            bb.append(block.terrainType);
+            bb.append(block.terrainType.getValue());
         }
+        */
         bb.append(gameMap.buildingMap.size());
         for (Map.Entry<Integer, Building> entry: gameMap.buildingMap.entrySet()) {
             bb.append(entry.getKey());
-            bb.append(entry.getValue().type);
+            bb.append(entry.getValue().buildingType.getValue());
             bb.append(entry.getValue().point2D.x);
             bb.append(entry.getValue().point2D.y);
+            bb.append(entry.getValue().orientation.getValue());
         }
 
         if (bb.getSize() > 0) {
@@ -402,7 +414,6 @@ public abstract class Game {
             }
         }
     }
-
 
     /**
      * 为单个用户生成排名及奖励信息

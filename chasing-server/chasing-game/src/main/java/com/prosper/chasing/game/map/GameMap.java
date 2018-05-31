@@ -1,7 +1,10 @@
 package com.prosper.chasing.game.map;
 
 import com.prosper.chasing.game.base.Point2D;
-import com.prosper.chasing.game.util.Constant;
+
+import static com.prosper.chasing.game.util.Enums.*;
+
+import com.prosper.chasing.game.util.Util;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -11,20 +14,22 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class GameMap {
 
-    public static Map<Byte, Byte> buildingBlockCount = new HashMap<>();
+    public static Map<BuildingType, Byte> buildingBlockCount = new HashMap<>();
 
     static {
-        buildingBlockCount.put(Constant.BuildingType.WAREHOUSE, (byte) 4);
-        buildingBlockCount.put(Constant.BuildingType.STORE, (byte) 8);
-        buildingBlockCount.put(Constant.BuildingType.WELL, (byte) 8);
-        buildingBlockCount.put(Constant.BuildingType.TALL_TREE, (byte) 4);
-        buildingBlockCount.put(Constant.BuildingType.GRAVEYARD, (byte) 4);
-        buildingBlockCount.put(Constant.BuildingType.JACKSTRAW, (byte) 4);
+        buildingBlockCount.put(BuildingType.WAREHOUSE, (byte) 4);
+        buildingBlockCount.put(BuildingType.STORE, (byte) 8);
+        buildingBlockCount.put(BuildingType.WELL, (byte) 8);
+        buildingBlockCount.put(BuildingType.TALL_TREE, (byte) 4);
+        buildingBlockCount.put(BuildingType.GRAVEYARD, (byte) 4);
+        buildingBlockCount.put(BuildingType.JACKSTRAW, (byte) 4);
     }
 
     public int boundX;
 
     public int boundY;
+
+    public int bridgeWidth;
 
     /**
      * 主路
@@ -39,7 +44,7 @@ public class GameMap {
     /**
      * 资源地块
      */
-    public Map<Integer, Byte> resourceMap;
+    public Map<Integer, TerrainType> resourceMap;
 
     /**
      * 建筑物
@@ -53,13 +58,15 @@ public class GameMap {
 
     public List<Integer> unoccupiedBlockList;
 
-    public GameMap(int boundX, int boundY) {
+    public GameMap(int boundX, int boundY, int bridgeWidth) {
         this.boundX = boundX;
         this.boundY = boundY;
+        this.bridgeWidth = bridgeWidth;
 
         resourceMap = new HashMap<>();
         occupiedBlockMap = new HashMap<>();
         unoccupiedBlockList = new ArrayList<>();
+        buildingMap = new HashMap<>();
 
         for (int x = 0; x < boundX; x ++) {
             for (int y = 0; y < boundY; y ++) {
@@ -82,7 +89,7 @@ public class GameMap {
 
     /*
 
-    public GameMap(int boundX, int boundY, Branch mainRoad, List<Branch> shortcutList) {
+    public RoadMap(int boundX, int boundY, Branch mainRoad, List<Branch> shortcutList) {
         this.boundX = boundX;
         this.boundY = boundY;
 
@@ -130,19 +137,23 @@ public class GameMap {
         }
     }
 
-    public Block addBlock(int blockId, byte type, byte firstTerrainTypeId, byte secondTerrainTypeId) {
+    public Block addBlock(int blockId, BlockType type, TerrainType terrainType) {
+        return addBlock(blockId, type, terrainType, RoadDirection.NONE);
+    }
+
+    public Block addBlock(int blockId, BlockType type, TerrainType terrainType, RoadDirection roadDirection) {
         if (isOccupied(blockId)) {
             return occupiedBlockMap.get(blockId);
         }
-        if (firstTerrainTypeId == Constant.TerrainType.BUILDING) {
+        if (terrainType == TerrainType.BUILDING) {
             //buildingMap.put(blockId, secondTerrainTypeId);
-        } else if (firstTerrainTypeId == Constant.TerrainType.VIEW) {
-            resourceMap.put(blockId, firstTerrainTypeId);
+        } else if (terrainType == TerrainType.VIEW) {
+            resourceMap.put(blockId, terrainType);
         } else {
-            resourceMap.put(blockId, firstTerrainTypeId);
+            resourceMap.put(blockId, terrainType);
         }
 
-        Block block = new Block(new Point2D(getX(blockId), getY(blockId)), blockId, type, firstTerrainTypeId);
+        Block block = new Block(new Point2D(getX(blockId), getY(blockId)), blockId, type, terrainType, roadDirection);
         occupiedBlockMap.put(blockId, block);
         unoccupiedBlockList.remove(new Integer(blockId));
         return block;
@@ -206,29 +217,71 @@ public class GameMap {
             int x = block.position.x;
             int y = block.position.y;
 
-            if (block.type == Constant.MapBlockType.MAIN_ROAD) terrainBytes[x][y] = 'M';
-            else if (block.type == Constant.MapBlockType.SHORTCUT) terrainBytes[x][y] = 'Y';
+            if (block.type == BlockType.MAIN_ROAD) terrainBytes[x][y] = 'M';
+            else if (block.type == BlockType.MOUNTAIN_L1) terrainBytes[x][y] = 'h';
+            else if (block.type == BlockType.MOUNTAIN_L2) terrainBytes[x][y] = 'H';
+            else if (block.type == BlockType.MOUNTAIN_L3) terrainBytes[x][y] = 'w';
+            else if (block.type == BlockType.MOUNTAIN_L4) terrainBytes[x][y] = 'W';
+            else if (block.type == BlockType.MOUNTAIN_L5) terrainBytes[x][y] = 'x';
+            else if (block.type == BlockType.MOUNTAIN_L6) terrainBytes[x][y] = 'X';
+            else if (block.type == BlockType.SLOPE) terrainBytes[x][y] = 'Y';
+            else if (block.type == BlockType.SLASH_ROAD_MOUNTAIN_L1 ||
+                    block.type == BlockType.SLASH_MOUNTAIN_L1_ROAD ||
+                    block.type == BlockType.SLASH_MOUNTAIN_L1_MOUNTAIN_L2 ||
+                    block.type == BlockType.SLASH_MOUNTAIN_L2_MOUNTAIN_L1 ||
+                    block.type == BlockType.SLASH_MOUNTAIN_L2_MOUNTAIN_L3 ||
+                    block.type == BlockType.SLASH_MOUNTAIN_L3_MOUNTAIN_L2
+                    ) terrainBytes[x][y] = '\\';
+            else if (block.type == BlockType.BACKSLASH_ROAD_MOUNTAIN_L1 ||
+                    block.type == BlockType.BACKSLASH_MOUNTAIN_L1_ROAD ||
+                    block.type == BlockType.BACKSLASH_MOUNTAIN_L1_MOUNTAIN_L2 ||
+                    block.type == BlockType.BACKSLASH_MOUNTAIN_L2_MOUNTAIN_L1 ||
+                    block.type == BlockType.BACKSLASH_MOUNTAIN_L2_MOUNTAIN_L3 ||
+                    block.type == BlockType.BACKSLASH_MOUNTAIN_L3_MOUNTAIN_L2
+                    ) terrainBytes[x][y] = '/';
 
-            if (block.terrainType == Constant.TerrainType.ANIMAL) terrainBytes[x][y] = 'A';
-            else if (block.terrainType == Constant.TerrainType.BLANK) terrainBytes[x][y] = 'B';
-            else if (block.terrainType == Constant.TerrainType.FOG) terrainBytes[x][y] = 'C';
-            else if (block.terrainType == Constant.TerrainType.FOREST) terrainBytes[x][y] = 'D';
-            else if (block.terrainType == Constant.TerrainType.GRASS) terrainBytes[x][y] = 'E';
-            else if (block.terrainType == Constant.TerrainType.LAVA) terrainBytes[x][y] = 'F';
-            else if (block.terrainType == Constant.TerrainType.RAIN) terrainBytes[x][y] = 'G';
-            else if (block.terrainType == Constant.TerrainType.ROAD) terrainBytes[x][y] = 'H';
-            else if (block.terrainType == Constant.TerrainType.ROCK) terrainBytes[x][y] = 'I';
-            else if (block.terrainType == Constant.TerrainType.SAND) terrainBytes[x][y] = 'J';
-            else if (block.terrainType == Constant.TerrainType.SNOW) terrainBytes[x][y] = 'K';
-            else if (block.terrainType == Constant.TerrainType.SWAMP) terrainBytes[x][y] = 'L';
-            else if (block.terrainType == Constant.TerrainType.VEGETABLE) terrainBytes[x][y] = 'N';
-            else if (block.terrainType == Constant.TerrainType.WATER) terrainBytes[x][y] = 'O';
-            else if (block.terrainType == Constant.TerrainType.WIND) terrainBytes[x][y] = 'P';
-            else if (block.terrainType == Constant.TerrainType.WILDWIND) terrainBytes[x][y] = 'Q';
-            else if (block.terrainType == Constant.TerrainType.WHEAT) terrainBytes[x][y] = 'R';
-            else if (block.terrainType == Constant.TerrainType.VIEW) terrainBytes[x][y] = 'S';
-            else if (block.terrainType == Constant.TerrainType.BUILDING) terrainBytes[x][y] = 'T';
-            else terrainBytes[x][y] = 'U';
+            if (block.terrainType == TerrainType.ANIMAL) terrainBytes[x][y] = 'A';
+            else if (block.terrainType == TerrainType.BLANK) terrainBytes[x][y] = 'B';
+            else if (block.terrainType == TerrainType.FOG) terrainBytes[x][y] = 'C';
+            else if (block.terrainType == TerrainType.FOREST) terrainBytes[x][y] = 'D';
+            else if (block.terrainType == TerrainType.GRASS) terrainBytes[x][y] = 'E';
+            else if (block.terrainType == TerrainType.LAVA) terrainBytes[x][y] = 'F';
+            else if (block.terrainType == TerrainType.RAIN) terrainBytes[x][y] = 'G';
+            else if (block.terrainType == TerrainType.PAVEMENT) terrainBytes[x][y] = 'V';
+            else if (block.terrainType == TerrainType.ROCK) terrainBytes[x][y] = 'I';
+            else if (block.terrainType == TerrainType.SAND) terrainBytes[x][y] = 'J';
+            else if (block.terrainType == TerrainType.SNOW) terrainBytes[x][y] = 'K';
+            else if (block.terrainType == TerrainType.SWAMP) terrainBytes[x][y] = 'L';
+            else if (block.terrainType == TerrainType.VEGETABLE) terrainBytes[x][y] = 'N';
+            else if (block.terrainType == TerrainType.WATER) terrainBytes[x][y] = 'O';
+            else if (block.terrainType == TerrainType.WIND) terrainBytes[x][y] = 'P';
+            else if (block.terrainType == TerrainType.WILD_WIND) terrainBytes[x][y] = 'Q';
+            else if (block.terrainType == TerrainType.WHEAT) terrainBytes[x][y] = 'R';
+            else if (block.terrainType == TerrainType.VIEW) terrainBytes[x][y] = 'S';
+            else if (block.terrainType == TerrainType.BUILDING) terrainBytes[x][y] = 'T';
+            else if (block.terrainType == TerrainType.WALL) terrainBytes[x][y] = 'U';
+            else if (block.terrainType == TerrainType.MOUNTAIN_L1) terrainBytes[x][y] = 'V';
+            else if (block.terrainType == TerrainType.MOUNTAIN_L2) terrainBytes[x][y] = 'W';
+            else if (block.terrainType == TerrainType.MOUNTAIN_L3) terrainBytes[x][y] = 'X';
+            //else terrainBytes[x][y] = 'Z';
+        }
+
+        for (Building building: buildingMap.values()) {
+            int x = building.point2D.x;
+            int y = building.point2D.y;
+
+            if (building.buildingType == BuildingType.WALL) terrainBytes[x][y] = '@';
+            if (building.buildingType == BuildingType.TOWER_A) terrainBytes[x][y] = '#';
+            if (building.buildingType == BuildingType.TOWER_B) terrainBytes[x][y] = '$';
+            if (building.buildingType == BuildingType.GATE) terrainBytes[x][y] = '+';
+            if (building.buildingType == BuildingType.CASTLE) terrainBytes[x][y] = '%';
+            if (building.buildingType == BuildingType.ROTUNDA) terrainBytes[x][y] = ':';
+            if (building.buildingType == BuildingType.GRAVEYARD) terrainBytes[x][y] = '^';
+            if (building.buildingType == BuildingType.JACKSTRAW) terrainBytes[x][y] = '&';
+            if (building.buildingType == BuildingType.STORE) terrainBytes[x][y] = '*';
+            if (building.buildingType == BuildingType.TALL_TREE) terrainBytes[x][y] = '<';
+            if (building.buildingType == BuildingType.WAREHOUSE) terrainBytes[x][y] = '>';
+            if (building.buildingType == BuildingType.WELL) terrainBytes[x][y] = '?';
         }
 
         for(int i = 0; i < boundX; i ++) {
@@ -247,33 +300,33 @@ public class GameMap {
         else System.out.print(i + ": ");
     }
 
-    public List<Integer> getBorderPoints(int blockId, int width, int height) {
+    public List<Integer> getBorderPoints(int x, int y, int width, int height, boolean partly) {
         if (width <= 0 || height <= 0) return null;
-        int x  = getX(blockId);
-        int y = getY(blockId);
 
-        if (!isInBound(x, y)) return null;
-        if (!isInBound(x + width, y)) return null;
-        if (!isInBound(x, y + width)) return null;
-        if (!isInBound(x + width, y + width)) return null;
+        if (!partly) {
+            if (!isInBound(x, y)) return null;
+            if (!isInBound(x + width, y)) return null;
+            if (!isInBound(x, y + height)) return null;
+            if (!isInBound(x + width, y + height)) return null;
+        }
 
         List<Integer> borderPointList = new LinkedList<>();
-        for (int i = 0; i <=width; i ++) {
-            borderPointList.add(getBlockId(x + i, y));
+        for (int i = 0; i <= width; i ++) {
+            if (isInBound(x + i, y)) borderPointList.add(getBlockId(x + i, y));
         }
-        for (int i = 1; i <=height; i ++) {
-            borderPointList.add(getBlockId(x, y + i));
+        for (int i = 1; i <= height; i ++) {
+            if (isInBound(x, y + i)) borderPointList.add(getBlockId(x, y + i));
         }
         for (int i = 1; i <= width; i ++) {
-            borderPointList.add(getBlockId(x + i, y + height));
+            if (isInBound(x + i, y + height)) borderPointList.add(getBlockId(x + i, y + height));
         }
         for (int i = 1; i < height; i ++) {
-            borderPointList.add(getBlockId(x + width, y + i));
+            if (isInBound(x + width, y + i)) borderPointList.add(getBlockId(x + width, y + i));
         }
         return borderPointList;
     }
 
-    public void addBranch(int blockIdA, int blockIdB) {
+   public void addBranch(int blockIdA, int blockIdB) {
         int ax = getX(blockIdA);
         int ay = getY(blockIdA);
         int bx = getX(blockIdB);
@@ -288,26 +341,237 @@ public class GameMap {
             for (int i = bx + 1; i < ax; i ++) {
                 int blockId = getBlockId(i, ay);
                 if (isOccupied(blockId)) throw new RuntimeException("is occupied");
-                addBlock(blockId, Constant.MapBlockType.BRANCH, Constant.TerrainType.ROAD, (byte)0);
+                addBlock(blockId, BlockType.BRANCH, TerrainType.PAVEMENT, RoadDirection.NONE);
             }
         } else if (ax < bx) {
             for (int i = ax + 1; i < bx; i ++) {
                 int blockId = getBlockId(i, ay);
                 if (isOccupied(blockId)) throw new RuntimeException("is occupied");
-                addBlock(blockId, Constant.MapBlockType.BRANCH, Constant.TerrainType.ROAD, (byte)0);
+                addBlock(blockId, BlockType.BRANCH, TerrainType.PAVEMENT, RoadDirection.NONE);
             }
         } else if (ay > by) {
             for (int i = by + 1; i < ay; i ++) {
                 int blockId = getBlockId(ax, i);
                 if (isOccupied(blockId)) throw new RuntimeException("is occupied");
-                addBlock(blockId, Constant.MapBlockType.BRANCH, Constant.TerrainType.ROAD, (byte)0);
+                addBlock(blockId, BlockType.BRANCH, TerrainType.PAVEMENT, RoadDirection.NONE);
             }
         } else if (ay < by) {
             for (int i = ay + 1; i < by; i ++) {
                 int blockId = getBlockId(ax, i);
                 if (isOccupied(blockId)) throw new RuntimeException("is occupied");
-                addBlock(blockId, Constant.MapBlockType.BRANCH, Constant.TerrainType.ROAD, (byte)0);
+                addBlock(blockId, BlockType.BRANCH, TerrainType.PAVEMENT, RoadDirection.NONE);
             }
         }
+    }
+
+    /**
+     * 判断某一个block在给定距离的周边上是否有临近的给定种类的block
+     * @param distance 给定距离
+     * @param blockTypes 给定block type
+     */
+    public boolean isNear(int blockId, int distance, BlockType... blockTypes) {
+        int x = getX(blockId);
+        int y = getY(blockId);
+
+        List<Integer> borderBlockIdList = getBorderPoints(
+                x - distance, y - distance, 2 * distance, 2 * distance, true);
+        for (int borderBlockId: borderBlockIdList) {
+            Block block = occupiedBlockMap.get(borderBlockId);
+            if (block != null && Util.arrayContains(blockTypes, block.type)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 判断当前节点所在线路的方向类型
+     * @return
+     */
+    public RoadDirection getRoadDirection(int blockId, BlockType... blockTypes) {
+        if (occupiedBlockMap.get(blockId) == null) return RoadDirection.NONE;
+
+        int x = getX(blockId);
+        int y = getY(blockId);
+
+        List<Block> blockList = new LinkedList<>();
+        for (int i = -1; i <= 1; i = i + 2) {
+            if (isInBound(x + i, y)) {
+                Block block = occupiedBlockMap.get(getBlockId(x + i, y));
+                if (block != null && Util.arrayContains(blockTypes, block.type)) blockList.add(block);
+            }
+        }
+        for (int i = -1; i <= 1; i = i + 2) {
+            if (isInBound(x, y + i)) {
+                Block block = occupiedBlockMap.get(getBlockId(x, y + i));
+                if (block != null && Util.arrayContains(blockTypes, block.type)) blockList.add(block);
+            }
+        }
+
+        if (blockList.size() > 2) {
+            return RoadDirection.CROSS;
+        } else if (blockList.size() == 2) {
+            if (blockList.get(0).position.x == blockList.get(1).position.x) {
+                return RoadDirection.VERTICAL;
+            } else if (blockList.get(0).position.y == blockList.get(1).position.y) {
+                return RoadDirection.HORIZONTAL;
+            } else {
+                return RoadDirection.TURNING;
+            }
+        } else if (blockList.size() == 1) {
+            printMap();
+            if (blockList.get(0).position.x == x) {
+                return RoadDirection.VERTICAL_END;
+            } else if (blockList.get(0).position.y == y) {
+                return RoadDirection.HORIZONTAL_END;
+            }
+        }
+        return RoadDirection.STAND_ALONE;
+    }
+
+    public void addBuilding(BuildingType buildingType, int x, int y, Orientation orientation) {
+        int id = getBlockId(x, y);
+        Building building = new Building(id, buildingType, new Point2D(x, y), orientation);
+        buildingMap.put(id, building);
+    }
+
+    public List<Block> getAdjacent(int blockId, int distance, boolean corner, BlockType... blockTypes) {
+        int x = getX(blockId);
+        int y = getY(blockId);
+
+        List<Integer> borderBlockIdList = new LinkedList<>();
+        if (corner) {
+            borderBlockIdList.add(getBlockId(x - distance, y + distance));
+            borderBlockIdList.add(getBlockId(x, y + distance));
+            borderBlockIdList.add(getBlockId(x + distance, y + distance));
+            borderBlockIdList.add(getBlockId(x + distance, y));
+            borderBlockIdList.add(getBlockId(x, y));
+            borderBlockIdList.add(getBlockId(x + distance, y - distance));
+            borderBlockIdList.add(getBlockId(x, y - distance));
+            borderBlockIdList.add(getBlockId(x - distance, y - distance));
+            borderBlockIdList.add(getBlockId(x - distance, y));
+        } else {
+            borderBlockIdList.add(getBlockId(x, y + distance));
+            borderBlockIdList.add(getBlockId(x + distance, y));
+            borderBlockIdList.add(getBlockId(x, y - distance));
+            borderBlockIdList.add(getBlockId(x - distance, y));
+        }
+
+        List<Block> blockList = new LinkedList<>();
+        for (int borderBlockId: borderBlockIdList) {
+            Block block = occupiedBlockMap.get(borderBlockId);
+            if (block != null && Util.arrayContains(blockTypes, block.type)) {
+                blockList.add(block);
+            }
+        }
+        return blockList;
+    }
+
+    public boolean isAdjacent(int blockId, int distance, BlockType... blockTypes) {
+        int x = getX(blockId);
+        int y = getY(blockId);
+
+        List<Integer> borderBlockIdList = new LinkedList<>();
+        borderBlockIdList.add(getBlockId(x - distance, y));
+        borderBlockIdList.add(getBlockId(x + distance, y));
+        borderBlockIdList.add(getBlockId(x, y - distance));
+        borderBlockIdList.add(getBlockId(x, y + distance));
+
+        for (int borderBlockId: borderBlockIdList) {
+            Block block = occupiedBlockMap.get(borderBlockId);
+            if (block != null && Util.arrayContains(blockTypes, block.type)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 获取在某一个block的十字交叉线上指定距离和指定类型的block集合
+     */
+    public List<Block> getBlocksInRangeOfCross(int blockId, int range, BlockType... blockTypes) {
+        int x = getX(blockId);
+        int y = getY(blockId);
+
+        List<Integer> blockIdList = new LinkedList<>();
+        for (int i = 1; i <= range; i ++) {
+            if (isInBound(x - i, y)) blockIdList.add(getBlockId(x - i, y));
+            if (isInBound(x + i, y)) blockIdList.add(getBlockId(x + i, y));
+            if (isInBound(x, y - i)) blockIdList.add(getBlockId(x, y - i));
+            if (isInBound(x, y + i)) blockIdList.add(getBlockId(x, y + i));
+        }
+
+        List<Block> blockList = new LinkedList<>();
+        for (int blockIdInRange: blockIdList) {
+            Block block = occupiedBlockMap.get(blockIdInRange);
+            if (block != null && Util.arrayContains(blockTypes, block.type)) {
+                blockList.add(block);
+            }
+        }
+        return blockList;
+    }
+
+    /**
+     * 获取在某一个block的四个对角线方向, 指定距离和指定类型的block集合
+     */
+    public List<Block> getBlocksInRangeOfCorner(int blockId, int range, BlockType... blockTypes) {
+        int x = getX(blockId);
+        int y = getY(blockId);
+
+        List<Integer> blockIdList = new LinkedList<>();
+        if (isInBound(x - range, y + range)) blockIdList.add(getBlockId(x - range, y + range));
+        if (isInBound(x + range, y + range)) blockIdList.add(getBlockId(x + range, y + range));
+        if (isInBound(x + range, y - range)) blockIdList.add(getBlockId(x + range, y - range));
+        if (isInBound(x - range, y - range)) blockIdList.add(getBlockId(x - range, y - range));
+
+        List<Block> blockList = new LinkedList<>();
+        for (int blockIdInRange: blockIdList) {
+            Block block = occupiedBlockMap.get(blockIdInRange);
+            if (block != null && Util.arrayContains(blockTypes, block.type)) {
+                blockList.add(block);
+            }
+        }
+        return blockList;
+    }
+
+    /**
+     * 获取在某一个block周围, 指定距离和指定类型的block集合
+     */
+    public List<Block> getBlocksInRange(int blockId, int range, BlockType... blockTypes) {
+        int x = getX(blockId);
+        int y = getY(blockId);
+
+        List<Integer> blockIdList = new LinkedList<>();
+        for (int i = -range ; i <= range; i ++) {
+            for (int j = -range; j <= range; j ++) {
+                if (i == 0 && j == 0) continue;
+                if (isInBound(x + i, y + i)) blockIdList.add(getBlockId(x + i, y + j));
+            }
+        }
+
+        List<Block> blockList = new LinkedList<>();
+        for (int blockIdInRange: blockIdList) {
+            Block block = occupiedBlockMap.get(blockIdInRange);
+            if (block != null && Util.arrayContains(blockTypes, block.type)) {
+                blockList.add(block);
+            }
+        }
+        return blockList;
+    }
+
+    public Direction getDirection(int blockIdA, int blockIdB) {
+        int ax = getX(blockIdA);
+        int ay = getY(blockIdA);
+
+        int bx = getX(blockIdB);
+        int by = getY(blockIdB);
+
+        if (ax == bx && by > ay) return Direction.UP;
+        if (ax == bx && by < ay) return Direction.DOWN;
+        if (ay == by && bx > ax) return Direction.RIGHT;
+        if (ay == by && bx < ax) return Direction.LEFT;
+
+        if (bx < ax && by > ay) return Direction.UP_LEFT;
+        if (bx < ax && by < ay) return Direction.DOWN_LEFT;
+        if (bx > ax && by > ay) return Direction.UP_RIGHT;
+        if (bx > ax && by < ay) return Direction.DOWN_RIGHT;
+
+        return Direction.SELF;
     }
 }

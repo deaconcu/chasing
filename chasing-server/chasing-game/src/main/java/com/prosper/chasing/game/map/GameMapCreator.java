@@ -1,13 +1,12 @@
 package com.prosper.chasing.game.map;
 
 import com.prosper.chasing.game.base.Point2D;
-import com.prosper.chasing.game.util.Constant;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static com.prosper.chasing.game.util.Constant.Direction.*;
-import static com.prosper.chasing.game.util.Constant.MapBlockType.*;
+import static com.prosper.chasing.game.util.Enums.*;
 
 /**
  * Created by deacon on 2018/4/25.
@@ -83,7 +82,7 @@ public class GameMapCreator {
 
     protected void fillWithRandomRoads() {
         int startBlockId = randomUnusedPoint();
-        addBlock(startBlockId, -1, Constant.MapBlockType.MAIN_ROAD);
+        addBlock(startBlockId, -1, BlockType.MAIN_ROAD);
 
         LinkedList<Integer> pathBlockIdList = new LinkedList<>();
 
@@ -103,7 +102,7 @@ public class GameMapCreator {
             }
             if (pathBlockIdList.size() == 0) break;
 
-            addBlock(nextBlockId, blockId, Constant.MapBlockType.MAIN_ROAD);
+            addBlock(nextBlockId, blockId, BlockType.MAIN_ROAD);
             blockId = nextBlockId;
             if (!pathBlockIdList.contains(blockId)) {
                 pathBlockIdList.add(blockId);
@@ -182,22 +181,22 @@ public class GameMapCreator {
         int[] validSiblings = new int[4];
         int validSiblingCount = 0;
         if (isInBound(x, y + 1) && usedBlockMap.containsKey(getBlockId(x, y + 1)))
-            if (usedBlockMap.get(getBlockId(x, y + 1)).type == MAIN_ROAD &&
+            if (usedBlockMap.get(getBlockId(x, y + 1)).type == BlockType.MAIN_ROAD &&
                     bridgeSet.contains(getBridgeId(blockId, UP))) {
                 validSiblings[validSiblingCount ++] = getBlockId(x, y + 1);
             }
         if (isInBound(x + 1, y) && usedBlockMap.containsKey(getBlockId(x + 1, y)))
-            if (usedBlockMap.get(getBlockId(x + 1, y)).type == MAIN_ROAD &&
+            if (usedBlockMap.get(getBlockId(x + 1, y)).type == BlockType.MAIN_ROAD &&
                 bridgeSet.contains(getBridgeId(blockId, RIGHT))) {
                 validSiblings[validSiblingCount ++] = getBlockId(x + 1, y);
             }
         if (isInBound(x, y - 1) && usedBlockMap.containsKey(getBlockId(x, y - 1)))
-            if (usedBlockMap.get(getBlockId(x, y - 1)).type == MAIN_ROAD &&
+            if (usedBlockMap.get(getBlockId(x, y - 1)).type == BlockType.MAIN_ROAD &&
                 bridgeSet.contains(getBridgeId(blockId, DOWN))) {
                 validSiblings[validSiblingCount ++] = getBlockId(x, y - 1);
             }
         if (isInBound(x - 1, y) && usedBlockMap.containsKey(getBlockId(x - 1, y)))
-            if (usedBlockMap.get(getBlockId(x - 1, y)).type == MAIN_ROAD &&
+            if (usedBlockMap.get(getBlockId(x - 1, y)).type == BlockType.MAIN_ROAD &&
                 bridgeSet.contains(getBridgeId(blockId, LEFT))) {
                 validSiblings[validSiblingCount ++] = getBlockId(x - 1, y);
             }
@@ -258,7 +257,7 @@ public class GameMapCreator {
             if (isBridgeExist(blockId, UP))
                 aroundBlock = usedBlockMap.get(getBlockId(getX(blockId), getY(blockId) + 1));
         }
-        if (aroundBlock != null && aroundBlock.type == Constant.MapBlockType.MAIN_ROAD) {
+        if (aroundBlock != null && aroundBlock.type == BlockType.MAIN_ROAD) {
             return aroundBlock;
         }
         return null;
@@ -271,12 +270,12 @@ public class GameMapCreator {
     }
 
     protected void addBranch(Block block) {
-        block.type = BRANCH;
+        block.type = BlockType.BRANCH;
         usedBlockMap.put(block.blockId, block);
         unusedBlockSet.remove(block.blockId);
     }
 
-    protected void addBlock(int blockId, int fromBlockId, byte type) {
+    protected void addBlock(int blockId, int fromBlockId, BlockType type) {
         if (usedBlockMap.containsKey(blockId)) return;
 
         Block block = new Block(new Point2D(getX(blockId), getY(blockId)), blockId, type);
@@ -298,7 +297,7 @@ public class GameMapCreator {
         unusedBlockSet.remove(blockId);
 
         try {
-            if (type == Constant.MapBlockType.MAIN_ROAD) {
+            if (type == BlockType.MAIN_ROAD) {
                 //Thread.sleep(30);
                 //printTerrainBlocks();
             }
@@ -348,7 +347,7 @@ public class GameMapCreator {
         List<Branch> branchList = new LinkedList<>();
         Set<Block> branchBlocks = new HashSet<>();
         for (Block block: usedBlockMap.values()) {
-            if (block.type == BRANCH) {
+            if (block.type == BlockType.BRANCH) {
                 branchBlocks.add(block);
             }
         }
@@ -356,21 +355,21 @@ public class GameMapCreator {
         while (branchBlocks.size() > 0) {
             Block block = branchBlocks.iterator().next();
             Block previous = block.previous;
-            while(previous != null && previous.type == BRANCH) {
+            while(previous != null && previous.type == BlockType.BRANCH) {
                 block = previous;
                 previous = block.previous;
             }
 
             Branch branch = new Branch(getBranchHeadTail(block, true));
-            while(block != null && block.type == BRANCH) {
+            while(block != null && block.type == BlockType.BRANCH) {
                 branch.addBlock(block);
                 branchBlocks.remove(block);
                 previous = block;
                 block = block.next;
             }
             branch.tail = getBranchHeadTail(previous, false);
-            if (branch.head == branch.tail || branch.head == null || branch.head.type != MAIN_ROAD ||
-                    branch.tail == null || branch.tail.type != MAIN_ROAD) {
+            if (branch.head == branch.tail || branch.head == null || branch.head.type != BlockType.MAIN_ROAD ||
+                    branch.tail == null || branch.tail.type != BlockType.MAIN_ROAD) {
                 for (Block branchBlock: branch.blockList) {
                     removeBlock(branchBlock, false);
                 }
@@ -391,7 +390,7 @@ public class GameMapCreator {
         List<Branch> addBranchList = new LinkedList<>();
         for (Branch branch: branchList) {
             // 之前的交互可能让后面的分支无效, 需要删除无效的分支
-            if (branch.head.type == BRANCH || branch.tail.type == BRANCH) {
+            if (branch.head.type == BlockType.BRANCH || branch.tail.type == BlockType.BRANCH) {
                 for (Block block: branch.blockList) {
                     removeBlock(block, false);
                 }
@@ -409,7 +408,7 @@ public class GameMapCreator {
 
         for (Branch branch: branchList) {
             // 之前的交互可能让后面的分支无效, 需要删除无效的分支
-            if (branch.head.type == BRANCH || branch.tail.type == BRANCH) {
+            if (branch.head.type == BlockType.BRANCH || branch.tail.type == BlockType.BRANCH) {
                 for (Block block: branch.blockList) {
                     removeBlock(block, false);
                 }
@@ -454,7 +453,7 @@ public class GameMapCreator {
         removeBranchList = new LinkedList<>();
         for (Branch branch: shortcutList) {
             // 之前的交互可能让后面的分支无效, 需要删除无效的分支
-            if (branch.head.type != MAIN_ROAD || branch.tail.type != MAIN_ROAD) {
+            if (branch.head.type != BlockType.MAIN_ROAD || branch.tail.type != BlockType.MAIN_ROAD) {
                 for (Block block: branch.blockList) {
                     removeBlock(block, false);
                 }
@@ -468,7 +467,7 @@ public class GameMapCreator {
 
         for(Branch branch: branchList) {
             for(Block block: branch.blockList) {
-                block.type = SHORTCUT;
+                block.type = BlockType.SHORTCUT;
             }
             System.out.println(branch);
             shortcutList.add(branch);
@@ -491,7 +490,7 @@ public class GameMapCreator {
         Block currentBlock = branchHead;
         Block previousBlock = branch.head;
         while (currentBlock != branch.tail) {
-            currentBlock.type = BRANCH;
+            currentBlock.type = BlockType.BRANCH;
             trueBranch.addBlock(currentBlock);
             previousBlock = currentBlock;
             currentBlock = currentBlock.next;
@@ -511,7 +510,7 @@ public class GameMapCreator {
         currentBlock = trueBranch.tail.previous;
         while(currentBlock != null) {
             currentBlock.distanceToFinish = currentBlock.next.distanceToFinish + 1;
-            if (currentBlock.type != MAIN_ROAD) currentBlock.type = MAIN_ROAD;
+            if (currentBlock.type != BlockType.MAIN_ROAD) currentBlock.type = BlockType.MAIN_ROAD;
             currentBlock = currentBlock.previous;
         }
 
@@ -520,7 +519,7 @@ public class GameMapCreator {
     }
 
     private Block getBranchHeadTail(Block block, boolean getHead) {
-        if (block.type != BRANCH) return null;
+        if (block.type != BlockType.BRANCH) return null;
 
         Block headOrTail = null;
         Block[] roadBlocks = getRoadSibling(block.blockId);
@@ -633,6 +632,10 @@ public class GameMapCreator {
         return boundX * (bridgeWidth + 1) * y + x + 1;
     }
 
+    protected int getBlockIdWithBorder(int x, int y, int bridgeWidth) {
+        return (boundX * (bridgeWidth + 1) + bridgeWidth) * y + x + 1;
+    }
+
     protected int getBlockIdByDirection(int blockId, int direction, int distance) {
         if (direction == RIGHT) {
             return getBlockId(getX(blockId) + distance, getY(blockId));
@@ -674,7 +677,7 @@ public class GameMapCreator {
     }
 
     public GameMap expand(int bridgeWidth) {
-        GameMap gameMap = new GameMap(boundX * (bridgeWidth + 1), boundY * (bridgeWidth + 1));
+        GameMap gameMap = new GameMap(boundX * (bridgeWidth + 1), boundY * (bridgeWidth + 1), bridgeWidth);
         Branch mainRoad = new Branch(null);
 
         Block currentBlock = usedBlockMap.get(start);
@@ -685,8 +688,7 @@ public class GameMapCreator {
 
             Block from;
             if (mainRoad.blockList.size() == 0) {
-                from = gameMap.addBlock(getBlockId(x, y, bridgeWidth), currentBlock.type,
-                        Constant.TerrainType.ROAD, (byte)0);
+                from = gameMap.addBlock(getBlockId(x, y, bridgeWidth), currentBlock.type, TerrainType.PAVEMENT);
                 mainRoad.blockList.add(from);
             } else {
                 from = mainRoad.blockList.get(mainRoad.blockList.size() - 1);
@@ -694,14 +696,14 @@ public class GameMapCreator {
             if (next != null) {
                 int nextX = next.position.x * (bridgeWidth + 1);
                 int nextY = next.position.y * (bridgeWidth + 1);
-                Block to = gameMap.addBlock(getBlockId(nextX, nextY, bridgeWidth), currentBlock.type,
-                        Constant.TerrainType.ROAD, (byte)0);
+                Block to = gameMap.addBlock(getBlockId(nextX, nextY, bridgeWidth), currentBlock.type, TerrainType.PAVEMENT);
 
                 Block[] sequence = new Block[bridgeWidth + 2];
                 sequence[0] = from;
                 for (int i = 1; i <= bridgeWidth; i ++) {
                     int bridgeBlockId = getBridgeBlockId(from, to, i, bridgeWidth);
-                    Block bridge = gameMap.addBlock(bridgeBlockId, MAIN_ROAD, Constant.TerrainType.ROAD, (byte)0);
+                    Block bridge = gameMap.addBlock(
+                            bridgeBlockId, BlockType.MAIN_ROAD, TerrainType.PAVEMENT);
                     if (bridge != null) mainRoad.blockList.add(bridge);
                     sequence[i] = bridge;
                 }
@@ -716,17 +718,24 @@ public class GameMapCreator {
 
         List<Branch> newShortcutList = new LinkedList<>();
         for (Branch shortcut: this.shortcutList) {
-            int newHeadBlockId = getBlockId(shortcut.head.position.x * 4, shortcut.head.position.y * 4, bridgeWidth);
-            int newTailBlockId = getBlockId(shortcut.tail.position.x * 4, shortcut.tail.position.y * 4, bridgeWidth);
-            Block newHeadBlock = gameMap.addBlock(newHeadBlockId, MAIN_ROAD, Constant.TerrainType.ROAD, (byte)0);
-            Block newTailBlock = gameMap.addBlock(newTailBlockId, MAIN_ROAD, Constant.TerrainType.ROAD, (byte)0);
+            int newHeadBlockId = getBlockId(
+                    shortcut.head.position.x * (bridgeWidth + 1),
+                    shortcut.head.position.y * (bridgeWidth + 1), bridgeWidth);
+            int newTailBlockId = getBlockId(
+                    shortcut.tail.position.x * (bridgeWidth + 1),
+                    shortcut.tail.position.y * (bridgeWidth + 1), bridgeWidth);
+            Block newHeadBlock = gameMap.addBlock(
+                    newHeadBlockId, BlockType.MAIN_ROAD, TerrainType.PAVEMENT);
+            Block newTailBlock = gameMap.addBlock(
+                    newTailBlockId, BlockType.MAIN_ROAD, TerrainType.PAVEMENT);
             Branch expandedShortcut = new Branch(newHeadBlock, newTailBlock);
 
             if (shortcut.blockList.size() == 0) {
                 Block[] sequence = new Block[bridgeWidth];
                 for (int i = 1; i <= bridgeWidth; i ++) {
                     int bridgeBlockId = getBridgeBlockId(newHeadBlock, newTailBlock, i, bridgeWidth);
-                    Block bridge = gameMap.addBlock(bridgeBlockId, SHORTCUT, Constant.TerrainType.ROAD, (byte)0);
+                    Block bridge = gameMap.addBlock(
+                            bridgeBlockId, BlockType.SHORTCUT, TerrainType.PAVEMENT);
                     if (bridge != null) expandedShortcut.blockList.add(bridge);
                     sequence[i - 1] = bridge;
                 }
@@ -742,8 +751,8 @@ public class GameMapCreator {
 
                     Block from;
                     if (expandedShortcut.blockList.size() == 0) {
-                        from = gameMap.addBlock(getBlockId(x, y, bridgeWidth), currentBlock.type,
-                                Constant.TerrainType.ROAD, (byte)0);
+                        from = gameMap.addBlock(
+                                getBlockId(x, y, bridgeWidth), currentBlock.type, TerrainType.PAVEMENT);
                     } else {
                         from = expandedShortcut.blockList.get(expandedShortcut.blockList.size() - 1);
                     }
@@ -751,8 +760,7 @@ public class GameMapCreator {
                         int nextX = next.position.x * (bridgeWidth + 1);
                         int nextY = next.position.y * (bridgeWidth + 1);
                         Block to = gameMap.addBlock(
-                                getBlockId(nextX, nextY, bridgeWidth), currentBlock.type,
-                                Constant.TerrainType.ROAD, (byte)0);
+                                getBlockId(nextX, nextY, bridgeWidth), currentBlock.type, TerrainType.PAVEMENT);
 
                         Block[] sequence;
                         int sequenceId = 0;
@@ -770,8 +778,135 @@ public class GameMapCreator {
 
                         for (int i = 1; i <= bridgeWidth; i ++) {
                             int bridgeBlockId = getBridgeBlockId(from, to, i, bridgeWidth);
-                            Block bridge = gameMap.addBlock(bridgeBlockId, SHORTCUT,
-                                    Constant.TerrainType.ROAD, (byte)0);
+                            Block bridge = gameMap.addBlock(bridgeBlockId, BlockType.SHORTCUT, TerrainType.PAVEMENT);
+                            if (bridge != null) expandedShortcut.blockList.add(bridge);
+                            sequence[sequenceId ++] = bridge;
+                        }
+
+                        if (next != shortcut.tail) sequence[sequenceId ++] = to;
+                        setSequence(sequence);
+                        if (to.blockId != shortcut.tail.blockId) expandedShortcut.blockList.add(to);
+                    }
+
+                    if (next == shortcut.tail) currentBlock = null;
+                    else currentBlock = next;
+
+                    if (next != null && next != shortcut.tail) {
+                        if (next.next == null) next = shortcut.tail;
+                        else next = next.next;
+                    }
+                }
+            }
+
+            newShortcutList.add(expandedShortcut);
+        }
+        gameMap.setMainroad(mainRoad);
+        gameMap.setShortcutList(newShortcutList);
+        return gameMap;
+    }
+
+    public GameMap expandWithBorder(int bridgeWidth) {
+        GameMap gameMap = new GameMap(
+                boundX * (bridgeWidth + 1) + bridgeWidth, boundY * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
+        Branch mainRoad = new Branch(null);
+
+        Block currentBlock = usedBlockMap.get(start);
+        Block next = currentBlock.next;
+        while (currentBlock != null) {
+            int x = currentBlock.position.x * (bridgeWidth + 1) + bridgeWidth;
+            int y = currentBlock.position.y * (bridgeWidth + 1) + bridgeWidth;
+
+            Block from;
+            if (mainRoad.blockList.size() == 0) {
+                from = gameMap.addBlock(getBlockIdWithBorder(x, y, bridgeWidth), currentBlock.type, TerrainType.PAVEMENT);
+                mainRoad.blockList.add(from);
+            } else {
+                from = mainRoad.blockList.get(mainRoad.blockList.size() - 1);
+            }
+            if (next != null) {
+                int nextX = next.position.x * (bridgeWidth + 1) + bridgeWidth;
+                int nextY = next.position.y * (bridgeWidth + 1) + bridgeWidth;
+                Block to = gameMap.addBlock(getBlockIdWithBorder(nextX, nextY, bridgeWidth), currentBlock.type,
+                        TerrainType.PAVEMENT);
+
+                Block[] sequence = new Block[bridgeWidth + 2];
+                sequence[0] = from;
+                for (int i = 1; i <= bridgeWidth; i ++) {
+                    int bridgeBlockId = getBridgeBlockIdWithBorder(from, to, i, bridgeWidth);
+                    Block bridge = gameMap.addBlock(bridgeBlockId, BlockType.MAIN_ROAD, TerrainType.PAVEMENT);
+                    if (bridge != null) mainRoad.blockList.add(bridge);
+                    sequence[i] = bridge;
+                }
+                sequence[bridgeWidth + 1] = to;
+
+                setSequence(sequence);
+                mainRoad.blockList.add(to);
+            }
+            currentBlock = next;
+            if (next != null) next = next.next;
+        }
+
+        List<Branch> newShortcutList = new LinkedList<>();
+        for (Branch shortcut: this.shortcutList) {
+            int newHeadBlockId = getBlockIdWithBorder(
+                    shortcut.head.position.x * (bridgeWidth + 1) + bridgeWidth,
+                    shortcut.head.position.y * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
+            int newTailBlockId = getBlockIdWithBorder(
+                    shortcut.tail.position.x * (bridgeWidth + 1) + bridgeWidth,
+                    shortcut.tail.position.y * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
+            Block newHeadBlock = gameMap.addBlock(newHeadBlockId, BlockType.MAIN_ROAD, TerrainType.PAVEMENT);
+            Block newTailBlock = gameMap.addBlock(newTailBlockId, BlockType.MAIN_ROAD, TerrainType.PAVEMENT);
+            Branch expandedShortcut = new Branch(newHeadBlock, newTailBlock);
+
+            if (shortcut.blockList.size() == 0) {
+                Block[] sequence = new Block[bridgeWidth];
+                for (int i = 1; i <= bridgeWidth; i ++) {
+                    int bridgeBlockId = getBridgeBlockIdWithBorder(newHeadBlock, newTailBlock, i, bridgeWidth);
+                    Block bridge = gameMap.addBlock(bridgeBlockId, BlockType.SHORTCUT, TerrainType.PAVEMENT);
+                    if (bridge != null) expandedShortcut.blockList.add(bridge);
+                    sequence[i - 1] = bridge;
+                }
+                setSequence(sequence);
+            } else {
+                //currentBlock = shortcut.blockList.get(0);
+                //next = currentBlock.next;
+                currentBlock = shortcut.head;
+                next = shortcut.blockList.get(0);
+                while (currentBlock != null) {
+                    int x = currentBlock.position.x * (bridgeWidth + 1) + bridgeWidth;
+                    int y = currentBlock.position.y * (bridgeWidth + 1) + bridgeWidth;
+
+                    Block from;
+                    if (expandedShortcut.blockList.size() == 0) {
+                        from = gameMap.addBlock(getBlockIdWithBorder(x, y, bridgeWidth), BlockType.SHORTCUT,
+                                TerrainType.PAVEMENT);
+                    } else {
+                        from = expandedShortcut.blockList.get(expandedShortcut.blockList.size() - 1);
+                    }
+                    if (next != null) {
+                        int nextX = next.position.x * (bridgeWidth + 1) + bridgeWidth;
+                        int nextY = next.position.y * (bridgeWidth + 1) + bridgeWidth;
+                        Block to = gameMap.addBlock(
+                                getBlockIdWithBorder(nextX, nextY, bridgeWidth), BlockType.SHORTCUT,
+                                TerrainType.PAVEMENT);
+
+                        Block[] sequence;
+                        int sequenceId = 0;
+                        if (currentBlock == shortcut.head && next == shortcut.tail) {
+                            sequence = new Block[bridgeWidth];
+                        } else if (currentBlock == shortcut.head) {
+                            sequence = new Block[bridgeWidth + 1];
+                        } else if (next == shortcut.tail) {
+                            sequence = new Block[bridgeWidth + 1];
+                            sequence[sequenceId ++] = from;
+                        } else {
+                            sequence = new Block[bridgeWidth + 2];
+                            sequence[sequenceId ++] = from;
+                        }
+
+                        for (int i = 1; i <= bridgeWidth; i ++) {
+                            int bridgeBlockId = getBridgeBlockIdWithBorder(from, to, i, bridgeWidth);
+                            Block bridge = gameMap.addBlock(bridgeBlockId, BlockType.SHORTCUT, TerrainType.PAVEMENT);
                             if (bridge != null) expandedShortcut.blockList.add(bridge);
                             sequence[sequenceId ++] = bridge;
                         }
@@ -820,6 +955,20 @@ public class GameMapCreator {
         return -1;
     }
 
+    private int getBridgeBlockIdWithBorder(Block from, Block to, int bridgeNo, int bridgeWidth) {
+        if (from == null || to == null) throw new RuntimeException("from or to should not be null");
+        else if (to.position.x > from.position.x) {
+            return getBlockIdWithBorder(from.position.x + bridgeNo, from.position.y, bridgeWidth);
+        } else if (to.position.x < from.position.x) {
+            return getBlockIdWithBorder(from.position.x - bridgeNo, from.position.y, bridgeWidth);
+        } else if (to.position.y > from.position.y) {
+            return getBlockIdWithBorder(from.position.x, from.position.y + bridgeNo, bridgeWidth);
+        } else if (to.position.y < from.position.y)  {
+            return getBlockIdWithBorder(from.position.x, from.position.y - bridgeNo, bridgeWidth);
+        }
+        return -1;
+    }
+
     public void printTerrainBlocks(int bridgeWidth) {
         int printBoundX = boundX * bridgeWidth - 1;
         int printBoundY = boundY * bridgeWidth - 1;
@@ -834,10 +983,9 @@ public class GameMapCreator {
             int x = block.position.x * bridgeWidth;
             int y = block.position.y * bridgeWidth;
 
-            if (block.type == Constant.MapBlockType.MAIN_ROAD) terrainBytes[x][y] = 'M';
-            else if (block.type == BLOCK_AREA) terrainBytes[x][y] = 'X';
-            else if (block.type == Constant.MapBlockType.BRANCH) terrainBytes[x][y] = 'A';
-            else if (block.type == Constant.MapBlockType.SHORTCUT) terrainBytes[x][y] = 'Y';
+            if (block.type == BlockType.MAIN_ROAD) terrainBytes[x][y] = 'M';
+            else if (block.type == BlockType.BRANCH) terrainBytes[x][y] = 'A';
+            else if (block.type == BlockType.SHORTCUT) terrainBytes[x][y] = 'Y';
             else terrainBytes[x][y] = ' ';
 
             char brightChar = '*';

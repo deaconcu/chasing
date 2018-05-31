@@ -66,51 +66,11 @@ public class Constant {
         public static byte FALSE = 2;
     }
 
-    public static class MapBlockType {
-        public static byte WALL = 0;
-        public static byte BLOCK_AREA = 1;
-        public static byte MAIN_ROAD = 2;
-        public static byte SHORTCUT = 3;
-        public static byte BRANCH = 4;
-    }
-
     public static class Direction {
         public static byte RIGHT = 0;
         public static byte DOWN = 1;
         public static byte LEFT = 2;
         public static byte UP = 3;
-    }
-
-    public static class TerrainType {
-        public static byte ANIMAL = 1;
-        public static byte BLANK = 2;
-        public static byte BUILDING = 3;
-        public static byte FOG = 4;
-        public static byte FOREST = 5;
-        public static byte GRASS = 6;
-        public static byte LAVA = 7;
-        public static byte RAIN = 8;
-        public static byte ROAD = 9;
-        public static byte ROCK = 10;
-        public static byte SAND = 11;
-        public static byte SNOW = 12;
-        public static byte SWAMP = 13;
-        public static byte VEGETABLE = 14;
-        public static byte VIEW = 15;
-        public static byte WATER = 16;
-        public static byte WHEAT = 17;
-        public static byte WILDWIND = 18;
-        public static byte WIND = 19;
-        public static byte UPLAND = 20;
-    }
-
-    public static class BuildingType {
-        public static byte WAREHOUSE = 1;
-        public static byte STORE = 2;
-        public static byte TALL_TREE = 3;
-        public static byte GRAVEYARD = 4;
-        public static byte WELL = 5;
-        public static byte JACKSTRAW = 6;
     }
 
 }
