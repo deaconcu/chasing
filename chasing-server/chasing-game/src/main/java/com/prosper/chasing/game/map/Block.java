@@ -12,11 +12,17 @@ public class Block {
 
     public int blockId;
 
-    public BlockType type; // 0:wall 1:block area 2: road
+    public BlockType type;
+
+    public short groupId;
 
     public TerrainType terrainType;
 
     public int distanceToFinish;
+
+    public int distanceAwayFromRoad;  // 如果block类型为道路扩展，该值表示block距离道路中心的距离，否则为-1
+
+    public int distanceAwayFromRoadCrossPoint;  // 如果block类型为道路，该值表示block距离道路转折点的距离，否则为-1
 
     public Block previous;
 
@@ -37,10 +43,25 @@ public class Block {
         this(position, blockId, type);
         this.terrainType = terrainType;
         this.roadDirection = roadDirection;
+        this.distanceAwayFromRoadCrossPoint = -1;
+        this.distanceAwayFromRoad = -1;
     }
 
     public int getBlockId() {
         return blockId;
+    }
+
+    public byte[] getBlockBytes() {
+        if (distanceAwayFromRoad > 14) throw new RuntimeException("distance exceed limit");
+        if (distanceAwayFromRoadCrossPoint > 14) throw new RuntimeException("distance exceed limit");
+
+        byte blockInfo = (byte)(((distanceAwayFromRoad + 1) << 4) | (distanceAwayFromRoadCrossPoint + 1));
+        if (type == BlockType.MOUNTAIN_L1 || type == BlockType.MOUNTAIN_L2 ||
+                type == BlockType.MOUNTAIN_L3 || type == BlockType.SEA_L1 || type == BlockType.SEA_L2) {
+            return new byte[]{type.getValue()};
+        } else {
+            return new byte[]{type.getValue(), blockInfo, (byte) (groupId >> 8), (byte)groupId};
+        }
     }
 
     @Override

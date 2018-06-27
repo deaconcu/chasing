@@ -47,8 +47,8 @@ public class Enums {
         UPLAND(20),
         WALL(21),
         MOUNTAIN_L1(22),
-        MOUNTAIN_L2(22),
-        MOUNTAIN_L3(23);
+        MOUNTAIN_L2(23),
+        MOUNTAIN_L3(24);
 
         private int value;
 
@@ -89,32 +89,15 @@ public class Enums {
     }
 
     public enum BlockType {
-        WALL(1),
-        OBSTACLE(2),
-        MAIN_ROAD(3),
-        SHORTCUT(4),
-        BRANCH(5),
-        SLASH_ROAD_MOUNTAIN_L1(6),
-        SLASH_MOUNTAIN_L1_ROAD(7),
-        BACKSLASH_ROAD_MOUNTAIN_L1(8),
-        BACKSLASH_MOUNTAIN_L1_ROAD(9),
-        SLASH_MOUNTAIN_L2_MOUNTAIN_L1(10),
-        SLASH_MOUNTAIN_L1_MOUNTAIN_L2(11),
-        BACKSLASH_MOUNTAIN_L2_MOUNTAIN_L1(12),
-        BACKSLASH_MOUNTAIN_L1_MOUNTAIN_L2(13),
-        SLASH_MOUNTAIN_L2_MOUNTAIN_L3(14),
-        SLASH_MOUNTAIN_L3_MOUNTAIN_L2(15),
-        BACKSLASH_MOUNTAIN_L2_MOUNTAIN_L3(16),
-        BACKSLASH_MOUNTAIN_L3_MOUNTAIN_L2(17),
-        TRANSITION(18),
-        MOUNTAIN_L2(19),
-        MOUNTAIN_L4(20),
-        MOUNTAIN_L6(21),
-        PAVEMENT(22),
-        SLOPE(23),
-        MOUNTAIN_L1(24),
-        MOUNTAIN_L3(25),
-        MOUNTAIN_L5(26);
+        ARTERY(1),
+        SHORTCUT(2),
+        BRANCH(3),
+        ROAD_EXTENSION(4),
+        MOUNTAIN_L1(5),
+        MOUNTAIN_L2(6),
+        MOUNTAIN_L3(7),
+        SEA_L1(8),
+        SEA_L2(9);
 
         private int value;
 

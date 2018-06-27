@@ -18,7 +18,7 @@ public class MapCreator {
     @PostConstruct
     public void createMap() {
         MarathonGameMapCreator marathonGameMapCreator = new MarathonGameMapCreator();
-        GameMap gameMap = marathonGameMapCreator.generate(20, 20);
+        GameMap gameMap = marathonGameMapCreator.generate(20, 20, 9);
 
         gameMaps.put("marathon", gameMap);
     }

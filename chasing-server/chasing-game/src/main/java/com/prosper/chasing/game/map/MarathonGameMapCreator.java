@@ -14,6 +14,8 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class MarathonGameMapCreator {
 
+
+
     /**
      * 主路上需要增加的地形长度比例
      */
@@ -219,39 +221,90 @@ public class MarathonGameMapCreator {
             this(terrainType, locateTypes, minLength, maxLength, speedRate, addOn);
             this.resourceOdds = resourceOdds;
         }
-
     }
 
-    /**
-     * 给主路随机增加地形
-     * 1.增加的长度不超过总长度的30%
-     * 2.允许在主路上的地形随机分布，长度为最小长度和最大长度的随机值
-     * 3.特殊地形之间有随机距离，长度为平均间隔距离的一半到1.5倍之间的随机值
-     */
-    public void generateTerrainForMainRoad(Branch mainRoad) {
-        int specialSegTotalLen = (int) (mainRoad.blockList.size() * ROAD_EXTEND_PERCENT);
+    public GameMap generate(int boundX, int boundY, int bridgeWidth) {
+        GameMapCreator gameMapCreator = new GameMapCreator(boundX, boundY);
 
-        List<TerrainConfig> validTerrainConfig = new ArrayList<>();
-        for (TerrainConfig terrainConfig: terrainConfigMap.values()) {
-            for (LocateType locateType: terrainConfig.locateTypes) {
-                if (locateType == LocateType.ROAD) {
-                    validTerrainConfig.add(terrainConfig);
-                    continue;
-                }
+        int startBlockId = gameMapCreator.getBlockId(1, 1);
+        int endBlockId = gameMapCreator.getBlockId(boundX - 2, boundY - 2);
+
+        gameMapCreator.start = startBlockId;
+        gameMapCreator.end = endBlockId;
+
+        int length = 0;
+        while (length < 10) {
+            gameMapCreator.clear();
+            gameMapCreator.fillWithRandomRoads();
+            gameMapCreator.removeBrand(startBlockId, endBlockId);
+
+            length = gameMapCreator.countLength(startBlockId, endBlockId);
+            System.out.println("path length: " + length);
+        }
+
+        gameMapCreator.generateSingleRouteInfo(startBlockId, endBlockId);
+        gameMapCreator.printTerrainBlocks(3);
+
+        int mergeCount = 50;
+        for (int count = 0; count < mergeCount; count ++) {
+            GameMapCreator gameMapCreatorForMerge = new GameMapCreator(boundX, boundY);
+
+            length = 0;
+            while (length < 10) {
+                gameMapCreatorForMerge.clear();
+                gameMapCreatorForMerge.fillWithRandomRoads();
+                gameMapCreatorForMerge.removeBrand(startBlockId, endBlockId);
+
+                length = gameMapCreatorForMerge.countLength(startBlockId, endBlockId);
+                System.out.println("path length: " + length);
+            }
+
+            gameMapCreatorForMerge.generateSingleRouteInfo(startBlockId, endBlockId);
+            gameMapCreator.merge(gameMapCreatorForMerge);
+        }
+        gameMapCreator.printTerrainBlocks(3);
+
+        GameMap gameMap = gameMapCreator.expandWithBorder(bridgeWidth);
+        for (Block block: gameMap.occupiedBlockMap.values()) {
+            block.groupId = gameMap.ROAD_GROUP_ID;
+        }
+        gameMap.printMap();
+        gameMap.printGroupId();
+
+        generateTerrainForMainRoad(gameMap);
+        generateTerrainForShortcuts(gameMap);
+
+        twistMap(gameMap, 2);
+        gameMap.printMap();
+        gameMap.printGroupId();
+
+        expandRoad(gameMap, 3);
+        gameMap.printMap();
+        //gameMap.printGroupId();
+        //gameMap.printDistances();
+        System.out.println(gameMap.TerrainTypeMapOfGroup);
+
+        for (int i = 1; i <= gameMap.boundX * gameMap.boundY; i ++) {
+            Block block = gameMap.occupiedBlockMap.get(i);
+;            byte[] bytes = block.getBlockBytes();
+            for (byte byteValue: bytes) {
+                System.out.print(byteValue & 0xFF);
+                System.out.print(",");
+            }
+
+            if (i % 100 == 0) {
+                System.out.print("\n");
             }
         }
+        System.out.print("\n");
 
-        Map<TerrainType, Integer> specialSegmentMap = new HashMap<>();
-        while (specialSegTotalLen > 0) {
-            TerrainConfig terrainConfig = validTerrainConfig.get(
-                    ThreadLocalRandom.current().nextInt(validTerrainConfig.size()));
-            int specialSegLen = ThreadLocalRandom.current().nextInt(
-                    terrainConfig.minLength, terrainConfig.maxLength + 1);
-            specialSegmentMap.put(terrainConfig.terrainType, specialSegLen);
-            specialSegTotalLen -= specialSegLen;
+        for (short i = 1; i <= gameMap.TerrainTypeMapOfGroup.size(); i ++) {
+            System.out.print(gameMap.TerrainTypeMapOfGroup.get(i).getValue());
+            System.out.print(",");
         }
+        System.out.print("\n");
 
-        setBranch(specialSegmentMap, mainRoad, mainRoad.blockList.size() - specialSegTotalLen);
+        return gameMap;
     }
 
     /**
@@ -260,11 +313,13 @@ public class MarathonGameMapCreator {
      * 2.允许在主路上的地形随机分布，长度为最小长度和最大长度的随机值
      * 3.特殊地形之间有随机距离，长度为平均间隔距离的一半到1.5倍之间的随机值
      */
-    public void generateTerrainForMainRoadV2(GameMap gameMap) {
+    public void generateTerrainForMainRoad(GameMap gameMap) {
+        // 计算特殊路段长度
         Branch mainRoad = gameMap.mainRoad;
-        int specialSegTotalLen = (int) (mainRoad.blockList.size() * ROAD_EXTEND_PERCENT / 8);
+        int specialSegTotalLen = (int) (mainRoad.blockList.size() * ROAD_EXTEND_PERCENT / gameMap.bridgeWidth);
         System.out.println("special terrain: " + specialSegTotalLen);
 
+        // 获取有效的特殊路段列表
         List<TerrainConfig> validTerrainConfig = new ArrayList<>();
         for (TerrainConfig terrainConfig: terrainConfigMap.values()) {
             for (LocateType locateType: terrainConfig.locateTypes) {
@@ -275,6 +330,7 @@ public class MarathonGameMapCreator {
             }
         }
 
+        // 生成随机的特殊路段列表
         List<Pair<TerrainType, Integer>> specialSegmentList = new LinkedList<>();
         while (specialSegTotalLen > 0) {
             TerrainConfig terrainConfig = validTerrainConfig.get(
@@ -285,7 +341,8 @@ public class MarathonGameMapCreator {
             specialSegTotalLen -= specialSegLen;
         }
 
-        int normalSegTotalLen = (int) (mainRoad.blockList.size() * (1 - ROAD_EXTEND_PERCENT) / 8);
+        int normalSegTotalLen =
+                (int) (mainRoad.blockList.size() * (1 - ROAD_EXTEND_PERCENT) / (gameMap.bridgeWidth + 1));
         System.out.println("special terrain map: " + specialSegmentList);
         setBranchV2(gameMap, specialSegmentList, mainRoad, normalSegTotalLen, false);
     }
@@ -349,7 +406,7 @@ public class MarathonGameMapCreator {
 
     private void generateTerrainForShortcut(
             GameMap gameMap, List<TerrainConfig> validTerrainConfigList, Branch branch) {
-        int distance = branch.getShort() / 8;
+        int distance = branch.getShort() / (gameMap.bridgeWidth + 1);
         List<Pair<TerrainType, Integer>> specialSegmentList = new LinkedList<>();
 
         int totalSegmentLength = 0;
@@ -367,7 +424,7 @@ public class MarathonGameMapCreator {
                 if (length + totalSegmentLength > distance) continue;
                 else {
                     if (length >= branch.size()) {
-                        length = branch.size() / 8 - 1;
+                        length = branch.size() / (gameMap.bridgeWidth + 1) - 1;
                     }
                     specialSegmentList.add(new Pair(terrainConfig.terrainType, length));
                     totalSegmentLength += length;
@@ -422,8 +479,7 @@ public class MarathonGameMapCreator {
             return;
         }
 
-        System.out.println("normal terrain:" + normalSegDistance);
-
+        // 生成随机普通路面列表
         int normalSegCount;
         int normalSegTotalLen;
         if (shortcut) {
@@ -445,53 +501,28 @@ public class MarathonGameMapCreator {
                 normalSegmentList.add(leastSegLen + add);
                 normalSegRemain -= add;
             }
-
-
-            /*
-            int normalSegAverageLen = normalSegTotalLen / normalSegCount;
-            int minNormalSegLen = normalSegAverageLen / 2;
-
-            for (int i = 0; i < normalSegCount / 2; i ++) {
-                int length = ThreadLocalRandom.current().nextInt(minNormalSegLen, normalSegAverageLen);
-                normalSegmentList.add(length);
-                normalSegmentList.add(2 * normalSegAverageLen - length);
-            }
-            if (normalSegCount % 2 == 1) {
-                normalSegmentList.add(normalSegAverageLen);
-            }
-            System.out.println("normal terrain: " + normalSegmentList);
-            */
         }
 
+        // 找到第一个生成点
         Block currentBlock = branch.blockList.get(0);
         while (currentBlock != null &&
-                ((currentBlock.position.x + 1) % 8 != 4 && (currentBlock.position.y + 1) % 8 != 4)) {
+                ((currentBlock.position.x + 1) % (gameMap.bridgeWidth + 1) != ((gameMap.bridgeWidth + 1) / 2) &&
+                        (currentBlock.position.y + 1) % (gameMap.bridgeWidth + 1) != ((gameMap.bridgeWidth + 1) / 2))) {
             currentBlock = currentBlock.next;
         }
 
-        int lastTerrain = 0;
         for (Pair<TerrainType, Integer> specialSegment: specialSegmentList) {
-            int count = specialSegment.getY() * 8;
+            int count = specialSegment.getY() * (gameMap.bridgeWidth + 1);
+            if (count <= 0) continue;
+
+            short groupId = gameMap.getNextGroupId();
+            gameMap.TerrainTypeMapOfGroup.put(groupId, specialSegment.getX());
             for (int i = 0; i < count; i ++) {
                 if (currentBlock == null) {
                     break;
                 }
-                if (i == 0 && lastTerrain != 1) {
-                    RoadDirection roadDirection = gameMap.getRoadDirection(
-                            currentBlock.blockId, BlockType.MAIN_ROAD, BlockType.BRANCH.SHORTCUT);
-                    if (roadDirection == RoadDirection.VERTICAL) {
-                        gameMap.addBuilding(BuildingType.GATE, currentBlock.position.x,
-                                currentBlock.position.y, Orientation.NORTH);
-                    } else if (roadDirection == RoadDirection.HORIZONTAL) {
-                        gameMap.addBuilding(BuildingType.GATE, currentBlock.position.x,
-                                currentBlock.position.y, Orientation.WEST);
-                    } else {
-                        throw new RuntimeException("unexpected road direction");
-                    }
-                    lastTerrain = 1;
-                } else {
-                    currentBlock.terrainType = specialSegment.getX();
-                }
+                currentBlock.terrainType = specialSegment.getX();
+                currentBlock.groupId = groupId;
                 currentBlock = currentBlock.next;
             }
             if (currentBlock != null) {
@@ -500,197 +531,79 @@ public class MarathonGameMapCreator {
 
             if (normalSegmentList.size() > 0) {
                 int normalSegmentLenIndex = ThreadLocalRandom.current().nextInt(normalSegmentList.size());
-                for (int i = 0; i < normalSegmentList.get(normalSegmentLenIndex) * 8; i++) {
+                for (int i = 0; i < normalSegmentList.get(normalSegmentLenIndex) * (gameMap.bridgeWidth + 1); i++) {
                     if (currentBlock == null) {
                         break;
-                    }
-                    if (i == 0 && lastTerrain != 0) {
-                        RoadDirection roadDirection = gameMap.getRoadDirection(
-                                currentBlock.blockId, BlockType.MAIN_ROAD, BlockType.BRANCH.SHORTCUT);
-                        if (roadDirection == RoadDirection.VERTICAL) {
-                            gameMap.addBuilding(BuildingType.GATE, currentBlock.position.x,
-                                    currentBlock.position.y, Orientation.NORTH);
-                        } else if (roadDirection == RoadDirection.HORIZONTAL) {
-                            gameMap.addBuilding(BuildingType.GATE, currentBlock.position.x,
-                                    currentBlock.position.y, Orientation.WEST);
-                        } else {
-                            throw new RuntimeException("unexpected road direction");
-                        }
-                        lastTerrain = 0;
                     }
                     currentBlock = currentBlock.next;
                 }
                 if (currentBlock != null) {
-                    System.out.println("normal terrain count: " + normalSegmentList.get(normalSegmentLenIndex) * 8);
+                    System.out.println("normal terrain count: " +
+                            normalSegmentList.get(normalSegmentLenIndex) * (gameMap.bridgeWidth + 1));
                 }
                 normalSegmentList.remove(normalSegmentLenIndex);
             }
         }
-        if (currentBlock != null) {
-            RoadDirection roadDirection = gameMap.getRoadDirection(
-                    currentBlock.blockId, BlockType.MAIN_ROAD, BlockType.BRANCH.SHORTCUT);
-            if (roadDirection == RoadDirection.VERTICAL) {
-                gameMap.addBuilding(BuildingType.GATE, currentBlock.position.x,
-                        currentBlock.position.y, Orientation.NORTH);
-            } else if (roadDirection == RoadDirection.HORIZONTAL) {
-                gameMap.addBuilding(BuildingType.GATE, currentBlock.position.x,
-                        currentBlock.position.y, Orientation.WEST);
-            } else {
-                throw new RuntimeException("unexpected road direction");
-            }
-        }
     }
 
-    public GameMap generate(int boundX, int boundY) {
-        // generate 1
-        //GameMapCreator gameMapCreator = new GameMapCreator(50, 50);
-        GameMapCreator gameMapCreator = new GameMapCreator(boundX, boundY);
-
-        int startBlockId = gameMapCreator.getBlockId(1, 1);
-        int endBlockId = gameMapCreator.getBlockId(boundX - 2, boundY - 2);
-
-        gameMapCreator.start = startBlockId;
-        gameMapCreator.end = endBlockId;
-
-        int length = 0;
-        while (length < 10) {
-            gameMapCreator.clear();
-            gameMapCreator.fillWithRandomRoads();
-            gameMapCreator.removeBrand(startBlockId, endBlockId);
-
-            length = gameMapCreator.countLength(startBlockId, endBlockId);
-            System.out.println("path length: " + length);
-        }
-
-        gameMapCreator.generateSingleRouteInfo(startBlockId, endBlockId);
-        gameMapCreator.printTerrainBlocks(3);
-
-        int mergeCount = 50;
-        for (int count = 0; count < mergeCount; count ++) {
-            GameMapCreator gameMapCreatorForMerge = new GameMapCreator(boundX, boundY);
-
-            length = 0;
-            while (length < 10) {
-                gameMapCreatorForMerge.clear();
-                gameMapCreatorForMerge.fillWithRandomRoads();
-                gameMapCreatorForMerge.removeBrand(startBlockId, endBlockId);
-
-                length = gameMapCreatorForMerge.countLength(startBlockId, endBlockId);
-                System.out.println("path length: " + length);
-            }
-
-            gameMapCreatorForMerge.generateSingleRouteInfo(startBlockId, endBlockId);
-            //gameMapCreatorForMerge.printTerrainBlocks();
-
-            gameMapCreator.merge(gameMapCreatorForMerge);
-        }
-        gameMapCreator.printTerrainBlocks(3);
-
-
-        /*
-        RoadMap gameMap = gameMapCreator.expand(6);
-        gameMap.printMap();
-
-        generateTerrainForMainRoad(gameMap.mainRoad);
-        gameMap.printMap();
-        generateTerrainForShortcuts(gameMap);
-        gameMap.printMap();
-
-        generateResource(gameMap);
-        gameMap.printMap();
-        generateBuildingsV2(gameMap);
-        gameMap.printMap();
-        generateView(gameMap);
-        gameMap.printMap();
-
-        return gameMap;
-        */
-
-        /*
-        RoadMap gameMap = gameMapCreator.expandWithBorder(7);
-        //gameMap.printMap();
-
-        generateWall(gameMap);
-        generateTerrainForMainRoadV2(gameMap);
-        generateTerrainForShortcuts(gameMap);
-        modifyCrossTerrain(gameMap);
-        generateGateWall(gameMap);
-        generateBuildingsV3(gameMap);
-        generateViewV2(gameMap);
-        gameMap.printMap();
-
-        return gameMap;
-        */
-
-        GameMap gameMap = gameMapCreator.expandWithBorder(9);
-        gameMap.printMap();
-
-        twistMap(gameMap, 2);
-        gameMap.printMap();
-
-        expandRoadV2(gameMap);
-        gameMap.printMap();
-
-        for (int i = 1; i <= gameMap.boundX * gameMap.boundY; i ++) {
-            Block block = gameMap.occupiedBlockMap.get(i);
-            System.out.print(block.type.getValue());
-            System.out.print(",");
-            if (i % 100 == 0) {
-                System.out.print("\n");
-            }
-        }
-        System.out.print("\n");
-
-        return gameMap;
-    }
-
-    private void expandRoadV2(GameMap gameMap) {
-        // 扩展道路为基础路线块旁各2个方格
-        Set<Integer> addBlockSet = new HashSet<>();
+    private void expandRoad(GameMap gameMap, int width) {
+        Map<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
         for (int blockId: gameMap.unoccupiedBlockList) {
-            if (gameMap.getBlocksInRangeOfCross(blockId, 2, BlockType.MAIN_ROAD, BlockType.SHORTCUT).size() > 0) {
-                addBlockSet.add(blockId);
+            Pair<Integer, Block> result = gameMap.getNearestBlockOfCross(
+                    blockId, width, BlockType.ARTERY, BlockType.SHORTCUT, BlockType.BRANCH);
+
+            if (result != null) {
+                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().groupId));
             }
+            /*
+            for (Block block: crossBlockList) {
+                if (!addBlockMap.containsKey(blockId) ||
+                        (addBlockMap.get(blockId)[0] == TerrainType.PAVEMENT && block.terrainType != TerrainType.PAVEMENT)) {
+                    addBlockMap.put(blockId, new Object[]{block.terrainType, block.groupId});
+                }
+            }
+            */
         }
 
-        for (int blockId: addBlockSet) {
-            gameMap.addBlock(blockId, BlockType.PAVEMENT, TerrainType.PAVEMENT);
+        for (Map.Entry<Integer, Pair<Integer, Short>> entry: addBlockMap.entrySet()) {
+            gameMap.addBlock(entry.getKey(), BlockType.ROAD_EXTENSION, TerrainType.PAVEMENT, RoadDirection.NONE,
+                    entry.getValue().getY(), entry.getValue().getX(), -1);
         }
 
         // 将三面被道路包围的空白块添加为道路块
-        addSurroundedBlock(gameMap, BlockType.PAVEMENT, TerrainType.PAVEMENT, BlockType.PAVEMENT);
+        addSurroundedBlock(gameMap, BlockType.ROAD_EXTENSION, TerrainType.PAVEMENT, width, BlockType.ROAD_EXTENSION);
         gameMap.printMap();
 
-        // 添加紧邻道路的块为一级山地，宽度为1格
+        // 添加紧邻道路的块为一级山地，宽度为1格或者2格
         List<Integer> blockList = new LinkedList<>();
         for (int blockId: gameMap.unoccupiedBlockList) {
-            if (gameMap.getBlocksInRange(blockId, 1, BlockType.PAVEMENT).size() > 0) {
+            if (gameMap.getBlocksInRange(blockId, 1, BlockType.ROAD_EXTENSION).size() > 0) {
                 blockList.add(blockId);
             }
-            if (gameMap.getBlocksInRangeOfCross(blockId, 2, BlockType.PAVEMENT).size() > 0) {
+            if (gameMap.getBlocksInRangeOfCross(blockId, 2, BlockType.ROAD_EXTENSION).size() > 0) {
                 if (ThreadLocalRandom.current().nextInt(10) < 3) {
                     blockList.add(blockId);
                 }
             }
         }
         for (int blockId: blockList) {
-            gameMap.addBlock(blockId, BlockType.MOUNTAIN_L2, TerrainType.NONE);
+            gameMap.addBlock(blockId, BlockType.MOUNTAIN_L1, TerrainType.NONE, GameMap.MOUNTAIN_LEVEL_1_GROUP_ID);
         }
 
         // 添加紧邻一级山地的块为二级山地，宽度为1格
         blockList.clear();
         for (int blockId: gameMap.unoccupiedBlockList) {
-            if (gameMap.getBlocksInRange(blockId, 1, BlockType.MOUNTAIN_L2).size() > 0) {
+            if (gameMap.getBlocksInRange(blockId, 1, BlockType.MOUNTAIN_L1).size() > 0) {
                 blockList.add(blockId);
             }
-            if (gameMap.getBlocksInRangeOfCross(blockId, 2, BlockType.MOUNTAIN_L2).size() > 0) {
+            if (gameMap.getBlocksInRangeOfCross(blockId, 2, BlockType.MOUNTAIN_L1).size() > 0) {
                 if (ThreadLocalRandom.current().nextInt(10) < 3) {
                     blockList.add(blockId);
                 }
             }
         }
         for (int blockId: blockList) {
-            gameMap.addBlock(blockId, BlockType.MOUNTAIN_L4, TerrainType.NONE);
+            gameMap.addBlock(blockId, BlockType.MOUNTAIN_L2, TerrainType.NONE, GameMap.MOUNTAIN_LEVEL_2_GROUP_ID);
         }
 
         // 添加其余的块为三级山地
@@ -699,153 +612,128 @@ public class MarathonGameMapCreator {
             blockList.add(blockId);
         }
         for (int blockId: blockList) {
-            gameMap.addBlock(blockId, BlockType.MOUNTAIN_L6, TerrainType.NONE);
-        }
-    }
-
-    private void expandRoad(GameMap gameMap) {
-        // 扩展道路
-        Set<Integer> addBlockSet = new HashSet<>();
-        for (int blockId: gameMap.unoccupiedBlockList) {
-            if (gameMap.getBlocksInRangeOfCross(blockId, 2, BlockType.MAIN_ROAD, BlockType.SHORTCUT).size() > 0) {
-                addBlockSet.add(blockId);
-            }
+            gameMap.addBlock(blockId, BlockType.MOUNTAIN_L3, TerrainType.NONE, GameMap.MOUNTAIN_LEVEL_3_GROUP_ID);
         }
 
-        for (int blockId: addBlockSet) {
-            gameMap.addBlock(blockId, BlockType.PAVEMENT, TerrainType.PAVEMENT);
-        }
-
-        // 将三面被道路包围的空白块添加为道路块
-        addSurroundedBlock(gameMap, BlockType.PAVEMENT, TerrainType.PAVEMENT, BlockType.MAIN_ROAD, BlockType.SHORTCUT);
         gameMap.printMap();
 
-        // 添加紧邻道路的块为一级山地
-        List<Integer> blockList = new LinkedList<>();
-        for (int blockId: gameMap.unoccupiedBlockList) {
-            if (gameMap.getBlocksInRange(blockId, 2, BlockType.PAVEMENT).size() > 0) {
-                blockList.add(blockId);
+        // 将边缘的三级山地及周边地块转成海
+        Set<Block> edgeBlockSets = new HashSet<>();
+        for (int i = 0; i < gameMap.boundX; i ++) {
+            if (gameMap.getBlockType(i, 0) == BlockType.MOUNTAIN_L3)
+                edgeBlockSets.add(gameMap.getBlock(i, 0));
+            if (gameMap.getBlockType(i, gameMap.boundY - 1) == BlockType.MOUNTAIN_L3)
+                edgeBlockSets.add(gameMap.getBlock(i, gameMap.boundY - 1));
+            if (gameMap.getBlockType(0, i) == BlockType.MOUNTAIN_L3)
+                edgeBlockSets.add(gameMap.getBlock(0, i));
+            if (gameMap.getBlockType(gameMap.boundX - 1, i) == BlockType.MOUNTAIN_L3)
+                edgeBlockSets.add(gameMap.getBlock(gameMap.boundX - 1, i));
+        }
+
+        for (Block block: edgeBlockSets) {
+            block.type = BlockType.SEA_L2;
+        }
+
+        Set<Block> seaLevel3BlockSets = new HashSet<>();
+        Queue<Block> blockQueue = new LinkedList<>();
+
+        for (Block edgeBlock: edgeBlockSets) {
+            blockQueue.offer(edgeBlock);
+        }
+        Set<Block> executedSet = new HashSet<>();
+        while(blockQueue.size() > 0) {
+            Block block = blockQueue.poll();
+            executedSet.add(block);
+            List<Block> adjacentBlocks = gameMap.getAdjacentInDistance(block.blockId, 1, true, BlockType.MOUNTAIN_L3);
+            for(Block adjacentBlock: adjacentBlocks) {
+                seaLevel3BlockSets.add(adjacentBlock);
+                if (!executedSet.contains(adjacentBlock) && !blockQueue.contains(adjacentBlock)) {
+                    blockQueue.offer(adjacentBlock);
+                }
+                block.type = BlockType.SEA_L2;
             }
         }
-        for (int blockId: blockList) {
-            gameMap.addBlock(blockId, BlockType.MOUNTAIN_L2, TerrainType.NONE);
+
+        Set<Block> aBlockSets = new HashSet<>();
+        for(Block block: gameMap.occupiedBlockMap.values()) {
+            if (block.type == BlockType.MOUNTAIN_L3) {
+                aBlockSets.add(block);
+            }
+        }
+
+        List<Set<Block>> blockSetList = new LinkedList<>();
+        blockQueue.clear();
+        executedSet.clear();
+        while(aBlockSets.size() > 0) {
+            Set<Block> currentBlockSet = new HashSet<>();
+            blockSetList.add(currentBlockSet);
+
+            Block firstBlock = (Block)aBlockSets.toArray()[0];
+
+            blockQueue.add(firstBlock);
+            currentBlockSet.add(firstBlock);
+            aBlockSets.remove(firstBlock);
+
+            while(blockQueue.size() > 0) {
+                Block block = blockQueue.poll();
+                executedSet.add(block);
+                List<Block> adjacentBlocks = gameMap.getAdjacentInDistance(block.blockId, 1, true, BlockType.MOUNTAIN_L3);
+                for (Block adjacentBlock: adjacentBlocks) {
+                    if (!executedSet.contains(adjacentBlock) && !blockQueue.contains(adjacentBlock)) {
+                        blockQueue.offer(adjacentBlock);
+                    }
+                    currentBlockSet.add(adjacentBlock);
+                    aBlockSets.remove(adjacentBlock);
+                }
+            }
+        }
+
+        for (Set<Block> blockSet: blockSetList) {
+            if (blockSet.size() > 150) {
+                for (Block block: blockSet) {
+                    seaLevel3BlockSets.add(block);
+                    block.type = BlockType.SEA_L2;
+                }
+            }
+        }
+
+        Set<Block> seaLevel2BlockSets = new HashSet<>();
+        for (Block seaLevel3Block: seaLevel3BlockSets) {
+            List<Block> adjacentBlocks = gameMap.getAdjacent(seaLevel3Block.blockId, 2, true, BlockType.MOUNTAIN_L2);
+            for(Block block: adjacentBlocks) {
+                seaLevel2BlockSets.add(block);
+                block.type = BlockType.SEA_L1;
+            }
+        }
+
+        for (Block seaLevel2Block: seaLevel2BlockSets) {
+            List<Block> blocks = gameMap.getAdjacent(seaLevel2Block.blockId, 1, true, BlockType.MOUNTAIN_L1);
+            for(Block block: blocks) {
+                block.type = BlockType.SEA_L1;
+            }
         }
 
         /*
-        addSurroundedBlock(gameMap, BlockType.OBSTACLE, TerrainType.MOUNTAIN_L2, BlockType.OBSTACLE);
-        gameMap.printMap();
-        */
-
-        // 添加紧邻一级山地的块为二级山地
-        blockList.clear();
-        for (int blockId: gameMap.unoccupiedBlockList) {
-            if (gameMap.getBlocksInRange(blockId, 2, BlockType.MOUNTAIN_L2).size() > 0) {
-                blockList.add(blockId);
+        for (Block seaLevel2Block: seaLevel2BlockSets) {
+            for(Block block: gameMap.getAdjacent(seaLevel2Block.blockId, 1, true, BlockType.SEA_L2)) {
+                block.type = BlockType.SEA_L1;
             }
-        }
-        for (int blockId: blockList) {
-            gameMap.addBlock(blockId, BlockType.MOUNTAIN_L4, TerrainType.NONE);
-        }
-
-        /*
-        addSurroundedBlock(gameMap, BlockType.OBSTACLE, TerrainType.MOUNTAIN_L4, BlockType.OBSTACLE);
-        gameMap.printMap();
-        */
-
-        // 添加其余的块为三级山地
-        blockList.clear();
-        for (int blockId: gameMap.unoccupiedBlockList) {
-            blockList.add(blockId);
-        }
-        for (int blockId: blockList) {
-            gameMap.addBlock(blockId, BlockType.MOUNTAIN_L6, TerrainType.NONE);
-        }
-
-        gameMap.printMap();
-
-        // 标记斜坡
-        for (Block block: gameMap.occupiedBlockMap.values()) {
-            if (block.type == BlockType.PAVEMENT) {
-                List<Block> crossList = gameMap.getBlocksInRangeOfCross(block.blockId, 1, BlockType.MOUNTAIN_L2);
-                if (crossList.size() > 0) {
-                    block.type = BlockType.SLOPE;
-                    block.terrainType = TerrainType.NONE;
-                    continue;
-                }
-
-                List<Block> cornerList = gameMap.getBlocksInRangeOfCorner(block.blockId, 1, BlockType.MOUNTAIN_L2);
-                if (cornerList.size() == 1) {
-                    Direction direction = gameMap.getDirection(block.blockId, cornerList.get(0).blockId);
-                    if (direction == Direction.UP_LEFT) {
-                        block.type = BlockType.SLASH_MOUNTAIN_L1_ROAD;
-                    } else if (direction == Direction.UP_RIGHT) {
-                        block.type = BlockType.BACKSLASH_ROAD_MOUNTAIN_L1;
-                    } else if (direction == Direction.DOWN_LEFT) {
-                        block.type = BlockType.BACKSLASH_MOUNTAIN_L1_ROAD;
-                    } else if (direction == Direction.DOWN_RIGHT) {
-                        block.type = BlockType.SLASH_ROAD_MOUNTAIN_L1;
-                    }
-                    block.terrainType = TerrainType.NONE;
-                }
-            } else if (block.type == BlockType.MOUNTAIN_L2) {
-                List<Block> crossList = gameMap.getBlocksInRangeOfCross(block.blockId, 1, BlockType.MOUNTAIN_L4);
-                if (crossList.size() > 0) {
-                    block.type = BlockType.SLOPE;
-                    block.terrainType = TerrainType.NONE;
-                    continue;
-                }
-
-                List<Block> cornerList = gameMap.getBlocksInRangeOfCorner(block.blockId, 1, BlockType.MOUNTAIN_L4);
-                if (cornerList.size() == 1) {
-                    Direction direction = gameMap.getDirection(block.blockId, cornerList.get(0).blockId);
-                    if (direction == Direction.UP_LEFT) {
-                        block.type = BlockType.SLASH_MOUNTAIN_L2_MOUNTAIN_L1;
-                    } else if (direction == Direction.UP_RIGHT) {
-                        block.type = BlockType.BACKSLASH_MOUNTAIN_L1_MOUNTAIN_L2;
-                    } else if (direction == Direction.DOWN_LEFT) {
-                        block.type = BlockType.BACKSLASH_MOUNTAIN_L2_MOUNTAIN_L1;
-                    } else if (direction == Direction.DOWN_RIGHT) {
-                        block.type = BlockType.SLASH_MOUNTAIN_L1_MOUNTAIN_L2;
-                    }
-                    block.terrainType = TerrainType.NONE;
-                }
-            } else if (block.type == BlockType.MOUNTAIN_L4) {
-                List<Block> crossList = gameMap.getBlocksInRangeOfCross(block.blockId, 1, BlockType.MOUNTAIN_L6);
-                if (crossList.size() > 0) {
-                    block.type = BlockType.SLOPE;
-                    block.terrainType = TerrainType.NONE;
-                    continue;
-                }
-
-                List<Block> cornerList = gameMap.getBlocksInRangeOfCorner(block.blockId, 1, BlockType.MOUNTAIN_L6);
-                if (cornerList.size() == 1) {
-                    Direction direction = gameMap.getDirection(block.blockId, cornerList.get(0).blockId);
-                    if (direction == Direction.UP_LEFT) {
-                        block.type = BlockType.SLASH_MOUNTAIN_L3_MOUNTAIN_L2;
-                    } else if (direction == Direction.UP_RIGHT) {
-                        block.type = BlockType.BACKSLASH_MOUNTAIN_L2_MOUNTAIN_L3;
-                    } else if (direction == Direction.DOWN_LEFT) {
-                        block.type = BlockType.BACKSLASH_MOUNTAIN_L3_MOUNTAIN_L2;
-                    } else if (direction == Direction.DOWN_RIGHT) {
-                        block.type = BlockType.SLASH_MOUNTAIN_L2_MOUNTAIN_L3;
-                    }
-                    block.terrainType = TerrainType.NONE;
+            for(Block block: gameMap.getAdjacent(seaLevel2Block.blockId, 2, false, BlockType.SEA_L2)) {
+                if (ThreadLocalRandom.current().nextInt(10) < 4) {
+                    block.type = BlockType.SEA_L1;
                 }
             }
         }
-    }
-
-    private BlockType getAdjacentType(int blockId, int distance, BlockType... blockTypes) {
-        return null;
+        */
     }
 
     private void addSurroundedBlock(
-            GameMap gameMap, BlockType blockType, TerrainType terrainType, BlockType... surroundedBlockTypes) {
+            GameMap gameMap, BlockType blockType, TerrainType terrainType, int width, BlockType... surroundedBlockTypes) {
         List<Integer> roadBlockList = new LinkedList<>();
         boolean clear = false;
         while (!clear) {
             for (int blockId: gameMap.unoccupiedBlockList) {
-                if (gameMap.getAdjacent(blockId, 1, false, surroundedBlockTypes).size() >= 3) {
+                if (gameMap.getAdjacentInDistance(blockId, 1, false, surroundedBlockTypes).size() >= 3) {
                     roadBlockList.add(blockId);
                 }
             }
@@ -853,7 +741,8 @@ public class MarathonGameMapCreator {
             if (roadBlockList.size() == 0) clear = true;
             else {
                 for (int blockId: roadBlockList) {
-                    gameMap.addBlock(blockId, blockType, terrainType);
+                    gameMap.addBlock(blockId, blockType, terrainType, RoadDirection.NONE,
+                            gameMap.ROAD_GROUP_ID, width + 1, -1);
                 }
             }
             roadBlockList.clear();
@@ -863,9 +752,9 @@ public class MarathonGameMapCreator {
     private void twistMap(GameMap gameMap, int maxOffset) {
         Set<Integer> turningSet = new HashSet<>();
         for (Block block: gameMap.occupiedBlockMap.values()) {
-            if (block.type == BlockType.MAIN_ROAD || block.type == BlockType.SHORTCUT) {
+            if (block.type == BlockType.ARTERY || block.type == BlockType.SHORTCUT) {
                 RoadDirection roadDirection = gameMap.getRoadDirection(
-                        block.getBlockId(), BlockType.MAIN_ROAD, BlockType.SHORTCUT);
+                        block.getBlockId(), BlockType.ARTERY, BlockType.SHORTCUT);
                 if (roadDirection == RoadDirection.TURNING || roadDirection == RoadDirection.CROSS ||
                         roadDirection == RoadDirection.VERTICAL_END || roadDirection == RoadDirection.HORIZONTAL_END) {
                     turningSet.add(block.blockId);
@@ -909,11 +798,12 @@ public class MarathonGameMapCreator {
             lastOffset = offset;
 
 
-            RoadDirection roadDirection = gameMap.getRoadDirection(block.getBlockId(), BlockType.MAIN_ROAD);
+            RoadDirection roadDirection = gameMap.getRoadDirection(block.getBlockId(), BlockType.ARTERY);
             if (roadDirection == RoadDirection.HORIZONTAL) {
                 if (offset != 0) {
-                    Block newBlock = gameMap.addBlock(gameMap.getBlockId(
-                            block.position.x, block.position.y + offset), block.type, block.terrainType);
+                    Block newBlock = gameMap.addBlock(gameMap.getBlockId(block.position.x, block.position.y + offset),
+                            block.type, block.terrainType, block.roadDirection, block.groupId,
+                            block.distanceAwayFromRoad, block.distanceAwayFromRoadCrossPoint);
                     newBlock.next = block.next;
                     newBlock.previous = block.previous;
                     newBlock.distanceToFinish = block.distanceToFinish;
@@ -922,8 +812,9 @@ public class MarathonGameMapCreator {
                 }
             } else if (roadDirection == RoadDirection.VERTICAL) {
                 if (offset != 0) {
-                    Block newBlock = gameMap.addBlock(gameMap.getBlockId(
-                            block.position.x + offset, block.position.y), block.type, block.terrainType);
+                    Block newBlock = gameMap.addBlock(gameMap.getBlockId(block.position.x + offset, block.position.y),
+                            block.type, block.terrainType, block.roadDirection, block.groupId,
+                            block.distanceAwayFromRoad, block.distanceAwayFromRoadCrossPoint);
                     newBlock.next = block.next;
                     newBlock.previous = block.previous;
                     newBlock.distanceToFinish = block.distanceToFinish;
@@ -972,7 +863,8 @@ public class MarathonGameMapCreator {
                     RoadDirection roadDirection = gameMap.getRoadDirection(block.getBlockId(), BlockType.SHORTCUT);
                     if (roadDirection == RoadDirection.HORIZONTAL) {
                         Block newBlock = gameMap.addBlock(gameMap.getBlockId(
-                                block.position.x, block.position.y + offset), block.type, block.terrainType);
+                                block.position.x, block.position.y + offset), block.type, block.terrainType, block.roadDirection,
+                                block.groupId, block.distanceAwayFromRoad, block.distanceAwayFromRoadCrossPoint);
                         newBlock.next = block.next;
                         newBlock.previous = block.previous;
                         newBlock.distanceToFinish = block.distanceToFinish;
@@ -980,7 +872,8 @@ public class MarathonGameMapCreator {
                         removedBlockSet.add(block.blockId);
                     } else if (roadDirection == RoadDirection.VERTICAL) {
                         Block newBlock = gameMap.addBlock(gameMap.getBlockId(
-                                block.position.x + offset, block.position.y), block.type, block.terrainType);
+                                block.position.x + offset, block.position.y), block.type, block.terrainType, block.roadDirection,
+                                block.groupId, block.distanceAwayFromRoad, block.distanceAwayFromRoadCrossPoint);
                         newBlock.next = block.next;
                         newBlock.previous = block.previous;
                         newBlock.distanceToFinish = block.distanceToFinish;
@@ -1030,148 +923,11 @@ public class MarathonGameMapCreator {
         return Integer.MAX_VALUE;
     }
 
-    private void generateWallV2(GameMap gameMap) {
-        List<Integer> wallBlockIdList = new LinkedList<>();
-        for (int blockId: gameMap.unoccupiedBlockList) {
-            if ((gameMap.isNear(blockId, 4, BlockType.MAIN_ROAD, BlockType.SHORTCUT) ||
-                    gameMap.isNear(blockId, 4, BlockType.MAIN_ROAD, BlockType.SHORTCUT)) &&
-                    !gameMap.isNear(blockId, 3, BlockType.MAIN_ROAD, BlockType.SHORTCUT) &&
-                    !gameMap.isNear(blockId, 2, BlockType.MAIN_ROAD, BlockType.SHORTCUT) &&
-                    !gameMap.isNear(blockId, 1, BlockType.MAIN_ROAD, BlockType.SHORTCUT)) {
-                wallBlockIdList.add(blockId);
-            }
-        }
-
-        for (int blockId: wallBlockIdList) {
-            gameMap.addBlock(blockId, BlockType.WALL, TerrainType.WALL);
-        }
-    }
-
-    /**
-     * 生成景观
-     */
-    private void generateViewV2(GameMap gameMap) {
-
-        // 生成城堡
-
-        // 生成箭楼
-        float rotundaRate = 0.2f;
-        List<Building> towerBList = new LinkedList<>();
-        for (Building building: gameMap.buildingMap.values()) {
-            if (building.buildingType == BuildingType.TOWER_B) {
-                towerBList.add(building);
-            }
-        }
-
-        int rotundaCount = (int) (towerBList.size() * rotundaRate);
-        for (int i = 0; i < rotundaCount;) {
-            Building building = towerBList.get(ThreadLocalRandom.current().nextInt(towerBList.size()));
-            int x = building.point2D.x;
-            int y = building.point2D.y;
-
-            int towerBBlockId = gameMap.getBlockId(x, y);
-            RoadDirection roadDirection = gameMap.getRoadDirection(towerBBlockId, BlockType.WALL);
-            if (roadDirection == RoadDirection.HORIZONTAL) {
-                Building buildingNear = gameMap.buildingMap.get(gameMap.getBlockId(x, y - 8));
-                Block block = gameMap.occupiedBlockMap.get(gameMap.getBlockId(x, y - 4));
-                if (block != null && (block.type == BlockType.MAIN_ROAD || block.type == BlockType.SHORTCUT) &&
-                        buildingNear != null && buildingNear.buildingType == BuildingType.TOWER_B) {
-                    gameMap.addBuilding(BuildingType.ROTUNDA, x, y, Orientation.SOUTH);
-                    i ++;
-                    continue;
-                }
-                buildingNear = gameMap.buildingMap.get(gameMap.getBlockId(x, y + 8));
-                block = gameMap.occupiedBlockMap.get(gameMap.getBlockId(x, y + 4));
-                if (block != null && (block.type == BlockType.MAIN_ROAD || block.type == BlockType.SHORTCUT) &&
-                        buildingNear != null && buildingNear.buildingType == BuildingType.TOWER_B) {
-                    gameMap.addBuilding(BuildingType.ROTUNDA, x, y, Orientation.NORTH);
-                    i ++;
-                    continue;
-                }
-            } else if (roadDirection == RoadDirection.VERTICAL) {
-                Building buildingNear = gameMap.buildingMap.get(gameMap.getBlockId(x - 8, y));
-                Block block = gameMap.occupiedBlockMap.get(gameMap.getBlockId(x - 4, y));
-                if (block != null && (block.type == BlockType.MAIN_ROAD || block.type == BlockType.SHORTCUT) &&
-                        buildingNear != null && buildingNear.buildingType == BuildingType.TOWER_B) {
-                    gameMap.addBuilding(BuildingType.ROTUNDA, x, y, Orientation.WEST);
-                    i ++;
-                    continue;
-                }
-                buildingNear = gameMap.buildingMap.get(gameMap.getBlockId(x + 8, y));
-                block = gameMap.occupiedBlockMap.get(gameMap.getBlockId(x + 4, y));
-                if (block != null && (block.type == BlockType.MAIN_ROAD || block.type == BlockType.SHORTCUT) &&
-                        buildingNear != null && buildingNear.buildingType == BuildingType.TOWER_B) {
-                    gameMap.addBuilding(BuildingType.ROTUNDA, x, y, Orientation.EAST);
-                    i ++;
-                    continue;
-                }
-            }
-        }
-
-        // 生成树林，石头地等
-        int total = gameMap.unoccupiedBlockList.size();
-        for (Map.Entry<TerrainType, Float> entry : viewConfigMap.entrySet()) {
-            int count = (int) (entry.getValue() * total);
-            if (count == 0) continue;
-
-            for (int i = 0; i < count; i ++) {
-                int blockId = gameMap.getRandomUnoccupiedBlockId();
-                gameMap.addBlock(blockId, BlockType.OBSTACLE, entry.getKey());
-            }
-        }
-    }
-
-    /**
-     * 生成城门和城门旁边的墙
-     * @param gameMap
-     */
-    private void generateGateWall(GameMap gameMap) {
-        List<Building> gateBuildingList = new LinkedList<>();
-        for (Building building: gameMap.buildingMap.values()) {
-            if (building.buildingType == BuildingType.GATE) {
-                gateBuildingList.add(building);
-            }
-        }
-
-        for (Building building: gateBuildingList) {
-            int x = building.point2D.x;
-            int y = building.point2D.y;
-
-            int blockId = gameMap.getBlockId(x, y);
-            RoadDirection roadDirection =
-                    gameMap.getRoadDirection(blockId, BlockType.SHORTCUT, BlockType.MAIN_ROAD);
-
-            if (roadDirection == RoadDirection.VERTICAL) {
-                for (int i = -3; i <= 3; i ++) {
-                    int adjacentBlockId = gameMap.getBlockId(x + i, y);
-
-                    if (i == 0) {
-                        continue;
-                    } else {
-                        gameMap.addBlock(adjacentBlockId, BlockType.WALL, TerrainType.WALL);
-                    }
-                }
-            }
-
-            if (roadDirection == RoadDirection.HORIZONTAL) {
-                for (int i = -3; i <= 3; i ++) {
-                    int adjacentBlockId = gameMap.getBlockId(x, y + i);
-
-                    if (i == 0) {
-                        continue;
-                    } else {
-                        gameMap.addBlock(adjacentBlockId, BlockType.WALL, TerrainType.WALL);
-                    }
-                }
-            }
-        }
-    }
-
     /**
      * 修改交叉路口的地形保持一致
      */
     private void modifyCrossTerrain(GameMap gameMap) {
-        BlockType[] blockTypes = new BlockType[] {BlockType.SHORTCUT, BlockType.MAIN_ROAD};
+        BlockType[] blockTypes = new BlockType[] {BlockType.SHORTCUT, BlockType.ARTERY};
         for (Block block: gameMap.occupiedBlockMap.values()) {
             if (gameMap.getRoadDirection(block.blockId, blockTypes)
                     == RoadDirection.CROSS) {
@@ -1221,90 +977,6 @@ public class MarathonGameMapCreator {
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * 生成围墙
-     */
-    private void generateWall(GameMap gameMap) {
-        List<Integer> wallBlockIdList = new LinkedList<>();
-        for (int blockId: gameMap.unoccupiedBlockList) {
-            if ((gameMap.isNear(blockId, 4, BlockType.MAIN_ROAD, BlockType.SHORTCUT) ||
-                    gameMap.isNear(blockId, 4, BlockType.MAIN_ROAD, BlockType.SHORTCUT)) &&
-                    !gameMap.isNear(blockId, 3, BlockType.MAIN_ROAD, BlockType.SHORTCUT) &&
-                    !gameMap.isNear(blockId, 2, BlockType.MAIN_ROAD, BlockType.SHORTCUT) &&
-                    !gameMap.isNear(blockId, 1, BlockType.MAIN_ROAD, BlockType.SHORTCUT)) {
-                wallBlockIdList.add(blockId);
-            }
-        }
-
-        for (int blockId: wallBlockIdList) {
-            gameMap.addBlock(blockId, BlockType.WALL, TerrainType.WALL);
-        }
-
-        for (int blockId : wallBlockIdList) {
-            int x = gameMap.getX(blockId);
-            int y = gameMap.getY(blockId);
-
-            if ((x + 1) % 4 == 0 && (y + 1) % 4 == 0) {
-                BuildingType buildingType;
-                RoadDirection roadDirection = gameMap.getRoadDirection(blockId, BlockType.WALL);
-                if (roadDirection == RoadDirection.VERTICAL || roadDirection == RoadDirection.HORIZONTAL) {
-                    buildingType = BuildingType.TOWER_B;
-                } else {
-                    buildingType = BuildingType.TOWER_A;
-                }
-                gameMap.addBuilding(buildingType, x, y, Orientation.FREE);
-            } else if ((x + 1) % 4 == 2 || ((y + 1) % 4 == 2)) {
-                RoadDirection roadDirection = gameMap.getRoadDirection(blockId, BlockType.WALL);
-                Orientation orientation;
-                if (roadDirection == RoadDirection.VERTICAL) {
-                    orientation = Orientation.EAST;
-                } else {
-                    orientation = Orientation.NORTH;
-                }
-                gameMap.addBuilding(BuildingType.WALL, x, y, orientation);
-            }
-        }
-    }
-
-    /**
-     * 生成景观
-     */
-    private void generateView(GameMap gameMap) {
-        int count = (int) (gameMap.unoccupiedBlockList.size() * VIEW_RATE);
-        while (count > 0) {
-            int blockId = gameMap.getRandomUnoccupiedBlockId();
-            int width = ThreadLocalRandom.current().nextInt(1, 5);
-            int height = ThreadLocalRandom.current().nextInt(1, 5);
-
-            int x = gameMap.getX(blockId);
-            int y = gameMap.getY(blockId);
-
-            boolean isValid = true;
-            outLoop:
-            for (int i = 0; i <= width; i ++) {
-                for (int j = 0; j <= height; j ++) {
-                    int viewBlockId = gameMap.getBlockId(x + i, y + j);
-                    if (gameMap.isOccupiedAround(viewBlockId, 2)) {
-                        isValid = false;
-                        break outLoop;
-                    }
-                }
-            }
-
-            x = gameMap.getX(blockId);
-            y = gameMap.getY(blockId);
-            if (isValid) {
-                for (int m = 0; m <= width; m ++) {
-                    for (int n = 0; n <= height; n ++) {
-                        int viewBlockId = gameMap.getBlockId(x + m, y + n);
-                        gameMap.addBlock(viewBlockId, BlockType.BRANCH, TerrainType.FOREST);
-                    }
-                }
-            }
-            count -= (width - 1) * (height - 1);
         }
     }
 
@@ -1364,7 +1036,7 @@ public class MarathonGameMapCreator {
                             }
 
                             Block block = gameMap.occupiedBlockMap.get(tryBlockId);
-                            if (block != null && (block.type == BlockType.MAIN_ROAD
+                            if (block != null && (block.type == BlockType.ARTERY
                                     || block.type == BlockType.SHORTCUT)) {
                                 for (int m = 0; m <= width; m ++) {
                                     for (int n = 0; n <= height; n ++) {
@@ -1436,7 +1108,7 @@ public class MarathonGameMapCreator {
                 int blockId;
                 while(true) {
                     blockId = gameMap.getRandomUnoccupiedBlockId();
-                    if (gameMap.isNear(blockId, 3, BlockType.MAIN_ROAD, BlockType.SHORTCUT)) {
+                    if (gameMap.isNear(blockId, 3, BlockType.ARTERY, BlockType.SHORTCUT)) {
                         break;
                     }
                 }
@@ -1467,7 +1139,7 @@ public class MarathonGameMapCreator {
                     for (int i = 0; i < width; i ++) {
                         for (int j = 0; j < height; j ++) {
                             gameMap.addBlock(gameMap.getBlockId(x + i, y + j),
-                                    BlockType.OBSTACLE, TerrainType.BUILDING);
+                                    BlockType.ROAD_EXTENSION, TerrainType.BUILDING);
                         }
                     }
                     gameMap.addBuilding(buildingType, x + 1, y + 1, Orientation.FREE);
@@ -1565,7 +1237,7 @@ public class MarathonGameMapCreator {
         while(i -- > 0) {
             MarathonGameMapCreator marathonGameMap = new MarathonGameMapCreator();
             //marathonGameMap.generate(10, 10);
-            marathonGameMap.generate(10, 10);
+            marathonGameMap.generate(20, 20, 11);
         }
     }
 }
