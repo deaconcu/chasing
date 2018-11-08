@@ -31,6 +31,8 @@ public class BuffConfig {
     public static final byte IMMUNITY_LEVEL_2 = 14;
     public static final byte NEAR_ENEMY_REMIND = 15;
     public static final byte REBOUND = 16;
+    public static final byte HOLD_SCEPTER = 17; // 持有权杖，可以淘汰对手
+    public static final byte EXPEL = 18; // 持有权杖，可以淘汰对手
 
     static {
         buffConfigMap.put(SPEED_UP_LEVEL_1, new BuffConfig(SPEED_UP_LEVEL_1, (short)20));
@@ -47,6 +49,8 @@ public class BuffConfig {
         buffConfigMap.put(IMMUNITY_LEVEL_2, new BuffConfig(IMMUNITY_LEVEL_2, (short)20));
         buffConfigMap.put(NEAR_ENEMY_REMIND, new BuffConfig(NEAR_ENEMY_REMIND, (short)20));
         buffConfigMap.put(REBOUND, new BuffConfig(REBOUND, (short)20));
+        buffConfigMap.put(HOLD_SCEPTER, new BuffConfig(HOLD_POSITION, (short)300));
+        buffConfigMap.put(EXPEL, new BuffConfig(HOLD_POSITION, Short.MAX_VALUE));
     }
 
     public static void putBuff(BuffConfig buffConfig) {

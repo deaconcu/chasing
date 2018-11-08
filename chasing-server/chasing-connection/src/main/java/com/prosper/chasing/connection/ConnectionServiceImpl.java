@@ -36,7 +36,12 @@ public class ConnectionServiceImpl implements ConnectionService.Iface {
 
             // 通过udpserver和userId发送bytes
             server.sendData(userId, data);
-            log.info("reply user message, size: {}, message: {}:{}", data.length, userId, Arrays.toString(data));
+            if (data.length < 300)
+                log.info("reply user message, size: {}, message: {}:{}",
+                        data.length, userId, Arrays.toString(data));
+            else
+                log.info("reply user message, size: {}, message: {}:{}",
+                        data.length, userId, Arrays.toString(Arrays.copyOfRange(data, 0, 300)));
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

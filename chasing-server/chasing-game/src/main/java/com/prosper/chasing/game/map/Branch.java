@@ -1,9 +1,11 @@
 package com.prosper.chasing.game.map;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 /**
+ * 主路的Branch head和tail都是null，支路的Branch blockList不包括主路上的交叉节点，head和tail为交叉节点
  * Created by deacon on 2018/4/28.
  */
 public class Branch implements Comparable<Branch> {
@@ -13,7 +15,7 @@ public class Branch implements Comparable<Branch> {
     public Block tail;
 
     public Branch(Block head) {
-        blockList = new LinkedList<>();
+        blockList = new ArrayList<>();
         this.head = head;
         tail = null;
     }
@@ -47,7 +49,7 @@ public class Branch implements Comparable<Branch> {
             }
         }
 
-        LinkedList<Block> blockList = new LinkedList<>();
+        ArrayList<Block> blockList = new ArrayList<>();
         Block currentBlock = lastBlock;
         Block previousBlock = null;
         Block nextBlock;

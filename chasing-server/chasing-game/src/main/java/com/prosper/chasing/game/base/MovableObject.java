@@ -1,7 +1,5 @@
 package com.prosper.chasing.game.base;
 
-import com.prosper.chasing.game.navmesh.Point;
-
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -16,7 +14,7 @@ import static com.prosper.chasing.game.util.Constant.ChasingConfig.DISTANCE_CHAS
  * 3.可以被多个玩家追逐，玩家在追逐时，头顶有圆形进度条，显示离完成还剩多少，先到先得
  * 4.途中物体会尝试摆脱，被捕获前必定会尝试摆脱
  */
-public abstract class MovableObject implements GameObject {
+public abstract class MovableObject extends GameObject {
 
     private static final int WALK_SPEED = 3; // 无人追逐的情况下运动速度
     private static final int RUN_BASE_SPEED = 6; // 移动基础速度
@@ -148,7 +146,7 @@ public abstract class MovableObject implements GameObject {
     private float getDistanceLevel() {
         int minDistance = DISTANCE_CHASING + 1;
         for (User user: chasingUserSet) {
-            int distance = user.getPosition().point.distance(position.point);
+            int distance = user.getPosition().distance(position.point);
             if (distance < minDistance) {
                 minDistance = distance;
             }
@@ -176,7 +174,7 @@ public abstract class MovableObject implements GameObject {
     public boolean isInChasingArea() {
         int minDistance = DISTANCE_CHASING + 1;
         for (User user: chasingUserSet) {
-            int distance = user.getPosition().point.distance(position.point);
+            int distance = user.getPosition().distance(position.point);
             if (distance < minDistance) {
                 minDistance = distance;
             }
@@ -238,7 +236,7 @@ public abstract class MovableObject implements GameObject {
         return id;
     }
 
-    public Position getPosition() {
+    public Position getPositionInfo() {
         return position;
     }
 

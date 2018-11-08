@@ -16,10 +16,10 @@ public class Constant {
     }
 
     public static class UserState {
-        public static byte LOADED = 1;   // 加载完成状态
-        public static byte ACTIVE = 2;   // 活动状态
-        public static byte GHOST = 3;   // 活动状态
-        public static byte GAME_OVER = 4;  // 游戏结束状态
+        public static byte LOADED = 1;   // 服务端用户信息加载完成, 玩家在服务端的初始状态
+        public static byte ACTIVE = 2;   // 客户端发送连接消息后与服务端建立连接，用户进入活跃状态
+        public static byte GHOST = 3;    // 活动状态
+        public static byte GAME_OVER = 4;  // 用户游戏已结束
         public static byte RESULT_INFORMED = 5; // 排名及奖励信息已通知
         public static byte OFFLINE = 6;  // 离线状态
         public static byte QUITING = 7;  // 正在退出

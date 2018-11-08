@@ -1,13 +1,12 @@
 package com.prosper.chasing.game.navmesh;
 
+import com.prosper.chasing.game.base.Point;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;

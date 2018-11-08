@@ -1,12 +1,10 @@
 package com.prosper.chasing.game.base;
 
-import java.util.Set;
-
 /**
  * 商人
  * Created by deacon on 2018/4/3.
  */
-public class Merchant extends NPC {
+public class Merchant extends NPCOld {
 
     // 商人出售的道具id
     private short[] propIds;

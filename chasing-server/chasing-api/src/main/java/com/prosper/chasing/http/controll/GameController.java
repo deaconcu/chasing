@@ -106,6 +106,11 @@ public class GameController {
             return gameMapper.selectListByPage(pageLength, pageLength * (page - 1));
         }
     }
+
+    @RequestMapping(value="/gameMaps",method=RequestMethod.GET)
+    public Object getGameMap(@RequestParam(value="id") String id) {
+        return gameService.getGameMapBytes(id);
+    }
     
     /**
      * 根据用户id或者游戏id获取游戏信息

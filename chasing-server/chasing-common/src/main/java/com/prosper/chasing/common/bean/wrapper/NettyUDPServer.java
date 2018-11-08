@@ -56,6 +56,8 @@ public class NettyUDPServer implements ApplicationListener<ContextRefreshedEvent
                 b.group(group)
                 .channel(NioDatagramChannel.class)
                 .option(ChannelOption.SO_BROADCAST, true)
+                .option(ChannelOption.SO_SNDBUF, 1024 * 2048)
+                .option(ChannelOption.SO_RCVBUF, 1024 * 2048)
                 .handler(new UDPServerHandler());
 
                 channel = b.bind(port).sync().channel();

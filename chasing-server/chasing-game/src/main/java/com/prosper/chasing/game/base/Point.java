@@ -1,7 +1,7 @@
-package com.prosper.chasing.game.navmesh;
+package com.prosper.chasing.game.base;
 
 /**
- * Created by deacon on 2018/2/3.
+ * 地图上的位置, 类型为int，为实际位置(float) * 1000
  */
 public class Point {
     public int x;
@@ -39,6 +39,36 @@ public class Point {
      */
     public int distance (Point point) {
         return (int)Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2) + Math.pow(point.z - z, 2));
+    }
+
+    /**
+     * 计算两点的向量
+     */
+    public Point subtraction (Point point) {
+        return new Point(point.x - x, point.y - y, point.z - z);
+    }
+
+    /**
+     * 获得向量长度
+     */
+    public int length() {
+        return (int)Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2) + Math.pow(z, 2));
+    }
+
+    /**
+     * 获得单位向量
+     */
+    public Point normalized(){
+        int length = length();
+        return new Point(x / length, y / length, z / length);
+    }
+
+    /**
+     * 是否向量为0
+     */
+    public boolean isZero() {
+        if (x == 0 && y == 0 && z == 0) return true;
+        return false;
     }
 
     @Override

@@ -1,7 +1,5 @@
 package com.prosper.chasing.game.base;
 
-import com.prosper.chasing.game.navmesh.Point;
-
 public class Position {
 
     public byte moveState;

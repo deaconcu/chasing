@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.message;
 
-import com.prosper.chasing.game.navmesh.Point;
+import com.prosper.chasing.game.base.Point;
 
 import java.nio.ByteBuffer;
 

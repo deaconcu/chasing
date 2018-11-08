@@ -5,24 +5,6 @@ package com.prosper.chasing.game.util;
  */
 public class Enums {
 
-    public enum Orientation {
-        FREE(0),
-        EAST(1),
-        SOUTH(2),
-        WEST(3),
-        NORTH(4);
-
-        private int value;
-
-        Orientation(int value) {
-            this.value = value;
-        }
-
-        public byte getValue() {
-            return (byte)value;
-        }
-    }
-
     public enum TerrainType {
         NONE(0),
         ANIMAL(1),
@@ -61,21 +43,45 @@ public class Enums {
         }
     }
 
+    public enum DynamicGameObjectType {
+        LAMP(1),
+        BRIDGE(2),
+        FLAG(3),
+        SNOW(4);
+
+        private int value;
+
+        DynamicGameObjectType(int value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return (byte)value;
+        }
+    }
+
+    public enum StaticGameObjectType {
+        WELL(1);
+
+        private int value;
+
+        StaticGameObjectType(int value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return (byte)value;
+        }
+    }
+
     public enum BuildingType {
         NONE(0),
-        WALL(1),
-        WALL_2_BLOCK(1),
-        TOWER_A(2),
-        TOWER_B(3),
-        GATE(4),
-        CASTLE(5),
-        ROTUNDA(6),
-        WAREHOUSE(7),
-        STORE(8),
-        TALL_TREE(9),
-        GRAVEYARD(10),
-        WELL(11),
-        JACKSTRAW(12);
+        WAREHOUSE(1),
+        STORE(2),
+        TALL_TREE(3),
+        GRAVEYARD(4),
+        WELL(5),
+        JACKSTRAW(6);
 
         private int value;
 
@@ -93,11 +99,20 @@ public class Enums {
         SHORTCUT(2),
         BRANCH(3),
         ROAD_EXTENSION(4),
-        MOUNTAIN_L1(5),
-        MOUNTAIN_L2(6),
-        MOUNTAIN_L3(7),
-        SEA_L1(8),
-        SEA_L2(9);
+        BUILDING(5),
+        MOUNTAIN_L1(6),
+        MOUNTAIN_L2(7),
+        MOUNTAIN_L3(8),
+        MOUNTAIN_SLOP(9),
+        MOUNTAIN_ROCK(10),
+        SEA_L1(11),
+        SEA_L2(12),
+        SEA_L3(13),
+        SEA_L4(14),
+        SEA_L5(15),
+        SEA_L6(16),
+        WOODS(17),
+        HILL(18);
 
         private int value;
 
@@ -122,24 +137,41 @@ public class Enums {
     }
 
     public enum Direction {
-        SELF(0),
-        RIGHT(1),
-        LEFT(2),
-        UP(3),
-        DOWN(4),
-        UP_LEFT(5),
-        UP_RIGHT(6),
-        DOWN_LEFT(7),
-        DOWN_RIGHT(8);
+        FREE((byte)0),
+        RIGHT((byte)1),
+        LEFT((byte)2),
+        UP((byte)3),
+        DOWN((byte)4),
+        UP_LEFT((byte)5),
+        UP_RIGHT((byte)6),
+        DOWN_LEFT((byte)7),
+        DOWN_RIGHT((byte)8);
 
-        private int value;
+        private byte value;
 
-        Direction(int value) {
+        Direction(byte value) {
             this.value = value;
         }
 
         public byte getValue() {
-            return (byte)value;
+            return value;
+        }
+    }
+
+    public enum TargetType {
+        NONE((byte)0),
+        USER((byte)1),
+        PROP((byte)2),
+        POSITION((byte)3);
+
+        private byte value;
+
+        TargetType(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
         }
     }
 

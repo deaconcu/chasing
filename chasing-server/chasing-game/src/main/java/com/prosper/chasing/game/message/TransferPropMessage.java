@@ -1,7 +1,5 @@
 package com.prosper.chasing.game.message;
 
-import com.prosper.chasing.game.navmesh.Point;
-
 import java.nio.ByteBuffer;
 
 public class TransferPropMessage extends UserMessage {

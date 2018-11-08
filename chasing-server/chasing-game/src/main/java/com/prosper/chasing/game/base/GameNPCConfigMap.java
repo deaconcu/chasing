@@ -1,7 +1,5 @@
 package com.prosper.chasing.game.base;
 
-import com.prosper.chasing.game.navmesh.Point;
-
 import java.util.List;
 
 /**

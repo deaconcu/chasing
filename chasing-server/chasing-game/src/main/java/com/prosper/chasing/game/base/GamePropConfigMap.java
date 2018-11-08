@@ -1,8 +1,6 @@
 package com.prosper.chasing.game.base;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 /**
  * 游戏里随机生成的道具配置, 假设游戏中的道具是全地图随机分布的，如果有新的业务场景再修改
@@ -11,50 +9,80 @@ import java.util.Random;
  */
 public class GamePropConfigMap {
 
-    // 生成道具总数
-    public int count;
+    // 生成道具的周期, 单位为秒
+    private int period;
 
-    public Map<Short, GamePropConfig> configMap = new HashMap<>();
+    // 每个周期生成道具的数量
+    private int periodCount;
 
-    private Random random = new Random();
+    // 存放道具配置信息的map
+    private Map<Short, GamePropConfig> configMap = new HashMap<>();
 
-    private short totalRate = 0;
+    public GamePropConfigMap (int period, int count) {
+        this.period = period;
+        this.periodCount = count;
+    }
 
-    public GamePropConfigMap (int count) {
-        this.count = count;
+    public int getTotal() {
+        int total = 0;
+        for (GamePropConfig gamePropConfig: configMap.values()) {
+            total += gamePropConfig.count;
+        }
+        return total;
     }
 
     /**
      * 添加道具
-     * 如果rate的值总数超过1000, 需要抛出一个警告
-     * @param rate rate为千分制
      * @param duration duration单位为秒
      */
-    public GamePropConfigMap add(short propTypeId, short rate, short duration, boolean movable) {
-        configMap.put(propTypeId, new GamePropConfig(propTypeId, rate, duration, movable));
-        totalRate += rate;
+    public GamePropConfigMap add(short propTypeId, short count, short duration, boolean movable) {
+        configMap.put(propTypeId, new GamePropConfig(propTypeId, count, duration, movable));
         return this;
     }
 
     /**
-     * 获取一个随机的道具配置
+     * 获得游戏中的所有道具id列表
+     * @return
      */
-    public GamePropConfig getRandomProp() {
-        int hit = random.nextInt(1000) + 1;
-        int sum = 0;
-        for (GamePropConfig gamePropConfig: configMap.values()) {
-            sum += gamePropConfig.rate;
-            if (sum >= hit) return gamePropConfig;
+    public LinkedList<Short> getPropList() {
+        LinkedList<Short> propList = new LinkedList<>();
+        for(GamePropConfig gamePropConfig: configMap.values()) {
+            for (int i = 0; i < gamePropConfig.count; i ++) {
+                propList.add(gamePropConfig.propTypeId);
+            }
         }
-        return null;
+        Collections.shuffle(propList);
+        return propList;
+    }
+
+    /**
+     * 获取在场景中应该有的道具数量
+     */
+    public int getPropInScene(int second) {
+        return (second / period + 1) * periodCount;
+    }
+
+    /**
+     * 获取库存的道具数量
+     */
+    public int getPropInStock(int second) {
+        int propInstock = getTotal() - getPropInScene(second);
+        return propInstock > 0 ? propInstock : 0;
+    }
+
+    /**
+     * 获取某一个prop的配置
+     */
+    public GamePropConfig getPropConfig(short propId) {
+        return configMap.get(propId);
     }
 
     public static class GamePropConfig {
         // 道具类型id
         public short propTypeId;
 
-        // 生成该道具的概率, 千分制
-        public short rate;
+        // 道具数量
+        public short count;
 
         // 道具持续时间, 0为不消失
         public short duration;
@@ -63,11 +91,11 @@ public class GamePropConfigMap {
         public boolean movable;
 
         /**
-         * rate是千分制, duration单位是秒
+         * duration单位是秒
          */
-        public GamePropConfig(short propTypeId, short rate, short duration, boolean movable) {
+        public GamePropConfig(short propTypeId, short count, short duration, boolean movable) {
             this.propTypeId = propTypeId;
-            this.rate = rate;
+            this.count = count;
             this.duration = duration;
             this.movable = movable;
         }

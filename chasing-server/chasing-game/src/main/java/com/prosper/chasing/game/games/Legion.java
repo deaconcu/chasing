@@ -1,122 +1,90 @@
 package com.prosper.chasing.game.games;
 
 import com.prosper.chasing.game.base.*;
-import com.prosper.chasing.game.navmesh.Point;
+import com.prosper.chasing.game.base.Point;
+import com.prosper.chasing.game.util.ByteBuilder;
+import com.prosper.chasing.game.util.Constant;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 @MetaGameAnno("legion")
-public class Legion extends Game {
+public class Legion extends GameBase {
 
-    // 每轮时间
-    private static final int roundTime = 300;
+    protected static GamePropConfigMap gamePropConfigMap;
 
-    private int currentRoundStartTime = (int) System.currentTimeMillis() / 1000;
-
-    private int currentLegionTeam = 1;
-
-    public static class LegionUser extends User {
-        // 生命值
-        private int life;
-
-        // 队伍id
-        private int team;
-
-        private int kill;
-
-        public LegionUser(User user) {
-            setId(user.getId());
-            setPropMap(user.getPropMap());
-            setGame(user.getGame());
-            setState(user.getState());
-        }
-    }
-
-    public void loadUserOld(List<User> userList) {
-        Collections.shuffle(userList);
-        for (int i = 0; i < userList.size(); i++) {
-            LegionUser legionUser = new LegionUser(userList.get(i));
-            Position position = new Position(
-                    (byte)1, new Point(0, 0, 0), 0);
-            legionUser.setPosition(position);
-            legionUser.setInitPosition(position);
-            if (i < (userList.size() / 2)) {
-                legionUser.team = 1;
-            } else {
-                legionUser.team = 2;
-            }
-            getUserMap().put(legionUser.getId(), legionUser);
-        }
+    /**
+     * 一些设定
+     */
+    static {
+        gamePropConfigMap = new GamePropConfigMap(10, 1)
+                .add(PropConfig.SPEED_UP_LEVEL_1, (short)100, (short)60, false)
+                .add(PropConfig.SPEED_UP_LEVEL_2, (short)100, (short)60, false)
+                .add(PropConfig.SPEED_DOWN_LEVEL_1, (short)100, (short)60, false)
+                .add(PropConfig.SPEED_DOWN_LEVEL_2, (short)100, (short)60, false)
+                .add(PropConfig.BLOOD_PILL, (short)100, (short)60, false)
+                .add(PropConfig.BLOOD_BAG, (short)100, (short)60, false)
+                .add(PropConfig.FLASH_LEVEL_1, (short)100, (short)60, false)
+                .add(PropConfig.FLASH_LEVEL_2, (short)100, (short)60, false)
+                .add(PropConfig.MONEY, (short)100, (short)60, true)
+                .add(PropConfig.GIFT_BOX, (short)100, (short)60, true);
     }
 
     @Override
     public void logic() {
         super.logic();
-        /*
-        if ((System.currentTimeMillis() / 1000 - currentRoundStartTime) > roundTime) {
-            if (currentLegionTeam == 1) {
-                currentLegionTeam = 2;
-            } else {
-                currentLegionTeam = 1;
-            }
-            currentRoundStartTime = (int) System.currentTimeMillis() / 1000;
-        }
-        */
-
     }
 
     @Override
-    protected List<NPC> generateNPC() {
-        return null;
-    }
-
-    public List<Result> getResultList() {
-        List<Result> team1ResultList = new LinkedList<>();
-        int team1Remain = 0;
-        List<Result> team2ResultList = new LinkedList<>();
-        int team2Remain = 1;
-        for(User user: getUserMap().values()) {
-            LegionUser mUser = (LegionUser) user;
-            if (mUser.team == 1) {
-                team1ResultList.add(new Result(mUser, mUser.kill, 0));
-                if (mUser.life > 0) {
-                    team1Remain ++;
-                }
-            } else {
-                team2ResultList.add(new Result(mUser, mUser.kill, 0));
-                if (mUser.life > 0) {
-                    team2Remain ++;
-                }
+    public ByteBuilder generateResultMessage(User user) {
+        int rank = 1;
+        for (User gameUser: getUserMap().values()) {
+            if (gameUser.gameOverTime == 0 || gameUser.gameOverTime > user.gameOverTime) {
+                rank ++;
             }
         }
 
-        Collections.sort(team1ResultList);
-        Collections.sort(team2ResultList);
-        List<Result> resultList = new LinkedList<>();
-        if (team1Remain > team2Remain) {
-            resultList.addAll(team1ResultList);
-            resultList.addAll(team2ResultList);
-        } else {
-            resultList.addAll(team2ResultList);
-            resultList.addAll(team1ResultList);
-        }
-        return resultList;
+        ByteBuilder bb = new ByteBuilder();
+        bb.append(Constant.MessageType.RESULT);
+        bb.append(rank);
+        bb.append(0);
+
+        return bb;
     }
 
     @Override
     public GamePropConfigMap getGamePropConfigMap() {
-        return null;
+        return gamePropConfigMap;
     }
 
     @Override
     protected int getCustomPropPrice(short propTypeId) {
-        return 0;
+        if (propTypeId == PropConfig.MARK) return 10;
+        else return -1;
     }
 
     @Override
     protected short[] getStorePropIds() {
-        return new short[0];
+        return new short[]{1,2,3,4,5,6,7,8,9,10};
+    }
+
+    @Override
+    protected void initUser(Map<Integer, User> userMap) {
+        byte groupId = 1;
+        int count = 1;
+        int halfSize = userMap.size() / 2;
+
+        for (User user: userMap.values()) {
+            Point point = gameMap.getRandomRoadPosition(true);
+            user.setPosition(point);
+            user.setRotateY(ThreadLocalRandom.current().nextInt(360));
+            user.setMoveState(Constant.MoveState.IDLE);
+
+            if ((count ++) / halfSize == 1 && groupId == 0) groupId = 1;
+            user.setGroupId(groupId);
+        }
     }
 }

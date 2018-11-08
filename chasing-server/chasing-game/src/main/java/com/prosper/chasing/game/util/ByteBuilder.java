@@ -46,7 +46,7 @@ public class ByteBuilder {
         if (bytes == null) return;
         int contentSize = pos + bytes.length;
         if (contentSize >= innerBytes.length - 1) {
-            expand(innerBytes.length * 2);
+            expand(contentSize * 2);
         }
         for (byte b: bytes) {
             innerBytes[++ pos] = b;

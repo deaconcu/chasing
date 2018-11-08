@@ -269,6 +269,12 @@ public class UserService {
      */
     public void joinSystemUserList(Integer userId, String gameCode) {
         userQueueService.addUser(userId, getUserLevel(), gameCode);
+
+        // for test
+        userQueueService.addUser(1, getUserLevel(), gameCode);
+        userQueueService.addUser(2, getUserLevel(), gameCode);
+        userQueueService.addUser(3, getUserLevel(), gameCode);
+        userQueueService.addUser(4, getUserLevel(), gameCode);
     }
 
     /**

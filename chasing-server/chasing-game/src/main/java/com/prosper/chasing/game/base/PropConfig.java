@@ -4,7 +4,6 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.prosper.chasing.game.message.PropMessage;
-import com.prosper.chasing.game.navmesh.NaviMesh;
 import com.prosper.chasing.game.navmesh.NaviMeshGroup;
 import com.prosper.chasing.game.util.Constant;
 import org.slf4j.Logger;
@@ -14,6 +13,8 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.stereotype.Component;
+
+import static com.prosper.chasing.game.base.BuffConfig.HOLD_SCEPTER;
 
 @Component
 public class PropConfig {
@@ -68,6 +69,9 @@ public class PropConfig {
     // 其他
     public static final short MONEY = 24;  // 摧毁目标道具
     public static final short GIFT_BOX = 25;  // 摧毁目标道具
+
+    // 新增
+    public static final short SCEPTER = 26; // 灵魂权杖
 
     /********************************
      * 以下为子游戏:killer使用的道具
@@ -264,7 +268,7 @@ public class PropConfig {
                 if (gameUser.getId() == user.getId()) {
                     continue;
                 }
-                if (gameUser.getPosition().point.distance(user.getPosition().point) < 200) {
+                if (gameUser.getPosition().distance(user.getPosition()) < 200) {
                     gameUser.removeBuff(BuffConfig.INVISIBLE_LEVEL_1);
                     gameUser.removeBuff(BuffConfig.INVISIBLE_LEVEL_2);
                 }
@@ -285,7 +289,9 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
+            /* TODO
             user.setPosition(user.getInitPosition());
+            */
             return true;
         }
     }
@@ -302,8 +308,10 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
+            /* TODO
             user.setPosition(new Position(Constant.MoveState.IDLE,
                     getNavimeshGroup().getRandomPositionPoint(game.getGameInfo().getMetagameCode()), 0));
+            */
             return true;
         }
     }
@@ -323,7 +331,7 @@ public class PropConfig {
             if (user.hasBuffer(FLASH_LEVEL_1) || (user.hasBuffer(FLASH_LEVEL_2))) {
                 return false;
             }
-            GameObject target = user.getCurrentTargetObject();
+            Object target = user.getTargetObject();
             if (target == null) {
                 return false;
             }
@@ -348,7 +356,7 @@ public class PropConfig {
             if (user.hasBuffer(FLASH_LEVEL_1) || (user.hasBuffer(FLASH_LEVEL_2))) {
                 return false;
             }
-            GameObject target = user.getCurrentTargetObject();
+            Object target = user.getTargetObject();
             if (target == null) {
                 return false;
             }
@@ -674,6 +682,24 @@ public class PropConfig {
         public boolean doUse(PropMessage message, User user, Game game) {
             // TODO
             return false;
+        }
+    }
+
+    /**
+     * 灵魂权杖: 抽离灵魂
+     */
+    public static class Scepter extends PropConfig.Prop {
+
+        public Scepter() {
+            allowTargetType = new byte[]{PropMessage.TYPE_SELF};
+            propTypeId = SCEPTER;
+            autoUse = true;
+        }
+
+        @Override
+        public boolean doUse(PropMessage message, User user, Game game) {
+            user.addBuff(HOLD_SCEPTER);
+            return true;
         }
     }
 }

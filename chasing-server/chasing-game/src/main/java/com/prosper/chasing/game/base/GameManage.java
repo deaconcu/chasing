@@ -120,16 +120,6 @@ public class GameManage {
             // 获取game的信息
             GameInfo gameInfo = ViewTransformer.transferObject(gameTr, GameInfo.class);
 
-            /*
-            // 通过rpc获取meta game的信息
-            List<Integer> metagameIdList = new LinkedList<Integer>();
-            metagameIdList.add(gameInfo.getMetagameId());
-            List<MetagameTr> metagameTrList = thriftClient.metagameDataServiceClient().getMetagame(metagameIdList);
-
-            // 获取metagame的code
-            String metagameCode = metagameTrList.get(0).getCode();
-            */
-
             // 通过metagame code或者game class，然后初始化game
             Class<? extends Game> gameClass = gameClassMap.get(gameInfo.getMetagameCode());
             if (gameClass == null) {
@@ -141,17 +131,13 @@ public class GameManage {
             } catch (Exception e) {
                 log.error("create game failed, game class:" + Game.class.getName(), e);
             }
-            game.setGameInfo(gameInfo);
+
             GameMap gameMap = mapCreator.getMap(gameInfo.getMetagameCode());
             if (gameMap == null) {
                 throw new RuntimeException("map is null");
             }
-            game.setGameMap(gameMap);
-            game.setGameManage(this);
-            game.generateGameObjects();
-            //game.setNavimeshGroup(navimeshGroup);
 
-            // 加载游戏用户
+            // 获取游戏用户
             List<UserTr> userTrList = thriftClient.gameDataServiceClient().getGameUsers(gameInfo.getId());
             List<? extends User> userList = ViewTransformer.transferList(userTrList, game.getUserClass());
 
@@ -166,8 +152,8 @@ public class GameManage {
                 user.setState(Constant.UserState.LOADED);
                 user.setGame(game);
             }
-            game.loadUser(userList);
-            game.setState(GameState.PREPARE);
+
+            game.init(this, gameMap, gameInfo, userList);
 
             // 把加载好的游戏放到map中
             gamePool.put(gameInfo.getId(), game);
@@ -176,7 +162,7 @@ public class GameManage {
             String serverAddr = config.serverIp + ":" + config.rpcPort;
             zkClient.createNode(config.gameZkName + "/" + gameInfo.getId(),
                     serverAddr.getBytes(), CreateMode.PERSISTENT, true);
-            log.info("create game success, game id:" + gameInfo.getId());
+            log.info("create game success, game id:" + gameInfo.getId() + ", user count: " + userList.size());
         } catch (Exception e) {
             log.error("create game failed", e);
         }

@@ -1,35 +1,12 @@
 package com.prosper.chasing.game.base;
 
-import com.prosper.chasing.game.navmesh.Point;
-
-import java.util.*;
-
-import static java.lang.Math.random;
+import java.util.Map;
 
 /**
- * Created by deacon on 2017/12/30.
+ * Created by deacon on 2018/9/8.
  */
-public class NPC extends MovableObject {
+public interface NPC {
 
-    private short typeId;
+    void logic(Map<Integer, User> playerList);
 
-    public NPC(Game game) {
-        super(game);
-    }
-
-    @Override
-    protected void catched(User user) {
-    }
-
-    protected void action(User user, byte actionId, Object[] actionValues) {
-
-    }
-
-    public void setTypeId(short typeId) {
-        this.typeId = typeId;
-    }
-
-    public short getTypeId() {
-        return typeId;
-    }
 }

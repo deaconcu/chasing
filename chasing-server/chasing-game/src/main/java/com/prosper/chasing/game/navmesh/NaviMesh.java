@@ -1,6 +1,7 @@
 package com.prosper.chasing.game.navmesh;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.prosper.chasing.game.base.Point;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -13,6 +13,13 @@ public class Point2D {
         this.y = y;
     }
 
+    /**
+     * 计算两点的距离
+     */
+    public int distance (Point2D point) {
+        return (int)Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2));
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof Point2D)) {

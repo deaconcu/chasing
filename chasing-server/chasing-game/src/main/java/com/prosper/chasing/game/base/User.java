@@ -2,10 +2,8 @@ package com.prosper.chasing.game.base;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.prosper.chasing.game.message.ReplyMessage;
-import com.prosper.chasing.game.navmesh.Point;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
-import com.sun.tools.internal.jxc.ap.Const;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,9 +11,8 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 import static com.prosper.chasing.game.base.Game.FROZEN_TIME;
-import static com.prosper.chasing.game.util.Constant.ChasingConfig.*;
 
-public class User implements GameObject {
+public class User extends GameObject {
 
     private Logger log = LoggerFactory.getLogger(getClass());
 
@@ -33,12 +30,12 @@ public class User implements GameObject {
 
     // 用户名称
     private String name;
-    
-    // 用户位置
-    private Position position = new Position();
 
-    // 出生位置
-    private Position initPosition = new Position();
+    // 队伍id
+    private byte groupId;
+
+    // 运动姿态,比如跑步或者步行
+    public byte moveState;
 
     // 运动步数
     private int steps;
@@ -60,12 +57,12 @@ public class User implements GameObject {
     
     // Buff Map
     private Map<Byte, Buff> buffMap = new HashMap<>();
+
+    // 周围追逐当前用户的玩家信息
+    private ChasingInfo chasingInfo;
     
     // 用户状态 @see #Constant.UserState
     private byte state;
-
-    // 位置是否有修改
-    boolean isPositionChanged = false;
 
     // 生命值是否有修改
     boolean isLifeChanged = false;
@@ -101,7 +98,6 @@ public class User implements GameObject {
     @JsonIgnore
     //LinkedList<ReplyMessage> messageQueue = new LinkedList<>();
 
-
     TreeMap<Integer, ReplyMessage> messageSendMap = new TreeMap<>();
 
     // 下一个消息需要设置的seqId
@@ -117,18 +113,29 @@ public class User implements GameObject {
     List<Integer> resendSeqIdList;
 
     // 使用类型 1：用户，2：道具，3：位置
-    private byte targetType;
+    //private byte targetType;
 
-    // 目标对象的用户id
-    private int targetId;
+    // 目标对象的id
+    //private int targetId;
 
     // 目标位置
-    private Point targetPoint;
+    //private Point targetPoint;
 
-    // 追逐进度
-    private Progress progress;
+    private Object targetObject;
 
+    private Map<Integer, ChasingInfo> chasingInfoMap = new HashMap<>();
 
+    public byte getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(byte groupId) {
+        this.groupId = groupId;
+    }
+
+    public Map<Integer, ChasingInfo> getChasingInfoMap() {
+        return chasingInfoMap;
+    }
 
     /********************************
      * 追逐目标和追逐进度
@@ -150,20 +157,24 @@ public class User implements GameObject {
         }
     }
 
+    public static class ChasingInfo {
+        User chasingUser;   // 追逐的玩家
+        long startTime;     // 追逐开始的时间
+
+        ChasingInfo(User chasingUser) {
+            this.chasingUser = chasingUser;
+            this.startTime = 0;
+        }
+    }
+
     /**
      * 获得当前目标对象
      * @return null 如果目标对象不存在返回null
      */
-    public GameObject getCurrentTargetObject() {
-        if (targetType != 0 && targetId != 0) {
-            return getTargetObject(targetType, targetId);
-        }
-        return null;
+    public Object getTargetObject() {
+        return targetObject;
     }
 
-    /**
-     * 获得指定目标对象
-     */
     public GameObject getTargetObject(byte type, int id) {
         if (type == Constant.TargetType.TYPE_PROP) {
             return game.getProp(id);
@@ -175,45 +186,42 @@ public class User implements GameObject {
         return null;
     }
 
+    public byte getTargetType() {
+        if (targetObject instanceof Point) return Constant.TargetType.TYPE_POSITION;
+        else if (targetObject instanceof PropConfig.Prop) return Constant.TargetType.TYPE_PROP;
+        else if (targetObject instanceof User) return Constant.TargetType.TYPE_USER;
+        else return Constant.TargetType.TYPE_NONE;
+    }
+
     /**
      * 设置目标对象
      * @return 修改成功返回true，否则返回false
      */
     public boolean setTarget(byte type, int id, Point point) {
         if (type == Constant.TargetType.TYPE_POSITION)  {
-            if (targetType == type && targetPoint.equals(point)) {
+            if (targetObject.equals(point)) {
                 return false;
             }
-
             // 设置当前目标
-            targetType = type;
-            targetPoint = point;
-            progress = null;
+            targetObject = point;
         } else {
             // 如果target和当前目标一致，不做处理
-            if (targetType == type && targetId == id) {
+            Object intendTargetObject = getTargetObject(type, id);
+            if (targetObject.equals(intendTargetObject) || intendTargetObject == null) {
                 return false;
             }
 
-            // 如果目标对象不存在，不做处理
-            Object currentTargetObject = getTargetObject(type, id);
-            if (currentTargetObject == null) {
-                return false;
+            if (targetObject instanceof User) {
+                chasingInfoMap.remove(((User) targetObject).getId());
+            }
+
+            if (intendTargetObject instanceof User) {
+                User intendTargetUser = (User) intendTargetObject;
+                chasingInfoMap.put(intendTargetUser.getId(), new ChasingInfo(intendTargetUser));
             }
 
             // 设置当前目标
-            targetType = type;
-            targetId = id;
-            progress = null;
-            if (currentTargetObject instanceof MovableObject) {
-                ((MovableObject) currentTargetObject).chasingUserSet.add(this);
-            }
-        }
-
-        // 清除之前的目标
-        Object previousTargetObject = getTargetObject(targetType, targetId);
-        if (previousTargetObject instanceof MovableObject) {
-            ((MovableObject) previousTargetObject).chasingUserSet.remove(this);
+            targetObject = intendTargetObject;
         }
 
         isTargetChanged = true;
@@ -223,6 +231,7 @@ public class User implements GameObject {
     /**
      * 计算追逐进度
      */
+    /*
     public void countMovableTargetProgress() {
         Object target = getTargetObject(targetType, targetId);
         if (target != null && target instanceof MovableObject) {
@@ -260,6 +269,7 @@ public class User implements GameObject {
             }
         }
     }
+    */
 
     /********************************
      * 动作相关
@@ -378,7 +388,6 @@ public class User implements GameObject {
         return false;
     }
 
-
     /********************************
      * buff 相关
      ********************************/
@@ -408,6 +417,7 @@ public class User implements GameObject {
      */
     public void removeBuff(byte buffId) {
         buffMap.remove(buffId);
+        buffChangedSet.add(buffId);
     }
 
     /**
@@ -418,9 +428,17 @@ public class User implements GameObject {
     }
 
     /**
+     * 获取buff上的信息
+     */
+    public List<Object> getBufferInfo(byte bufferId) {
+        if (!hasBuffer(bufferId)) return null;
+        return buffMap.get(bufferId).valueList;
+    }
+
+    /**
      * 用32个bit位表示buff
      */
-    private int getBuffBytes() {
+    public int getBuffBytes() {
         int value = 0;
         for (Buff buff: buffMap.values()) {
             value = value | (1 << (buff.id - 1));
@@ -469,31 +487,6 @@ public class User implements GameObject {
         this.id = id;
     }
 
-    public Position getPosition() {
-        return position;
-    }
-
-    public Point getPositionPoint() {
-        if (position != null) {
-            return position.point;
-        }
-        return null;
-    }
-
-    public void setPosition(Position position) {
-        if (position.equals(this.position)) return;
-        this.position = position;
-        isPositionChanged = true;
-    }
-
-    public Position getInitPosition() {
-        return initPosition;
-    }
-
-    public void setInitPosition(Position initPosition) {
-        this.initPosition = initPosition;
-    }
-
     public int getSpeed() {
         return speed;
     }
@@ -503,6 +496,18 @@ public class User implements GameObject {
         this.speed = speed;
         isSpeedChanged = true;
     }
+
+    public byte getMoveState() {
+        return moveState;
+    }
+
+    public void setMoveState(byte moveState) {
+        this.moveState = moveState;
+        setMoved(true);
+    }
+
+
+
 
     public String getName() {
         return name;
@@ -584,6 +589,8 @@ public class User implements GameObject {
         }
         int seqId = messageId ++;
         bb.set(seqId, 0);
+
+
         messageSendMap.put(seqId, new ReplyMessage(id, seqId, ByteBuffer.wrap(bb.getBytes())));
     }
 
@@ -618,7 +625,7 @@ public class User implements GameObject {
      * targetType(1)|targetId(4)|
      * step(1)
      * envPropCount(2)|list<EnvProp>|
-     * NPCCount(2)|list<NPC>|
+     * NPCCount(2)|list<NPCOld>|
      * actionCount(2)|list<Action>
      * state(1)
      * moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
@@ -633,7 +640,7 @@ public class User implements GameObject {
      * sign: reserved(2bit)|target|step|envProp|npc|action|state|
      *       position|life|speed|buff|prop|customProperty|otherUserPosition|otherUserBuff|
      * EnvProp: id(2)|seqId(4)|positionX(4)|positionY(4)|positionZ(4)|remainSecond(4)|
-     * NPC: id(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
+     * NPCOld: id(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * Action: id(2)|code(1)|type(1)|value(4)|
      * Buff: buffId(1)|remainSecond(4)|
      * Prop: propId(2)|count(2)|
@@ -653,93 +660,18 @@ public class User implements GameObject {
                 byteBuilder =  new ByteBuilder();
             }
             sign = (short) (sign | 8192);
+
+            byte targetType = getTargetType();
             byteBuilder.append(targetType);
-            if (targetType == Constant.TargetType.TYPE_POSITION) {
-                byteBuilder.append(targetPoint.x);
-                byteBuilder.append(targetPoint.y);
-                byteBuilder.append(targetPoint.z);
+            if (targetObject instanceof Point) {
+                byteBuilder.append(((Point) targetObject).x);
+                byteBuilder.append(((Point) targetObject).y);
+                byteBuilder.append(((Point) targetObject).z);
             } else {
-                byteBuilder.append(targetId);
-            }
-        }
-        if (game.isStepChanged()) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 4096);
-            byteBuilder.append(game.getStep());
-        }
-        if (game.envPropChangedList.size() != 0) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 2048);
-            byteBuilder.append((short)game.envPropChangedList.size());
-            for (EnvProp envProp: game.envPropChangedList) {
-                byteBuilder.append(envProp.typeId);
-                byteBuilder.append(envProp.id);
-                byteBuilder.append(envProp.position.point.x);
-                byteBuilder.append(envProp.position.point.y);
-                byteBuilder.append(envProp.position.point.z);
-                byteBuilder.append(envProp.getRemainSecond());
+                byteBuilder.append(((GameObject) targetObject).getId());
             }
         }
 
-        if (game.npcChangedList.size() > 0) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 1024);
-
-            byteBuilder.append((short)game.npcChangedList.size());
-            for (NPC npc: game.npcChangedList) {
-                if (npc.firstSync || npc.isPositionChanged()) {
-                    if (npc instanceof Merchant) {
-                        byteBuilder.append(Constant.NPCType.MERCHANT);
-                        if (((Merchant) npc).firstSync) {
-                            byteBuilder.append(Constant.FirstSync.TRUE);
-
-                            byteBuilder.append(npc.getTypeId());
-                            byteBuilder.append(npc.getId());
-                            byteBuilder.append(npc.getPosition().moveState);
-                            byteBuilder.append(npc.getPosition().point.x);
-                            byteBuilder.append(npc.getPosition().point.y);
-                            byteBuilder.append(npc.getPosition().point.z);
-                            byteBuilder.append(npc.getPosition().rotateY);
-
-                            Merchant merchant = (Merchant) npc;
-                            byte[] nameBytes = merchant.getName().getBytes();
-                            byteBuilder.append(nameBytes.length);
-                            byteBuilder.append(nameBytes);
-                                    byteBuilder.append(merchant.getPropIds().length);
-                            for (short propId: merchant.getPropIds()) {
-                                byteBuilder.append(propId);
-                            }
-                        } else {
-                            byteBuilder.append(Constant.FirstSync.TRUE);
-                            byteBuilder.append(npc.getTypeId());
-                            byteBuilder.append(npc.getId());
-                            byteBuilder.append(npc.getPosition().moveState);
-                            byteBuilder.append(npc.getPosition().point.x);
-                            byteBuilder.append(npc.getPosition().point.y);
-                            byteBuilder.append(npc.getPosition().point.z);
-                            byteBuilder.append(npc.getPosition().rotateY);
-                        }
-                    } else {
-                        byteBuilder.append(Constant.NPCType.OTHER);
-                        byteBuilder.append(npc.getTypeId());
-                        byteBuilder.append(npc.getId());
-                        byteBuilder.append(npc.getPosition().moveState);
-                        byteBuilder.append(npc.getPosition().point.x);
-                        byteBuilder.append(npc.getPosition().point.y);
-                        byteBuilder.append(npc.getPosition().point.z);
-                        byteBuilder.append(npc.getPosition().rotateY);
-                    }
-                    npc.firstSync = false;
-                    npc.setPositionChanged(false);
-                }
-            }
-        }
         if (actionList.size() != 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
@@ -762,16 +694,16 @@ public class User implements GameObject {
             sign = (short) (sign | 256);
             byteBuilder.append(state);
         }
-        if (isPositionChanged) {
+        if (isMoved()) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
             sign = (short) (sign | 128);
-            byteBuilder.append(position.moveState);
-            byteBuilder.append(position.point.x);
-            byteBuilder.append(position.point.y);
-            byteBuilder.append(position.point.z);
-            byteBuilder.append(position.rotateY);
+            byteBuilder.append(moveState);
+            byteBuilder.append(getPosition().x);
+            byteBuilder.append(getPosition().y);
+            byteBuilder.append(getPosition().z);
+            byteBuilder.append(rotateY);
         }
         if (isLifeChanged) {
             if (byteBuilder == null) {
@@ -817,35 +749,6 @@ public class User implements GameObject {
             sign = (short) (sign | 4);
             byteBuilder.append(getCustomPropertyBytes());
         }
-        if (game.positionChangedSet.size() != 0) {
-            if (!(game.positionChangedSet.size() == 1 && game.positionChangedSet.contains(id))) {
-                if (byteBuilder == null) {
-                    byteBuilder =  new ByteBuilder();
-                }
-                sign = (short) (sign | 2);
-                byteBuilder.append((byte)game.positionChangedSet.size());
-                for (int userId: game.positionChangedSet) {
-                    Position position = game.getUser(userId).getPosition();
-                    byteBuilder.append(userId);
-                    byteBuilder.append(position.moveState);
-                    byteBuilder.append(position.point.x);
-                    byteBuilder.append(position.point.y);
-                    byteBuilder.append(position.point.z);
-                    byteBuilder.append(position.rotateY);
-                }
-            }
-        }
-        if (game.buffChangedSet.size() != 0) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 1);
-            byteBuilder.append((byte)game.buffChangedSet.size());
-            for (int userId: game.buffChangedSet) {
-                byteBuilder.append(userId);
-                byteBuilder.append(game.getUser(userId).getBuffBytes());
-            }
-        }
 
         if (sign == 0) {
             // 如果没有需要同步的内容，返回null
@@ -867,10 +770,10 @@ public class User implements GameObject {
     public void clearAfterSync() {
         isTargetChanged = false;
         isLifeChanged = false;
-        isPositionChanged = false;
         isSpeedChanged = false;
         isStateChanged = false;
         isCustomPropertyChanged = false;
+        setMoved(false);
 
         buffChangedSet.clear();
         propChangedSet.clear();
@@ -918,10 +821,10 @@ public class User implements GameObject {
             ChasingBuff chasingBuff = (ChasingBuff) buff;
             if (chasingBuff.type == ChasingBuff.USER) {
                 // TODO
-            } else if (chasingBuff.type == ChasingBuff.NPC) {
-                NPC npc = game.getMoveableNPCMap().get(chasingBuff.targetId);
+            } else if (chasingBuff.type == ChasingBuff.NPCOld) {
+                NPCOld npc = game.getMoveableNPCMap().get(chasingBuff.targetId);
                 if (npc != null) {
-                    boolean isNear = game.isNear(npc.getPosition().point, position.point, NEAR_DISTANCE);
+                    boolean isNear = game.isNear(npc.getPositionInfo().point, position.point, NEAR_DISTANCE);
                     if (!isNear) {
                         return false;
                     } else if (isNear && buff.getRemainSecond() <= 0) {
@@ -945,7 +848,7 @@ public class User implements GameObject {
     /**
      * 捕获NPC后的行为
      */
-    protected void catchUp(NPC npc) {
+    protected void catchUp(NPCOld npcOld) {
 
     }
 

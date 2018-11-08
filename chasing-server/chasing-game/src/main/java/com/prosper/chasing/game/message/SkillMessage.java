@@ -1,7 +1,6 @@
 package com.prosper.chasing.game.message;
 
-import com.prosper.chasing.game.base.Game;
-import com.prosper.chasing.game.navmesh.Point;
+import com.prosper.chasing.game.base.Point;
 
 import java.nio.ByteBuffer;
 
@@ -12,7 +11,7 @@ public class SkillMessage extends UserMessage {
     public static byte TYPE_NPC = 2;
     public static byte TYPE_POSITION = 3;
 
-    // 使用类型 1：用户，2：NPC，3：位置
+    // 使用类型 1：用户，2：NPCOld，3：位置
     private byte type;
 
     // 道具使用对象的用户id， -1表示用在自己身上

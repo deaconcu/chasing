@@ -276,8 +276,8 @@ public class GameService {
         Map<String, String> userMap = jedis.hgetAll(CacheName.userQueue);
         Map<String, Integer> userCountMap = new HashMap<>();
         for (Map.Entry<String, String> userInfo: userMap.entrySet()) {
-            if (userCountMap.containsKey(userInfo.getKey())) {
-                userCountMap.put(userInfo.getValue(), userCountMap.get(userInfo.getKey()) + 1);
+            if (userCountMap.containsKey(userInfo.getValue())) {
+                userCountMap.put(userInfo.getValue(), userCountMap.get(userInfo.getValue()) + 1);
             } else {
                 userCountMap.put(userInfo.getValue(), 1);
             }
@@ -577,4 +577,11 @@ public class GameService {
         metagameTypeMapper.update(metagameType);
     }
 
+    /**
+     * 获得游戏地图的数据
+     */
+    public Object getGameMapBytes(String id) {
+        byte[] bytes = jedis.get(id.getBytes());
+        return Base64.getEncoder().encodeToString(bytes);
+    }
 }

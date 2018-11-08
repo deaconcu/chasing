@@ -1,15 +1,16 @@
 package com.prosper.chasing.game.base;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.prosper.chasing.game.map.Block;
 import com.prosper.chasing.game.map.Building;
 import com.prosper.chasing.game.map.GameMap;
 import com.prosper.chasing.game.message.*;
 import com.prosper.chasing.game.navmesh.NaviMeshGroup;
-import com.prosper.chasing.game.navmesh.Point;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
+import com.prosper.chasing.game.util.Enums;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +18,6 @@ import com.prosper.chasing.game.message.Message;
 import com.prosper.chasing.game.util.Constant.UserState;
 import com.prosper.chasing.common.util.CommonConstant.GameState;
 import com.prosper.chasing.common.util.JsonUtil;
-
-import static com.prosper.chasing.game.util.Constant.TargetType.TYPE_PROP;
 
 public abstract class Game {
     
@@ -48,15 +47,23 @@ public abstract class Game {
     // 地形map
     protected Map<Integer, TerrainBlock> terrainBlockMap = new HashMap<>();
 
+    private LinkedList<User> movedUserList = new LinkedList<>();
+
+    // 游戏内的全部道具
+    private LinkedList<Short> propList;
+
     // 游戏场景内的道具信息
-    private List<EnvProp> envPropList = new LinkedList<>();
+    private List<EnvProp> propInSceneList = new LinkedList<>();
+
+    private Map<Short, DynamicGameObject> dGameObjectMap = new HashMap<>();
 
     // 位置不发生变化的NPC
-    private Map<Integer, NPC> staticNPCMap = new HashMap<>();
+    private Map<Integer, NPCOld> staticNPCMap = new HashMap<>();
     // 可以移动的NPC
-    private Map<Integer, NPC> movableNPCMap = new HashMap<>();
-    // 移动NPC每种类型的数量
-    private Map<Short, Integer> movableNPCCountMap = new HashMap<>();
+    private Map<Integer, NPCOld> movableNPCMap = new HashMap<>();
+
+    // 地图中的npc集合
+    private Map<Integer, NPC> npcMap = new HashMap<>();
 
     // prop顺序号id
     private int nextPropSeqId = 1;
@@ -64,7 +71,6 @@ public abstract class Game {
     private int staticNPCSeqId = 1;
     // 移动NPC顺序号id
     private int movableNPCSeqId = 1;
-
 
     // 处理游戏逻辑的管理器
     private GameManage gameManage;
@@ -80,7 +86,7 @@ public abstract class Game {
     protected boolean isStepChanged = false;
     // 每一次同步的时候有位置变化和buff变化的用户map
     List<EnvProp> envPropChangedList = new LinkedList<>();
-    List<NPC> npcChangedList = new LinkedList<>();
+    List<NPCOld> npcOldChangedList = new LinkedList<>();
     Set<Integer> positionChangedSet = new HashSet<>();
     Set<Integer> buffChangedSet = new HashSet<>();
 
@@ -120,21 +126,6 @@ public abstract class Game {
     }
 
     /**
-     * 生成游戏场景中的对象
-     */
-    public void generateGameObjects() {
-        generateTerrainBlock();
-        generateStaticStuff();
-        generateDecorations();
-    }
-
-    public void generateTerrainBlock() {}
-
-    public void generateStaticStuff() {}
-
-    public void generateDecorations() {}
-
-    /**
      * 结束后的成绩
      */
     public static class Result implements Comparable{
@@ -162,6 +153,46 @@ public abstract class Game {
      ********************************/
 
     /**
+     * 处理游戏开始之后的一些准备数据，比如设置用户位置, NPC位置等等
+     */
+    public void prepare() {
+        initUser(userMap);
+        initNPC();
+        initProp();
+        //initLamp();
+        initDynamicObject();
+    }
+
+    private void initLamp() {
+        short id = 1;
+
+        for (Block block: gameMap.occupiedBlockMap.values()) {
+            if (block.distanceAwayFromRoadCrossPoint == 0) {
+                dGameObjectMap.put(id++, new DynamicGameObject(
+                        Enums.DynamicGameObjectType.LAMP.getValue(),
+                        id,
+                        new Point(block.position.x * 1000, 0, block.position.y * 1000),
+                        ThreadLocalRandom.current().nextInt(360)));
+            }
+        }
+    }
+
+    /**
+     * 初始化游戏场景中动态的游戏对象，动态的意思是游戏对象可能是可以消失或者移动的
+     */
+    protected abstract void initDynamicObject();
+
+    /**
+     * 添加场景中动态的游戏对象
+     * @param dynamicGameObject
+     */
+    protected void addDynamicObject(DynamicGameObject dynamicGameObject) {
+        short id = (short)dGameObjectMap.size();
+        dynamicGameObject.setId(id);
+        dGameObjectMap.put(id, dynamicGameObject);
+    }
+
+    /**
      * 游戏主逻辑
      * 主要包括：处理用户消息，执行预定义游戏逻辑，检查连接等
      */
@@ -172,30 +203,55 @@ public abstract class Game {
 
         // 检查, 比如玩家是否掉线, 游戏是否结束
         check();
-        // 执行游戏逻辑
-        logic();
         // 执行玩家消息
         executeMessage();
+        // 执行游戏逻辑
+        logic();
     }
 
     /**
      * 游戏场景中的一些逻辑，比如生成道具
      */
     public void logic() {
+        // 执行npc逻辑
+        doNPCLogic();
+
         // 移动所有可移动道具
-        moveProp();
+        //moveProp();
 
-        // 计算追逐和捕获
-        countChasingProgress();
+        // 计算追逐
+        doChasing();
 
-        // 移除无效道具
-        removeInvildProp();
-
-        // 生成道具
-        generateProp();
+        // 执行道具逻辑，比如生成新的道具，回收到期的道具
+        doPropLogic();
 
         // npc
         moveNPC();
+
+        // 自定义逻辑
+        customLogic();
+    }
+
+    /**
+     * 继承类的自定义逻辑
+     */
+    protected abstract void customLogic();
+
+    /**
+     * 执行npc的业务逻辑
+     */
+    private void doNPCLogic() {
+        for (NPC npc: npcMap.values()) {
+            npc.logic(getNearByPlayer());
+        }
+    }
+
+    /**
+     * 获得某一个物体周边玩家
+     */
+    private Map<Integer, User> getNearByPlayer() {
+        // TODO
+        return null;
     }
 
     /**
@@ -216,12 +272,11 @@ public abstract class Game {
 
         // 检查用户是否掉线，是否已结束游戏（死亡或者获胜）
         for (User user: userMap.values()) {
-            user.check();
+            //user.check();
+            /*
             if (user.getState() == UserState.GAME_OVER) {
-                ByteBuilder resultMessage = generateResultMessage(user);
-                user.offerMessage(resultMessage);
                 user.setState(UserState.RESULT_INFORMED);
-            }
+            }*/
         }
     }
 
@@ -303,10 +358,12 @@ public abstract class Game {
 
     /**
      * 同步用户数据
+     * 1.游戏场景中改变的数据需要同步到用户
+     * 2.用户自身的修改需要同步给用户
      */
     public void generateUserMessage() {
         for (User user: userMap.values()) {
-            if (user.isPositionChanged) {
+            if (user.isMoved()) {
                 positionChangedSet.add(user.getId());
             }
             if (user.buffChangedSet.size() != 0) {
@@ -314,15 +371,21 @@ public abstract class Game {
             }
         }
 
+        ByteBuilder gameChangeBytes = changesToBytes();
+
         for (User user: userMap.values()) {
-            ByteBuilder byteBuilder = user.ChangesToBytes();
-            if (byteBuilder != null) {
-                user.offerMessage(byteBuilder);
+            if (gameChangeBytes != null) {
+                user.offerMessage(gameChangeBytes);
+            }
+
+            ByteBuilder userChangeBytes = user.ChangesToBytes();
+            if (userChangeBytes != null) {
+                user.offerMessage(userChangeBytes);
             }
         }
 
         envPropChangedList.clear();
-        npcChangedList.clear();
+        npcOldChangedList.clear();
         positionChangedSet.clear();
         buffChangedSet.clear();
         isStepChanged = false;
@@ -332,21 +395,190 @@ public abstract class Game {
     }
 
     /**
-     * 游戏开始后的准备工作
+     * sign: reserved(1bit)|dynamicGameObject|target|step|envProp|npc|action|state|
+     *     position|life|speed|buff|prop|customProperty|otherUserPosition|otherUserBuff|
      */
-    public void prepare() {
-        prepareData();
-        generatePrepareMessage();
+    private ByteBuilder changesToBytes() {
+        ByteBuilder byteBuilder =  new ByteBuilder();
+        int seqId = 0;
+        byteBuilder.append(seqId);
+        byteBuilder.append(Constant.MessageType.USER);
+
+        short sign = 0;
+        byteBuilder.append(sign);
+        byteBuilder.append(System.currentTimeMillis());
+
+        short dynamicGameObjectCount = 0;
+        for(DynamicGameObject dynamicGameObject: dGameObjectMap.values()) {
+            if (dynamicGameObject.isMoved()) {
+                dynamicGameObjectCount++;
+            }
+        }
+
+        if (dynamicGameObjectCount > 0) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 16384);
+            byteBuilder.append(dynamicGameObjectCount);
+            for(DynamicGameObject dynamicGameObject: dGameObjectMap.values()) {
+                if (dynamicGameObject.isMoved()) {
+                    byteBuilder.append(dynamicGameObject.getId());
+                    byteBuilder.append(dynamicGameObject.getTypeId());
+                    byteBuilder.append(dynamicGameObject.getPosition().x);
+                    byteBuilder.append(dynamicGameObject.getPosition().y);
+                    byteBuilder.append(dynamicGameObject.getPosition().z);
+                    byteBuilder.append(dynamicGameObject.rotateY);
+                    dynamicGameObject.setMoved(false);
+                }
+            }
+        }
+
+        if (isStepChanged()) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 4096);
+            byteBuilder.append(getStep());
+        }
+        if (envPropChangedList.size() != 0) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 2048);
+            byteBuilder.append((short)envPropChangedList.size());
+            for (EnvProp envProp: envPropChangedList) {
+                byteBuilder.append(envProp.typeId);
+                byteBuilder.append(envProp.id);
+                byteBuilder.append(envProp.position.point.x);
+                byteBuilder.append(envProp.position.point.y);
+                byteBuilder.append(envProp.position.point.z);
+                byteBuilder.append(envProp.getRemainSecond());
+            }
+        }
+
+        if (npcOldChangedList.size() > 0) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 1024);
+
+            byteBuilder.append((short)npcOldChangedList.size());
+            for (NPCOld npcOld : npcOldChangedList) {
+                if (npcOld.firstSync || npcOld.isPositionChanged()) {
+                    if (npcOld instanceof Merchant) {
+                        byteBuilder.append(Constant.NPCType.MERCHANT);
+                        if (((Merchant) npcOld).firstSync) {
+                            byteBuilder.append(Constant.FirstSync.TRUE);
+
+                            byteBuilder.append(npcOld.getTypeId());
+                            byteBuilder.append(npcOld.getId());
+                            byteBuilder.append(npcOld.getPositionInfo().moveState);
+                            byteBuilder.append(npcOld.getPositionInfo().point.x);
+                            byteBuilder.append(npcOld.getPositionInfo().point.y);
+                            byteBuilder.append(npcOld.getPositionInfo().point.z);
+                            byteBuilder.append(npcOld.getPositionInfo().rotateY);
+
+                            Merchant merchant = (Merchant) npcOld;
+                            byte[] nameBytes = merchant.getName().getBytes();
+                            byteBuilder.append(nameBytes.length);
+                            byteBuilder.append(nameBytes);
+                            byteBuilder.append(merchant.getPropIds().length);
+                            for (short propId: merchant.getPropIds()) {
+                                byteBuilder.append(propId);
+                            }
+                        } else {
+                            byteBuilder.append(Constant.FirstSync.TRUE);
+                            byteBuilder.append(npcOld.getTypeId());
+                            byteBuilder.append(npcOld.getId());
+                            byteBuilder.append(npcOld.getPositionInfo().moveState);
+                            byteBuilder.append(npcOld.getPositionInfo().point.x);
+                            byteBuilder.append(npcOld.getPositionInfo().point.y);
+                            byteBuilder.append(npcOld.getPositionInfo().point.z);
+                            byteBuilder.append(npcOld.getPositionInfo().rotateY);
+                        }
+                    } else {
+                        byteBuilder.append(Constant.NPCType.OTHER);
+                        byteBuilder.append(npcOld.getTypeId());
+                        byteBuilder.append(npcOld.getId());
+                        byteBuilder.append(npcOld.getPositionInfo().moveState);
+                        byteBuilder.append(npcOld.getPositionInfo().point.x);
+                        byteBuilder.append(npcOld.getPositionInfo().point.y);
+                        byteBuilder.append(npcOld.getPositionInfo().point.z);
+                        byteBuilder.append(npcOld.getPositionInfo().rotateY);
+                    }
+                    npcOld.firstSync = false;
+                    npcOld.setPositionChanged(false);
+                }
+            }
+        }
+
+        if (positionChangedSet.size() != 0) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 2);
+            byteBuilder.append((byte)positionChangedSet.size());
+            for (int userId: positionChangedSet) {
+                User user = userMap.get(userId);
+                byteBuilder.append(userId);
+                byteBuilder.append(user.moveState);
+                byteBuilder.append(user.getPosition().x);
+                byteBuilder.append(user.getPosition().y);
+                byteBuilder.append(user.getPosition().z);
+                byteBuilder.append(user.rotateY);
+            }
+        }
+        if (buffChangedSet.size() != 0) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 1);
+            byteBuilder.append((byte)buffChangedSet.size());
+            for (int userId: buffChangedSet) {
+                byteBuilder.append(userId);
+                byteBuilder.append(getUser(userId).getBuffBytes());
+            }
+        }
+
+        if (sign == 0) {
+            // 如果没有需要同步的内容，返回null
+            return null;
+        } else {
+            byteBuilder.set(sign, 5);
+            return byteBuilder;
+        }
     }
 
     /**
-     * 处理游戏开始之后的一些准备数据，比如设置用户位置, NPC位置等等
+     * 游戏开始后的准备工作
+     * @param gameManage
+     * @param gameMap
+     * @param gameInfo
+     * @param userList
      */
-    public void prepareData() {
-        for (User user: userMap.values()) {
-            setUserInitPosition(user);
-        }
-        initNPC();
+    public void init(GameManage gameManage, GameMap gameMap, GameInfo gameInfo, List<? extends User> userList) {
+        setGameManage(gameManage);
+        setGameMap(gameMap);
+        setGameInfo(gameInfo);
+        loadUser(userList);
+
+        generatePrepareMessage();
+        setState(GameState.PREPARE);
+
+        customInit();
+    }
+
+    /**
+     * 自定义游戏的一些初始化工作
+     */
+    protected abstract void customInit();
+
+    /**
+     * 初始化道具
+     */
+    private void initProp() {
+        propList = getGamePropConfigMap().getPropList();
     }
 
     /**
@@ -356,9 +588,7 @@ public abstract class Game {
      *
      * User: userId(4)|nameLength(1)|name
      * PropPrice: id(2)|price(4)
-     * Map: boundX(4)|boundY(4)|blockCount|List<Block>|buildingCount|List<Building>
-     * Map: boundX(4)|boundY(4)|blockCount|List<byte>|buildingCount|List<Building>
-     * Block: id(4)|terrainType(1)
+     * //Map: boundX(4)|boundY(4)|mapByteCount|List<byte>
      * Building: id(4)|type(1)|positionX(4)|positionY(4)|orientation(1)
      */
     public void generatePrepareMessage() {
@@ -381,35 +611,27 @@ public abstract class Game {
             bb.append(price);
         }
 
+        /*
         bb.append(gameMap.boundX);
         bb.append(gameMap.boundY);
 
-        int blockCount = gameMap.boundX * gameMap.boundY;
-        bb.append(blockCount);
-
-        for (int i = 1; i <= blockCount; i ++) {
-            Block block = gameMap.occupiedBlockMap.get(i);
-            bb.append(block.type.getValue());
-        }
-        /*
-        bb.append(gameMap.occupiedBlockMap.size());
-        for (Block block: gameMap.occupiedBlockMap.values()) {
-            bb.append(block.blockId);
-            bb.append(block.terrainType.getValue());
-        }
+        byte[] mapBytes = gameMap.getMapBytes();
+        bb.append(mapBytes.length);
+        bb.append(mapBytes);
         */
+
         bb.append(gameMap.buildingMap.size());
         for (Map.Entry<Integer, Building> entry: gameMap.buildingMap.entrySet()) {
             bb.append(entry.getKey());
             bb.append(entry.getValue().buildingType.getValue());
             bb.append(entry.getValue().point2D.x);
             bb.append(entry.getValue().point2D.y);
-            bb.append(entry.getValue().orientation.getValue());
+            bb.append(entry.getValue().direction.getValue());
         }
 
         if (bb.getSize() > 0) {
             for (User user: userMap.values()) {
-                log.info("prepare message offered");
+                log.info("init message offered");
                 user.offerMessage(bb);
             }
         }
@@ -475,13 +697,20 @@ public abstract class Game {
         User user = getUser(message.getUserId(), true);
         
         // TODO check if could move
-        Position position = new Position(
-                message.moveState, new Point(message.positionX, message.positionY, message.positionZ),
-                message.rotationY);
-        user.setPosition(position);
+        user.setRotateY(message.rotationY);
+        user.setPosition(new Point(message.positionX, message.positionY, message.positionZ));
+        user.setMoveState(message.moveState);
         user.addSteps(message.steps);
+
+        movedUserList.add(user);
+        doPositionChanged(user);
     }
-    
+
+    /**
+     * 当用户的位置有变化时，执行一些自定义逻辑
+     */
+    protected abstract void doPositionChanged(User user);
+
     /**
      * 处理使用道具消息
      */
@@ -583,10 +812,6 @@ public abstract class Game {
         }
     }
 
-
-
-
-
     /********************************
      * user 相关
      ********************************/
@@ -603,7 +828,12 @@ public abstract class Game {
             ReplyMessage replyMessage = user.nextMessage();
             while (replyMessage != null) {
                 gameManage.replyData(replyMessage);
-                log.info("reply bytes: {}", Arrays.toString(replyMessage.getContent().array()));
+
+                if (replyMessage.getContent().array().length < 300)
+                    log.info("reply bytes: {}", Arrays.toString(replyMessage.getContent().array()));
+                else
+                    log.info("reply bytes: {}",
+                            Arrays.toString(Arrays.copyOfRange(replyMessage.getContent().array(), 0, 300)) + "...");
                 replyMessage = user.nextMessage();
             }
         }
@@ -638,18 +868,103 @@ public abstract class Game {
     }
 
     /**
-     * 计算所有用户的追逐进度
+     * 通过计算距离来更新用户的被追逐信息
      */
-    protected void countChasingProgress() {
+    protected void doChasing() {
+        // TODO 50为最大group数，需要写到游戏配置中
+        long[] groupChasingTimes = new long[50];
+        byte[] groupChasingCounts = new byte[50];
+
+        // 更新用户的被追逐buff, buff时间应该等于：
+        //     1: 如果追逐方中有人持有权杖，buff时间为持有权杖的人的最早的startTime
+        //     2: 如果追逐方有两人为同一group，且与被追逐人不同，buff时间为相同group中，
+        //        chasingInfo中的最迟startTime中的最早的
         for (User user: userMap.values()) {
-            user.countMovableTargetProgress();
+
+            long buffStartTime = Long.MAX_VALUE;
+
+            for(User.ChasingInfo chasingInfo: user.getChasingInfoMap().values()) {
+                // 如果追逐方与被追逐方的距离接近CHASING_DISTANCE, 且chasingInfo中startTime为0, 将startTime置为当前时间
+                // 如果追逐方与被追逐方的距离超过CHASING_DISTANCE, 且chasingInfo中startTime不为0，将startTime置0
+                // 只计算不同group的玩家
+
+                if (user.getGroupId() == chasingInfo.chasingUser.getGroupId()) continue;
+                if (user.getPosition().distance(chasingInfo.chasingUser.point) < 10) {
+                    if (chasingInfo.startTime == 0) chasingInfo.startTime = System.currentTimeMillis();
+                } else {
+                    if (chasingInfo.startTime != 0) chasingInfo.startTime = 0;
+                }
+
+                if (chasingInfo.chasingUser.hasBuffer(BuffConfig.HOLD_SCEPTER) && chasingInfo.startTime != 0 &&
+                        buffStartTime > chasingInfo.startTime) {
+                    buffStartTime = chasingInfo.startTime;
+                }
+
+                groupChasingCounts[chasingInfo.chasingUser.getGroupId()] ++;
+                long startTime = groupChasingTimes[chasingInfo.chasingUser.getGroupId()];
+                if (startTime < chasingInfo.startTime) {
+                    groupChasingTimes[chasingInfo.chasingUser.getGroupId()] = chasingInfo.startTime;
+                }
+            }
+
+            for (int i = 0; i < groupChasingCounts.length; i ++) {
+                byte groupChasingCount = groupChasingCounts[i];
+                long groupChasingTime = groupChasingTimes[i];
+
+                if (groupChasingCount >= 2) {
+                    if (buffStartTime > groupChasingTime) {
+                        buffStartTime = groupChasingTime;
+                    }
+                }
+            }
+
+            // 新增或者修改被追逐的buff
+            long currentStartTime = 0;
+            if (user.hasBuffer(BuffConfig.EXPEL)) {
+                currentStartTime =  (Long)user.getBufferInfo(BuffConfig.EXPEL).get(0);
+            }
+
+            if (buffStartTime != currentStartTime) {
+                user.removeBuff(BuffConfig.EXPEL);
+                user.addBuff(BuffConfig.EXPEL, buffStartTime);
+            }
+
+            for (int i = 0; i < groupChasingCounts.length; i ++) {
+                groupChasingCounts[i] = 0;
+                groupChasingTimes[i] = 0;
+            }
         }
+    }
+
+    /**
+     * 获取某一个位置周围的用户列表
+     * TODO 需要性能优化
+     */
+    private List<User> getAroundUserList(User fromUser) {
+        List<User> aroundUserList = null;
+        Point position = fromUser.point;
+        for (User user: userMap.values()) {
+            if (user.getId() == fromUser.getId()) continue;
+            if ((user.getPosition().x - position.x) < 10 && (user.getPosition().y - position.y < 10)) {
+                if (user.getPosition().distance(position) < 10) {
+                    if (aroundUserList == null) {
+                        aroundUserList = new LinkedList<>();
+                    }
+                    aroundUserList.add(user);
+                }
+            }
+        }
+        return aroundUserList;
     }
 
     /********************************
      * prop 相关
      ********************************/
 
+    /**
+     * 定义游戏中道具的生成规则, 比如道具的刷新频率，生存周期
+     * @return
+     */
     public abstract GamePropConfigMap getGamePropConfigMap();
 
     /**
@@ -668,30 +983,13 @@ public abstract class Game {
     }
 
     /**
-     * 移除场景内无效的道具，比如时间到期
-     */
-    protected void removeInvildProp() {
-        ListIterator<EnvProp> iterator = getEnvPropList().listIterator();
-        while(iterator.hasNext()) {
-            EnvProp prop = iterator.next();
-            // 如果道具到期，移除道具
-            if (prop.vanishTime <= System.currentTimeMillis()) {
-                getEnvPropChangedList().add(prop);
-                iterator.remove();
-                log.info("removed prop: {}:{}:{}", gameInfo.getId(), prop.id, getEnvPropChangedList());
-                continue;
-            }
-        }
-    }
-
-    /**
      * 移动可移动道具
      * 1. 道具离玩家太近会自动跑开(暂时不做)
      * 2. 如果被玩家标记且距离太近，道具会离开，且会尝试摆脱
      * 3. 可以被多名玩家追逐
      */
     protected void moveProp() {
-        ListIterator<EnvProp> iterator = getEnvPropList().listIterator();
+        ListIterator<EnvProp> iterator = getPropInSceneList().listIterator();
         while(iterator.hasNext()) {
             EnvProp prop = iterator.next();
             if(!prop.movable) continue;
@@ -716,31 +1014,55 @@ public abstract class Game {
     }
 
     /**
-     * 补充新的道具
+     * 处理道具
      */
-    protected void generateProp() {
-        if (getGamePropConfigMap().count == 0) return;
-        while (getEnvPropList().size() < getGamePropConfigMap().count) {
-            EnvProp envProp = new EnvProp(this);
-            GamePropConfigMap.GamePropConfig propConfig = getGamePropConfigMap().getRandomProp();
-            if (propConfig == null) continue;
+    protected void doPropLogic() {
+        // 生成新的道具
+        int propInStock = getGamePropConfigMap().getPropInStock((int)getGameTime() / 1000);
+        int count = propList.size() - propInStock;
+        if (count <= 0) return;
 
-            envProp.typeId = propConfig.propTypeId;
+        while (count > 0) {
+            EnvProp envProp = new EnvProp(this);
+
+            envProp.typeId = propList.removeFirst();
             envProp.id = nextPropSeqId ++;
             envProp.position = new Position();
 
-            //envProp.position.point = navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode());
             int randomBlockId = gameMap.getRandomMainRoadBlockId();
             int x = gameMap.getX(randomBlockId);
             int y = gameMap.getY(randomBlockId);
             envProp.position.point = new Point(x * 1000, 1100, y * 1000);
             envProp.createTime = System.currentTimeMillis();
-            envProp.vanishTime = envProp.createTime + propConfig.duration * 1000;
-            envProp.movable = propConfig.movable;
-            getEnvPropList().add(envProp);
+            envProp.vanishTime = envProp.createTime +
+                    getGamePropConfigMap().getPropConfig(envProp.typeId).duration * 1000;
+            envProp.movable = getGamePropConfigMap().getPropConfig(envProp.typeId).movable;
+            getPropInSceneList().add(envProp);
             getEnvPropChangedList().add(envProp);
             log.info("created prop: {}:{}-{}:{}:{}", gameInfo.getId(), envProp.id,
                     envProp.position.point.x, envProp.position.point.y, envProp.position.point.z);
+
+            count --;
+        }
+
+        // 为到期的道具生成新的位置
+        ListIterator<EnvProp> iterator = getPropInSceneList().listIterator();
+        while(iterator.hasNext()) {
+            EnvProp prop = iterator.next();
+            // 如果道具到期，移除道具
+            if (prop.vanishTime <= System.currentTimeMillis()) {
+                int randomBlockId = gameMap.getRandomMainRoadBlockId();
+                int x = gameMap.getX(randomBlockId);
+                int y = gameMap.getY(randomBlockId);
+                prop.position.point = new Point(x * 1000, 1100, y * 1000);
+                prop.createTime = System.currentTimeMillis();
+                prop.vanishTime = prop.createTime +
+                        getGamePropConfigMap().getPropConfig(prop.typeId).duration * 1000;
+
+                getEnvPropChangedList().add(prop);
+                //log.info("recreated prop: {}:{}:{}", gameInfo.getId(), prop.id, getEnvPropChangedList());
+                continue;
+            }
         }
     }
 
@@ -748,7 +1070,7 @@ public abstract class Game {
      * 根据id获取环境道具
      */
     public EnvProp getProp(int id) {
-        for (EnvProp prop: envPropList) {
+        for (EnvProp prop: propInSceneList) {
             if (prop.id == id) {
                 return prop;
             }
@@ -769,7 +1091,7 @@ public abstract class Game {
     }
 
     /**
-     * 自定义道具价格，需要override
+     * 自定义道具价格
      */
     protected abstract int getCustomPropPrice(short propTypeId);
 
@@ -779,39 +1101,39 @@ public abstract class Game {
     protected abstract short[] getStorePropIds();
 
     /********************************
-     * NPC 相关
+     * NPCOld 相关
      ********************************/
 
     private void initNPC() {
-        List<NPC> npcList = generateNPC();
-        if (npcList == null) return;
-        for(NPC npc: generateNPC()) {
-            getMoveableNPCMap().put(npc.id, npc);
-            npcChangedList.add(npc);
+        List<NPCOld> npcOldList = generateNPC();
+        if (npcOldList == null) return;
+        for(NPCOld npcOld : generateNPC()) {
+            getMoveableNPCMap().put(npcOld.id, npcOld);
+            npcOldChangedList.add(npcOld);
         }
     }
 
     /**
-     * 生成可以移动的NPC
+     * 生成NPC
      */
-    protected abstract List<NPC> generateNPC();
+    protected abstract List<NPCOld> generateNPC();
 
     /**
      * 移动NPC
      */
     protected void moveNPC() {
-        for (NPC npc: getMoveableNPCMap().values()) {
+        for (NPCOld npcOld : getMoveableNPCMap().values()) {
             // TODO
             /*
-            if (npc.movable && npc.isPathEmpty()) {
-                npc.setPath(navimeshGroup.getPath(
-                        gameInfo.getMetagameCode(), npc.position.point,
+            if (npcOld.movable && npcOld.isPathEmpty()) {
+                npcOld.setPath(navimeshGroup.getPath(
+                        gameInfo.getMetagameCode(), npcOld.position.point,
                         navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode())));
             }
-            npc.move();
+            npcOld.move();
             */
-            if (npc.isPositionChanged()) {
-                npcChangedList.add(npc);
+            if (npcOld.isPositionChanged()) {
+                npcOldChangedList.add(npcOld);
             }
         }
     }
@@ -819,7 +1141,7 @@ public abstract class Game {
     /**
      * 根据id获取NPC
      */
-    public NPC getNPC(int id) {
+    public NPCOld getNPC(int id) {
         return getMoveableNPCMap().get(id);
     }
 
@@ -828,18 +1150,9 @@ public abstract class Game {
      ************************************/
 
     /**
-     * 设置玩家初始位置，默认为随机位置，静止状态，面向y=0方向
+     * 设置玩家初始位置
      */
-    public void setUserInitPosition(User user) {
-        Position userPosition = new Position();
-        userPosition.rotateY = 0;
-        //userPosition.point = navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode());
-        Block block = gameMap.mainRoad.blockList.get(0);
-        userPosition.point = new Point(block.position.x * 1000, 1000, block.position.y * 1000);
-        //userPosition.point.y = 0;
-        userPosition.moveState = Constant.MoveState.IDLE;
-        user.setPosition(userPosition);
-    }
+    protected abstract void initUser(Map<Integer, User> userMap);
 
     /**
      * 检查道具是否可以从某用户转移到别的用户, 游戏可以自定义该方法, 默认为不可以
@@ -860,12 +1173,18 @@ public abstract class Game {
      ********************************/
 
     /**
-     * 获取游戏剩余时间
-     * @return
+     * 获取游戏剩余时间, 单位毫秒
      */
     private long getRemainTime() {
         long remainTime = gameInfo.getDuration() * 1000 - (System.currentTimeMillis() - startTime);
         return remainTime;
+    }
+
+    /**
+     * 获取游戏运行时间，单位毫秒
+     */
+    private long getGameTime() {
+        return System.currentTimeMillis() - startTime;
     }
 
     public void setGameManage(GameManage gameManage) {
@@ -902,15 +1221,15 @@ public abstract class Game {
         return envPropChangedList;
     }
 
-    public List<EnvProp> getEnvPropList() {
-        return envPropList;
+    public List<EnvProp> getPropInSceneList() {
+        return propInSceneList;
     }
 
-    public Map<Integer, NPC> getStaticNPCMap() {
+    public Map<Integer, NPCOld> getStaticNPCMap() {
         return staticNPCMap;
     }
 
-    public Map<Integer, NPC> getMoveableNPCMap() {
+    public Map<Integer, NPCOld> getMoveableNPCMap() {
         return movableNPCMap;
     }
 
