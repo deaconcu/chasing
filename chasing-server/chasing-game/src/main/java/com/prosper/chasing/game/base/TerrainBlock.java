@@ -16,7 +16,7 @@ public class TerrainBlock extends GameObject {
     Point point;
 
     @Override
-    public Point getPosition() {
+    public Point getPoint() {
         return point;
     }
 }

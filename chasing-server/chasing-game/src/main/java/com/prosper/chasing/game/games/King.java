@@ -3,12 +3,9 @@ package com.prosper.chasing.game.games;
 import com.prosper.chasing.game.base.*;
 
 import com.prosper.chasing.game.base.PropConfig;
-import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -79,7 +76,7 @@ public class King extends GameBase {
         byte groupId = 1;
         for (User user: userMap.values()) {
             Point point = gameMap.getRandomRoadPosition(true);
-            user.setPosition(point);
+            user.setPoint(point);
             user.setRotateY(ThreadLocalRandom.current().nextInt(360));
             user.setMoveState(Constant.MoveState.IDLE);
 

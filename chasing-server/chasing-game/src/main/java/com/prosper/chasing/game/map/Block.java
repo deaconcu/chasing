@@ -1,7 +1,6 @@
 package com.prosper.chasing.game.map;
 
 import com.prosper.chasing.game.base.Point2D;
-import com.prosper.chasing.game.base.Position;
 
 import static com.prosper.chasing.game.util.Enums.*;
 
@@ -16,9 +15,9 @@ public class Block {
 
     public BlockType type;
 
-    public short groupId;
+    public short blockGroupId;
 
-    public TerrainType terrainType;
+    //public TerrainType terrainType;
 
     public int distanceToFinish;
 
@@ -45,9 +44,9 @@ public class Block {
         this.roadDirection = RoadDirection.NONE;
     }
 
-    public Block(Point2D position, int blockId, BlockType type, TerrainType terrainType, RoadDirection roadDirection) {
+    public Block(Point2D position, int blockId, BlockType type, RoadDirection roadDirection) {
         this(position, blockId, type);
-        this.terrainType = terrainType;
+        //this.terrainType = terrainType;
         this.roadDirection = roadDirection;
         this.distanceAwayFromRoadCrossPoint = -1;
         this.distanceAwayFromRoad = -1;
@@ -83,7 +82,7 @@ public class Block {
         return new byte[]{
                 (byte)(blockId >> 24), (byte)(blockId >> 16), (byte)(blockId >> 8), (byte)(blockId),
                 type.getValue(), (byte)distanceAwayFromRoad, (byte)distanceAwayFromRoadCrossPoint,
-                (byte) (groupId >> 8), (byte)groupId};
+                (byte) (blockGroupId >> 8), (byte) blockGroupId};
     }
 
     public byte[] getBlockBytesV3() {
@@ -92,7 +91,7 @@ public class Block {
 
         return new byte[]{
                 type.getValue(), (byte)distanceAwayFromRoad, (byte)distanceAwayFromRoadCrossPoint,
-                (byte) (groupId >> 8), (byte)groupId};
+                (byte) (blockGroupId >> 8), (byte) blockGroupId};
     }
 
     public byte[] getBlockBytes() {
@@ -116,7 +115,7 @@ public class Block {
         } if (type == BlockType.WOODS || type == BlockType.HILL){
             return new byte[]{type.getValue(), height, distanceAwayFromRoadExtention};
         } else {
-            return new byte[]{type.getValue(), height, blockInfo, (byte) (groupId >> 8), (byte)groupId};
+            return new byte[]{type.getValue(), height, blockInfo, (byte) (blockGroupId >> 8), (byte) blockGroupId};
         }
     }
 

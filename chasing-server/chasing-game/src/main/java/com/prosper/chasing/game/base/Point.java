@@ -38,7 +38,22 @@ public class Point {
      * 计算两点的距离
      */
     public int distance (Point point) {
-        return (int)Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2) + Math.pow(point.z - z, 2));
+        return distance(point.x, point.y, point.z);
+    }
+
+    public int distance(int pointX, int pointY, int pointZ) {
+        return (int)Math.sqrt(Math.pow(pointX - x, 2) + Math.pow(pointY - y, 2) + Math.pow(pointZ - z, 2));
+    }
+
+    /**
+     * 计算在x,y坐标轴上的最小距离
+     * @param point
+     * @return
+     */
+    public int minDistanceOfAxis(Point point) {
+        int distanceX = point.x - x;
+        int distanceY = point.y - y;
+        return distanceX <= distanceY ? distanceX : distanceY;
     }
 
     /**

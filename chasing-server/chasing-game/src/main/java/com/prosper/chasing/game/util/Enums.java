@@ -30,7 +30,17 @@ public class Enums {
         WALL(21),
         MOUNTAIN_L1(22),
         MOUNTAIN_L2(23),
-        MOUNTAIN_L3(24);
+        MOUNTAIN_L3(24),
+        RIVER(25),
+        RIVER_WITH_BRIDGE(26),
+        FIRE(27),
+        FIRE_PUT_OUT(28),
+        GATE(27),
+        GATE_OPEN(28),
+        WILD_ANIMAL(29),
+        WILD_FIRE(30),
+        FENCE(32),
+        FENCE_OPEN(33);
 
         private int value;
 
@@ -47,7 +57,8 @@ public class Enums {
         LAMP(1),
         BRIDGE(2),
         FLAG(3),
-        SNOW(4);
+        SNOW(4),
+        FIRE(5);
 
         private int value;
 
@@ -167,6 +178,27 @@ public class Enums {
         private byte value;
 
         TargetType(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
+    public enum ResourceType{
+        MONEY,
+        PROP
+    }
+
+    public enum GameObjectLifeAction {
+        BORN((byte)0),
+        ALIVE((byte)1),
+        DEAD((byte)2);
+
+        private byte value;
+
+        GameObjectLifeAction(byte value) {
             this.value = value;
         }
 

@@ -41,10 +41,10 @@ public class GamePropConfigMap {
     }
 
     /**
-     * 获得游戏中的所有道具id列表
+     * 生成游戏中的所有预定义道具的id, 存入propList中, 并打乱顺序后返回
      * @return
      */
-    public LinkedList<Short> getPropList() {
+    public LinkedList<Short> generatePropList() {
         LinkedList<Short> propList = new LinkedList<>();
         for(GamePropConfig gamePropConfig: configMap.values()) {
             for (int i = 0; i < gamePropConfig.count; i ++) {
@@ -56,18 +56,18 @@ public class GamePropConfigMap {
     }
 
     /**
-     * 获取在场景中应该有的道具数量
+     * 获取在场景中计划生成的道具数量
      */
-    public int getPropInScene(int second) {
+    public int getPropPlanned(int second) {
         return (second / period + 1) * periodCount;
     }
 
     /**
      * 获取库存的道具数量
      */
-    public int getPropInStock(int second) {
-        int propInstock = getTotal() - getPropInScene(second);
-        return propInstock > 0 ? propInstock : 0;
+    public int getPropRemained(int second) {
+        int propRemained = getTotal() - getPropPlanned(second);
+        return propRemained > 0 ? propRemained : 0;
     }
 
     /**

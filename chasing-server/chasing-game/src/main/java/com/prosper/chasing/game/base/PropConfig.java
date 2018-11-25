@@ -3,9 +3,12 @@ package com.prosper.chasing.game.base;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.prosper.chasing.game.map.Block;
+import com.prosper.chasing.game.map.BlockGroup;
 import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.navmesh.NaviMeshGroup;
 import com.prosper.chasing.game.util.Constant;
+import com.prosper.chasing.game.util.Enums;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +75,9 @@ public class PropConfig {
 
     // 新增
     public static final short SCEPTER = 26; // 灵魂权杖
+    public static final short BRIDGE = 27; // 桥梁
+    public static final short RAIN_CLOUD = 28; // 云雨
+    public static final short WOOD = 29; // 云雨
 
     /********************************
      * 以下为子游戏:killer使用的道具
@@ -268,7 +274,7 @@ public class PropConfig {
                 if (gameUser.getId() == user.getId()) {
                     continue;
                 }
-                if (gameUser.getPosition().distance(user.getPosition()) < 200) {
+                if (gameUser.getPoint().distance(user.getPoint()) < 200) {
                     gameUser.removeBuff(BuffConfig.INVISIBLE_LEVEL_1);
                     gameUser.removeBuff(BuffConfig.INVISIBLE_LEVEL_2);
                 }
@@ -290,7 +296,7 @@ public class PropConfig {
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
             /* TODO
-            user.setPosition(user.getInitPosition());
+            user.setPoint(user.getInitPosition());
             */
             return true;
         }
@@ -309,7 +315,7 @@ public class PropConfig {
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
             /* TODO
-            user.setPosition(new Position(Constant.MoveState.IDLE,
+            user.setPoint(new Position(Constant.MoveState.IDLE,
                     getNavimeshGroup().getRandomPositionPoint(game.getGameInfo().getMetagameCode()), 0));
             */
             return true;
@@ -663,7 +669,7 @@ public class PropConfig {
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
             // TODO
-            user.addMoney((new Random()).nextInt(1000));
+            user.modifyMoney((new Random()).nextInt(1000));
             return true;
         }
     }
@@ -700,6 +706,37 @@ public class PropConfig {
         public boolean doUse(PropMessage message, User user, Game game) {
             user.addBuff(HOLD_SCEPTER);
             return true;
+        }
+    }
+
+    /**
+     * 桥梁
+     */
+    public static class Bridge extends PropConfig.Prop {
+
+        public Bridge() {
+            allowTargetType = new byte[]{PropMessage.TYPE_SELF};
+            propTypeId = BRIDGE;
+            autoUse = false;
+        }
+
+        @Override
+        public boolean doUse(PropMessage message, User user, Game game) {
+            Block block = game.gameMap.getBlock(user.getPoint().x, user.getPoint().y);
+            Map<Integer, List<Block>> blockMap = game.gameMap.getBlocksAroundInDistances(block.blockId, 2,
+                    Enums.BlockType.ARTERY, Enums.BlockType.BRANCH, Enums.BlockType.SHORTCUT);
+
+            for (List<Block> blockList: blockMap.values()) {
+                for (Block aroundBlock: blockList) {
+                    BlockGroup blockGroup = game.gameMap.blockGroupMap.get(aroundBlock.blockGroupId);
+                    if (blockGroup != null && blockGroup.getTerrainType() == Enums.TerrainType.RIVER) {
+                        blockGroup.setTerrainType(Enums.TerrainType.RIVER_WITH_BRIDGE);
+                        game.terrainChangedSet.add(blockGroup.getId());
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 }

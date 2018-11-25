@@ -44,10 +44,10 @@ public class User extends GameObject {
     private int speed;
 
     // 生命值
-    private short life = 5;
+    private short life = 1;
 
     // 生命最大值
-    protected short maxLife = 5;
+    protected short maxLife = 1;
 
     // 钱
     private int money;
@@ -56,7 +56,7 @@ public class User extends GameObject {
     private Map<Short, Short> propMap = new HashMap<>();
     
     // Buff Map
-    private Map<Byte, Buff> buffMap = new HashMap<>();
+    private Map<String, Buff> buffMap = new HashMap<>();
 
     // 周围追逐当前用户的玩家信息
     private ChasingInfo chasingInfo;
@@ -88,7 +88,7 @@ public class User extends GameObject {
 
     // buff变化列表
     @JsonIgnore
-    Set<Byte> buffChangedSet = new HashSet<>();
+    Set<Buff> buffChangedSet = new HashSet<>();
 
     // 道具变化列表
     @JsonIgnore
@@ -125,6 +125,10 @@ public class User extends GameObject {
 
     private Map<Integer, ChasingInfo> chasingInfoMap = new HashMap<>();
 
+    public User(int id, Point point, int rotateY) {
+        super(id, point, rotateY);
+    }
+
     public byte getGroupId() {
         return groupId;
     }
@@ -136,6 +140,8 @@ public class User extends GameObject {
     public Map<Integer, ChasingInfo> getChasingInfoMap() {
         return chasingInfoMap;
     }
+
+
 
     /********************************
      * 追逐目标和追逐进度
@@ -397,12 +403,23 @@ public class User extends GameObject {
      * @param buffId buff id
      * @param values buff附带的一些信息, 比如跟随的时候需要跟随的用户id
      */
-    public void addBuff(byte buffId, Object values) {
+    public void addBuff(byte buffId, Object... values) {
         if (BuffConfig.getBuff(buffId) == null) {
             log.warn("buff is not exist" + buffId);
         }
-        buffMap.put(buffId, new Buff(BuffConfig.getBuff(buffId), values));
-        buffChangedSet.add(buffId);
+
+        Buff buff = new Buff(BuffConfig.getBuff(buffId), values);
+        buffMap.put(Byte.toString(buffId), buff);
+        buffChangedSet.add(buff);
+    }
+
+    public void addBuff(byte buffId, int groupId, Object... values)  {
+        String id = Byte.toString(buffId) + "-" + Integer.toString(groupId);
+        if (buffMap.containsKey(id)) return;
+
+        Buff buff = new Buff(BuffConfig.getBuff(buffId), groupId, values);
+        buffMap.put(id, buff);
+        buffChangedSet.add(buff);
     }
 
     /**
@@ -416,8 +433,24 @@ public class User extends GameObject {
      * 移除buff
      */
     public void removeBuff(byte buffId) {
-        buffMap.remove(buffId);
-        buffChangedSet.add(buffId);
+        // TODO NEED REWRITE
+        Buff buff = buffMap.remove(buffId);
+        buffChangedSet.add(buff);
+    }
+
+    /**
+     * 清除用户身上的地形buff
+     */
+    public void clearTerrainBuff() {
+        List<String> removeKeyList = new LinkedList<>();
+        for (String key: buffMap.keySet()) {
+            if (buffMap.get(key).groupId > 0) {
+                removeKeyList.add(key);
+            }
+        }
+        for (String key: removeKeyList) {
+            buffChangedSet.add(buffMap.remove(key));
+        }
     }
 
     /**
@@ -532,7 +565,7 @@ public class User extends GameObject {
         return money;
     }
 
-    public boolean addMoney(int amount) {
+    public boolean modifyMoney(int amount) {
         if (money + amount >= 0) {
             money += amount;
             return true;
@@ -700,10 +733,10 @@ public class User extends GameObject {
             }
             sign = (short) (sign | 128);
             byteBuilder.append(moveState);
-            byteBuilder.append(getPosition().x);
-            byteBuilder.append(getPosition().y);
-            byteBuilder.append(getPosition().z);
-            byteBuilder.append(rotateY);
+            byteBuilder.append(getPoint().x);
+            byteBuilder.append(getPoint().y);
+            byteBuilder.append(getPoint().z);
+            byteBuilder.append(getRotateY());
         }
         if (isLifeChanged) {
             if (byteBuilder == null) {
@@ -725,8 +758,7 @@ public class User extends GameObject {
             }
             sign = (short) (sign | 16);
             byteBuilder.append((byte)buffChangedSet.size());
-            for (byte buffId: buffChangedSet) {
-                Buff buff = buffMap.get(buffId);
+            for (Buff buff: buffChangedSet) {
                 byteBuilder.append(buff.id);
                 byteBuilder.append(buff.getRemainSecond());
             }
@@ -848,7 +880,7 @@ public class User extends GameObject {
     /**
      * 捕获NPC后的行为
      */
-    protected void catchUp(NPCOld npcOld) {
+    protected void catchUp(NPC npcOld) {
 
     }
 

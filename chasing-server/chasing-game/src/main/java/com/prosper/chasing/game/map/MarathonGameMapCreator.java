@@ -2,7 +2,6 @@ package com.prosper.chasing.game.map;
 
 import com.prosper.chasing.common.util.Pair;
 import com.prosper.chasing.game.base.Point;
-import com.prosper.chasing.game.util.Simplex;
 import com.prosper.chasing.game.util.Util;
 
 import static com.prosper.chasing.game.util.Enums.*;
@@ -279,16 +278,18 @@ public class MarathonGameMapCreator {
 
         GameMap gameMap = gameMapCreator.expandWithBorder(bridgeWidth);
         for (Block block: gameMap.occupiedBlockMap.values()) {
-            block.groupId = gameMap.ROAD_GROUP_ID;
+            block.blockGroupId = gameMap.ROAD_GROUP_ID;
         }
 
-        generateTerrainForMainRoad(gameMap);
-        generateTerrainForShortcuts(gameMap);
+        //generateTerrainForMainRoad(gameMap);
+        //generateTerrainForShortcuts(gameMap);
+        generateTerrainTest(gameMap);
 
         twistMap(gameMap, 20);
         gameMap.printMap();
 
         expandRoadV3(gameMap, 6);
+        gameMap.printMap();
         generateLamp(gameMap);
 
         gameMap.generateMapBytes();
@@ -303,13 +304,34 @@ public class MarathonGameMapCreator {
         System.out.println("\nblock count" + gameMap.occupiedBlockMap.size());
         System.out.print("\n");
 
-        for (short i = 1; i <= gameMap.TerrainTypeMapOfGroup.size(); i ++) {
-            System.out.print(gameMap.TerrainTypeMapOfGroup.get(i).getValue());
+        for (GameMap.BlockGroup blockGroup : gameMap.blockGroupMap.values()) {
+            System.out.print(blockGroup);
             System.out.print(",");
         }
         System.out.print("\n");
 
         return gameMap;
+    }
+
+    public void generateTerrainTest(GameMap gameMap) {
+        short groupId = gameMap.getNextGroupId();
+
+        int length = 200;
+        Block startBlock = gameMap.mainRoad.blockList.get(50);
+        Block block = startBlock;
+        Block endBlock = null;
+        while (length > 0) {
+            block.blockGroupId = groupId;
+            block = block.next;
+            endBlock =  block;
+            length --;
+        }
+
+        gameMap.blockGroupMap.put(
+                groupId,
+                new GameMap.BlockGroup(
+                        groupId, TerrainType.FOG, startBlock.blockId, endBlock.blockId)
+        );
     }
 
     /**
@@ -447,13 +469,13 @@ public class MarathonGameMapCreator {
             if (count <= 0) continue;
 
             short groupId = gameMap.getNextGroupId();
-            gameMap.TerrainTypeMapOfGroup.put(groupId, specialSegment.getX());
+            //gameMap.blockGroupMap.put(blockGroupId, specialSegment.getX());
             for (int i = 0; i < count; i ++) {
                 if (currentBlock == null) {
                     break;
                 }
-                currentBlock.terrainType = specialSegment.getX();
-                currentBlock.groupId = groupId;
+                //currentBlock.terrainType = specialSegment.getX();
+                currentBlock.blockGroupId = groupId;
                 currentBlock = currentBlock.next;
             }
             if (currentBlock != null) {
@@ -485,16 +507,17 @@ public class MarathonGameMapCreator {
                     blockId, width, BlockType.ARTERY, BlockType.SHORTCUT, BlockType.BRANCH);
 
             if (result != null) {
-                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().groupId));
+                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().blockGroupId));
             }
         }
 
         for (Map.Entry<Integer, Pair<Integer, Short>> entry: addBlockMap.entrySet()) {
-            gameMap.addBlock(entry.getKey(), BlockType.ROAD_EXTENSION, TerrainType.PAVEMENT, RoadDirection.NONE,
+            gameMap.addBlock(entry.getKey(), BlockType.ROAD_EXTENSION, RoadDirection.NONE,
                     entry.getValue().getY(), entry.getValue().getX(), -1);
         }
     }
 
+    /*
     private void expandRoadV2(GameMap gameMap, int width) {
         // 扩展道路
         Map<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
@@ -503,7 +526,7 @@ public class MarathonGameMapCreator {
                     blockId, width, BlockType.ARTERY, BlockType.SHORTCUT, BlockType.BRANCH);
 
             if (result != null) {
-                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().groupId));
+                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().blockGroupId));
             }
         }
 
@@ -786,8 +809,9 @@ public class MarathonGameMapCreator {
         System.out.println("\n\nafter define mountain\n\n");
         gameMap.printMap();
     }
+    */
 
-
+    /*
     private void expandRoad(GameMap gameMap, int width) {
         Map<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
         for (int blockId: gameMap.unoccupiedBlockSet) {
@@ -795,16 +819,8 @@ public class MarathonGameMapCreator {
                     blockId, width, BlockType.ARTERY, BlockType.SHORTCUT, BlockType.BRANCH);
 
             if (result != null) {
-                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().groupId));
+                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().blockGroupId));
             }
-            /*
-            for (Block block: crossBlockList) {
-                if (!addBlockMap.containsKey(blockId) ||
-                        (addBlockMap.get(blockId)[0] == TerrainType.PAVEMENT && block.terrainType != TerrainType.PAVEMENT)) {
-                    addBlockMap.put(blockId, new Object[]{block.terrainType, block.groupId});
-                }
-            }
-            */
         }
 
         for (Map.Entry<Integer, Pair<Integer, Short>> entry: addBlockMap.entrySet()) {
@@ -960,6 +976,7 @@ public class MarathonGameMapCreator {
             }
         }
     }
+    */
 
     private void addSurroundedBlock(
             GameMap gameMap, BlockType blockType, TerrainType terrainType, int width, BlockType... surroundedBlockTypes) {
@@ -975,8 +992,7 @@ public class MarathonGameMapCreator {
             if (roadBlockList.size() == 0) clear = true;
             else {
                 for (int blockId: roadBlockList) {
-                    gameMap.addBlock(blockId, blockType, terrainType, RoadDirection.NONE,
-                            gameMap.ROAD_GROUP_ID, width + 1, -1);
+                    gameMap.addBlock(blockId, blockType, RoadDirection.NONE, gameMap.ROAD_GROUP_ID, width + 1, -1);
                 }
             }
             roadBlockList.clear();
@@ -1038,7 +1054,7 @@ public class MarathonGameMapCreator {
             if (roadDirection == RoadDirection.HORIZONTAL) {
                 if (offset != 0) {
                     Block newBlock = gameMap.addBlock(gameMap.getBlockId(block.position.x, block.position.y + offset),
-                            block.type, block.terrainType, block.roadDirection, block.groupId,
+                            block.type, block.roadDirection, block.blockGroupId,
                             block.distanceAwayFromRoad, block.distanceAwayFromRoadCrossPoint);
                     newBlock.next = block.next;
                     newBlock.previous = block.previous;
@@ -1052,7 +1068,7 @@ public class MarathonGameMapCreator {
             } else if (roadDirection == RoadDirection.VERTICAL) {
                 if (offset != 0) {
                     Block newBlock = gameMap.addBlock(gameMap.getBlockId(block.position.x + offset, block.position.y),
-                            block.type, block.terrainType, block.roadDirection, block.groupId,
+                            block.type, block.roadDirection, block.blockGroupId,
                             block.distanceAwayFromRoad, block.distanceAwayFromRoadCrossPoint);
                     newBlock.next = block.next;
                     newBlock.previous = block.previous;
@@ -1108,8 +1124,8 @@ public class MarathonGameMapCreator {
                     RoadDirection roadDirection = gameMap.getRoadDirection(block.getBlockId(), BlockType.SHORTCUT);
                     if (roadDirection == RoadDirection.HORIZONTAL) {
                         Block newBlock = gameMap.addBlock(gameMap.getBlockId(
-                                block.position.x, block.position.y + offset), block.type, block.terrainType, block.roadDirection,
-                                block.groupId, block.distanceAwayFromRoad, block.distanceAwayFromRoadCrossPoint);
+                                block.position.x, block.position.y + offset), block.type, block.roadDirection,
+                                block.blockGroupId, block.distanceAwayFromRoad, block.distanceAwayFromRoadCrossPoint);
                         newBlock.next = block.next;
                         newBlock.previous = block.previous;
                         newBlock.previous.next = newBlock;
@@ -1120,8 +1136,8 @@ public class MarathonGameMapCreator {
                         removedBlockSet.add(block.blockId);
                     } else if (roadDirection == RoadDirection.VERTICAL) {
                         Block newBlock = gameMap.addBlock(gameMap.getBlockId(
-                                block.position.x + offset, block.position.y), block.type, block.terrainType, block.roadDirection,
-                                block.groupId, block.distanceAwayFromRoad, block.distanceAwayFromRoadCrossPoint);
+                                block.position.x + offset, block.position.y), block.type, block.roadDirection,
+                                block.blockGroupId, block.distanceAwayFromRoad, block.distanceAwayFromRoadCrossPoint);
                         newBlock.next = block.next;
                         newBlock.previous = block.previous;
                         newBlock.previous.next = newBlock;
@@ -1361,9 +1377,9 @@ public class MarathonGameMapCreator {
                         int x = gameMap.getX(currentBlock.blockId);
                         int y = gameMap.getY(currentBlock.blockId);
                         if (!gameMap.isOccupied(gameMap.getBlockId(x + 1, y))) {
-                            gameMap.addBlock(gameMap.getBlockId(x + 1, y), BlockType.BRANCH, terrainConfig.terrainType);
+                            gameMap.addBlock(gameMap.getBlockId(x + 1, y), BlockType.BRANCH);
                         } else {
-                            gameMap.addBlock(gameMap.getBlockId(x, y + 1), BlockType.BRANCH, terrainConfig.terrainType);
+                            gameMap.addBlock(gameMap.getBlockId(x, y + 1), BlockType.BRANCH);
                         }
                         currentBlock = currentBlock.next;
                     }

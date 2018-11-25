@@ -5,9 +5,6 @@ import com.prosper.chasing.game.base.Point;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -79,7 +76,7 @@ public class Legion extends GameBase {
 
         for (User user: userMap.values()) {
             Point point = gameMap.getRandomRoadPosition(true);
-            user.setPosition(point);
+            user.setPoint(point);
             user.setRotateY(ThreadLocalRandom.current().nextInt(360));
             user.setMoveState(Constant.MoveState.IDLE);
 

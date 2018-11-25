@@ -40,7 +40,7 @@ public class MessageParser {
         } else if (type == PURCHASE_MESSAGE) {
             return new PurchaseMessage(userMessage);
         } else if (type == TASK_MESSAGE) {
-            return new TaskMessage(userMessage);
+            return new InteractionMessage(userMessage);
         } else {
             throw new RuntimeException("type is not supported, type" + type);
         }

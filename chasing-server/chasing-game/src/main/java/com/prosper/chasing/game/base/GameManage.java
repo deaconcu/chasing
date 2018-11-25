@@ -148,7 +148,7 @@ public class GameManage {
                     propMap.put((byte)propTr.getPropId(), (byte)propTr.getCount());
                 }
                 // TODO DELETE FOR TEST
-                user.addMoney(20000);
+                user.modifyMoney(20000);
                 user.setState(Constant.UserState.LOADED);
                 user.setGame(game);
             }

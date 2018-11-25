@@ -800,7 +800,7 @@ public class GameMapCreator {
 
             newShortcutList.add(expandedShortcut);
         }
-        gameMap.setMainroad(mainRoad);
+        gameMap.setMainRoad(mainRoad);
         gameMap.setShortcutList(newShortcutList);
         return gameMap;
     }
@@ -931,7 +931,7 @@ public class GameMapCreator {
             }
             newShortcutList.add(expandedShortcut);
         }
-        gameMap.setMainroad(mainRoad);
+        gameMap.setMainRoad(mainRoad);
         gameMap.setShortcutList(newShortcutList);
         return gameMap;
     }

@@ -1,10 +1,12 @@
 package com.prosper.chasing.game.base;
 
+import java.util.Map;
+
 /**
  * 商人
  * Created by deacon on 2018/4/3.
  */
-public class Merchant extends NPCOld {
+public class Merchant extends NPC {
 
     // 商人出售的道具id
     private short[] propIds;
@@ -14,19 +16,16 @@ public class Merchant extends NPCOld {
     // 商人出售的道具是否有变化
     private boolean isPropIdSetChanged;
 
-    public Merchant(Game game) {
-        super(game);
+    public Merchant() {
+        super();
     }
 
-    public Merchant(Game game, int id, short typeId, String name,
-                    boolean movable, short[] propIds, Position position) {
-        super(game);
+    public Merchant(int id, String name, boolean movable, short[] propIds, Point position) {
+        super();
         setId(id);
-        setTypeId(typeId);
         setName(name);
-        setPosition(position);
+        setPoint(position);
         setPropIds(propIds);
-        this.movable = movable;
     }
 
     public String getName() {
@@ -51,6 +50,11 @@ public class Merchant extends NPCOld {
 
     public void setPropIdSetChanged(boolean propIdSetChanged) {
         isPropIdSetChanged = propIdSetChanged;
+    }
+
+    @Override
+    void logic(Map<Integer, User> playerList) {
+
     }
 }
 

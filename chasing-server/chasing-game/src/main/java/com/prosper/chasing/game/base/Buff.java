@@ -11,6 +11,7 @@ public class Buff {
     byte id;
     int startSecond; // 起始时间
     short last;      // 持续时间
+    int groupId;
     List<Object> valueList;
 
     public Buff(byte id, short last) {
@@ -25,7 +26,12 @@ public class Buff {
     }
 
     public Buff(BuffConfig config, Object... values) {
+        this(config, 0,  values);
+    }
+
+    public Buff(BuffConfig config, int groupId, Object... values) {
         this(config.id, config.last);
+        this.groupId = groupId;
         if (values != null) {
             for (Object o: values) {
                 valueList.add(o);

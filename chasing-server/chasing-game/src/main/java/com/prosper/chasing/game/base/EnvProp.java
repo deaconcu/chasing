@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.base;
 
-public class EnvProp extends MovableObject {
+public class EnvProp extends GameObject {
 
     // 类型id
     public short typeId;
@@ -12,7 +12,7 @@ public class EnvProp extends MovableObject {
     public long vanishTime;
 
     public EnvProp(Game game) {
-        super(game);
+        super();
     }
 
     /**
@@ -26,7 +26,6 @@ public class EnvProp extends MovableObject {
     /**
      * 捕获之后的处理
      */
-    @Override
     protected void catched(User user) {
         user.setProp(typeId, (byte)(user.getProp(typeId) + 1));
         vanishTime = System.currentTimeMillis();

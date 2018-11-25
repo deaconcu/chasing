@@ -1,4 +1,6 @@
-package com.prosper.chasing.game.base;
+package com.prosper.chasing.game.backup;
+
+import com.prosper.chasing.game.base.*;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -57,6 +59,10 @@ public abstract class MovableObject extends GameObject {
 
     // 是否是第一次同步信息，有些数据只同步一次，比如id，名称之类的
     protected boolean firstSync = true;
+
+    public void setMovable(boolean movable) {
+        this.movable = movable;
+    }
 
     public enum MoveState {
         WANDERING, CHASING
@@ -146,7 +152,7 @@ public abstract class MovableObject extends GameObject {
     private float getDistanceLevel() {
         int minDistance = DISTANCE_CHASING + 1;
         for (User user: chasingUserSet) {
-            int distance = user.getPosition().distance(position.point);
+            int distance = user.getPoint().distance(position.point);
             if (distance < minDistance) {
                 minDistance = distance;
             }
@@ -174,7 +180,7 @@ public abstract class MovableObject extends GameObject {
     public boolean isInChasingArea() {
         int minDistance = DISTANCE_CHASING + 1;
         for (User user: chasingUserSet) {
-            int distance = user.getPosition().distance(position.point);
+            int distance = user.getPoint().distance(position.point);
             if (distance < minDistance) {
                 minDistance = distance;
             }

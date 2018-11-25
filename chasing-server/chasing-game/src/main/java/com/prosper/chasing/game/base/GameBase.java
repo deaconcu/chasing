@@ -44,7 +44,7 @@ public class GameBase extends Game {
     }
 
     @Override
-    protected List<NPCOld> generateNPC() {
+    protected List<NPC> generateNPC() {
         return null;
     }
 

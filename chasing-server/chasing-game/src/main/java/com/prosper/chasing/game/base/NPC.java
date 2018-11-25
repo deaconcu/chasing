@@ -5,8 +5,11 @@ import java.util.Map;
 /**
  * Created by deacon on 2018/9/8.
  */
-public interface NPC {
+public abstract class NPC extends GameObject {
 
-    void logic(Map<Integer, User> playerList);
+    public NPC(int id, Point point, int rotateY) {
+        super(id, point, rotateY);
+    }
 
+    abstract void logic(Map<Integer, User> playerList);
 }

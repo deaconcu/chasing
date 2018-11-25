@@ -6,6 +6,8 @@ import com.prosper.chasing.game.map.Block;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import com.prosper.chasing.game.util.Enums;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -14,6 +16,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @MetaGameAnno("marathon")
 public class Marathon extends GameBase {
+
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     private static final int POSITION_X_LIMIT = 10;
     private static final int POSITION_Z_LIMIT = 10;
@@ -24,7 +28,7 @@ public class Marathon extends GameBase {
     private Point endPosition;
 
     static {
-        gamePropConfigMap = new GamePropConfigMap(10, 1)
+        gamePropConfigMap = new GamePropConfigMap(Integer.MAX_VALUE, 200)
                 .add(PropConfig.SPEED_UP_LEVEL_1, (short)100, (short)60, false)
                 .add(PropConfig.SPEED_UP_LEVEL_2, (short)100, (short)60, false)
                 .add(PropConfig.SPEED_DOWN_LEVEL_1, (short)100, (short)60, false)
@@ -126,7 +130,10 @@ public class Marathon extends GameBase {
     @Override
     protected void initUser(Map<Integer, User> userMap) {
         for (User user: userMap.values()) {
-            user.setPosition(startPosition);
+            int x = startPosition.x + ThreadLocalRandom.current().nextInt(6000) - 3000;
+            int z = startPosition.z + ThreadLocalRandom.current().nextInt(6000) - 3000;
+
+            user.setPoint(new Point(x, 0 ,z));
             user.setRotateY(ThreadLocalRandom.current().nextInt(360));
             user.setMoveState(Constant.MoveState.IDLE);
         }
@@ -138,7 +145,7 @@ public class Marathon extends GameBase {
     @Override
     protected void doPositionChanged(User user) {
         // TODO 需要优化，不需要每次都计算平方根
-        if (user.getPosition().distance(endPosition) < 2000) {
+        if (user.getPoint().distance(endPosition) < 2000) {
             user.setState(Constant.UserState.GAME_OVER);
 
             ByteBuilder resultMessage = generateResultMessage(user);
@@ -155,12 +162,46 @@ public class Marathon extends GameBase {
                 Enums.DynamicGameObjectType.FLAG.getValue(),
                 0,
                 new Point(startPosition.x, 0, startPosition.z),
-                45));
+                45,
+                Short.MAX_VALUE));
 
         addDynamicObject(new DynamicGameObject(
                 Enums.DynamicGameObjectType.FLAG.getValue(),
                 0,
                 new Point(endPosition.x, 0, endPosition.z),
-                45));
+                45,
+                Short.MAX_VALUE));
+    }
+
+    @Override
+    protected void doPropLogic() {
+        // 生成新的道具
+        int propRemained = getGamePropConfigMap().getPropRemained((int)getGameTime() / 1000);
+        int count = propList.size() - propRemained;
+        if (count <= 0) return;
+
+        while (count > 0) {
+            EnvProp envProp = new EnvProp(this);
+
+            envProp.typeId = propList.removeFirst();
+            envProp.setId(nextPropSeqId ++);
+            envProp.setPoint(new Position());
+
+            int randomBlockId = gameMap.getRandomMainRoadBlockId();
+            int x = gameMap.getX(randomBlockId);
+            int y = gameMap.getY(randomBlockId);
+            envProp.getPositionInfo().point = new Point(x * 1000, 100, y * 1000);
+            envProp.createTime = System.currentTimeMillis();
+            envProp.vanishTime = envProp.createTime +
+                    getGamePropConfigMap().getPropConfig(envProp.typeId).duration * 1000;
+            envProp.setMovable(getGamePropConfigMap().getPropConfig(envProp.typeId).movable);
+            getPropInSceneList().add(envProp);
+            getEnvPropChangedList().add(envProp);
+
+            count --;
+
+            log.info("created prop: {}:{}-{}:{}:{}", gameInfo.getId(), envProp.getId(),
+                    envProp.getPositionInfo().point.x, envProp.getPositionInfo().point.y, envProp.getPositionInfo().point.z);
+        }
     }
 }
