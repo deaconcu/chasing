@@ -37,8 +37,8 @@ public class BuffConfig {
     public static final byte SPEED_DOWN_LEVEL_1_TERRAIN = 19;
     public static final byte SPEED_DOWN_LEVEL_2_TERRAIN = 20;
     public static final byte SPEED_DOWN_LEVEL_3_TERRAIN = 21;
-    public static final byte WIND = 21;
-    public static final byte ANIMAL = 21;
+    public static final byte WIND = 22;
+    public static final byte ANIMAL = 23;
 
     static {
         buffConfigMap.put(SPEED_UP_LEVEL_1, new BuffConfig(SPEED_UP_LEVEL_1, (short)20));
@@ -57,6 +57,11 @@ public class BuffConfig {
         buffConfigMap.put(REBOUND, new BuffConfig(REBOUND, (short)20));
         buffConfigMap.put(HOLD_SCEPTER, new BuffConfig(HOLD_POSITION, (short)300));
         buffConfigMap.put(EXPEL, new BuffConfig(HOLD_POSITION, Short.MAX_VALUE));
+        buffConfigMap.put(SPEED_DOWN_LEVEL_1_TERRAIN, new BuffConfig(SPEED_DOWN_LEVEL_1_TERRAIN, (short)-1));
+        buffConfigMap.put(SPEED_DOWN_LEVEL_2_TERRAIN, new BuffConfig(SPEED_DOWN_LEVEL_2_TERRAIN, (short)-1));
+        buffConfigMap.put(SPEED_DOWN_LEVEL_3_TERRAIN, new BuffConfig(SPEED_DOWN_LEVEL_3_TERRAIN, (short)-1));
+        buffConfigMap.put(WIND, new BuffConfig(WIND, (short)-1));
+        buffConfigMap.put(ANIMAL, new BuffConfig(ANIMAL, (short)-1));
     }
 
     public static void putBuff(BuffConfig buffConfig) {

@@ -45,6 +45,8 @@ public class GameMap {
 
     public int bridgeWidth;
 
+    public int expandWidth;
+
     /**
      * 主路
      */
@@ -843,8 +845,8 @@ public class GameMap {
      * 获取与给定点临近的block group的起点或者终点
      */
     public int getNearestEndPoint(Point point, BlockGroup blockGroup) {
-        int distance1 = point.distance(getX(blockGroup.getStartBlockId()), 0, getY(blockGroup.getStartBlockId()));
-        int distance2 = point.distance(getX(blockGroup.getEndBlockId()), 0, getY(blockGroup.getEndBlockId()));
+        int distance1 = point.distance(getX(blockGroup.getStartBlockId()) * 1000, 0, getY(blockGroup.getStartBlockId()) * 1000);
+        int distance2 = point.distance(getX(blockGroup.getEndBlockId() * 1000), 0, getY(blockGroup.getEndBlockId()) * 1000);
 
         if (distance1 < distance2) return blockGroup.getStartBlockId();
         return blockGroup.getEndBlockId();
@@ -865,7 +867,7 @@ public class GameMap {
         return new Point(getX(blockId), 0, getY(blockId));
     }
 
-    public BlockGroup getBlockGroup(int id) {
+    public BlockGroup getBlockGroup(short id) {
         return blockGroupMap.get(id);
     }
 
@@ -954,5 +956,16 @@ public class GameMap {
 
     public byte[] getMapBytes() {
         return mapBytes;
+    }
+
+    public boolean isRoadAlongX(int x, int y)
+    {
+        int aroundBlockId = getBlockId(x + expandWidth + 1, y);
+        if (isOccupied(aroundBlockId)) return false;
+
+        aroundBlockId = getBlockId(x - expandWidth - 1, y);
+        if (isOccupied(aroundBlockId)) return false;
+
+        return true;
     }
 }

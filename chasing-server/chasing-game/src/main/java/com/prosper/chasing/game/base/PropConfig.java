@@ -385,12 +385,14 @@ public class PropConfig {
         @Override
         public boolean doUse(PropMessage message, User user, Game game) {
             // TODO 暂时不做
+            /*
             User toUser = game.getUserMap().get(message.getToUserId());
             if (toUser != null) {
                 user.addBuff(BuffConfig.FOLLOWED, user.getId());
                 toUser.addBuff(BuffConfig.FOLLOW, toUser.getId());
                 return true;
             }
+            */
             return false;
         }
     }

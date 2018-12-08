@@ -69,7 +69,7 @@ public class Marathon extends GameBase {
         Block block = gameMap.mainRoad.blockList.get(5);
         startPosition = new Point(block.position.x * 1000, 0, block.position.y * 1000);
 
-        block = gameMap.mainRoad.blockList.get(50);
+        block = gameMap.mainRoad.blockList.get(200);
         endPosition = new Point(block.position.x * 1000, 0, block.position.y * 1000);
     }
 
@@ -113,8 +113,8 @@ public class Marathon extends GameBase {
     }
 
     @Override
-    protected List<NPCOld> generateNPC() {
-        List<NPCOld> npcOldList = new LinkedList<>();
+    protected List<NPC> generateNPC() {
+        List<NPC> npcOldList = new LinkedList<>();
         // TODO
         /*
         npcOldList.add(new Merchant(
@@ -130,8 +130,8 @@ public class Marathon extends GameBase {
     @Override
     protected void initUser(Map<Integer, User> userMap) {
         for (User user: userMap.values()) {
-            int x = startPosition.x + ThreadLocalRandom.current().nextInt(6000) - 3000;
-            int z = startPosition.z + ThreadLocalRandom.current().nextInt(6000) - 3000;
+            int x = startPosition.x + ThreadLocalRandom.current().nextInt(2000) - 1000;
+            int z = startPosition.z + ThreadLocalRandom.current().nextInt(2000) - 1000;
 
             user.setPoint(new Point(x, 0 ,z));
             user.setRotateY(ThreadLocalRandom.current().nextInt(360));
@@ -158,16 +158,16 @@ public class Marathon extends GameBase {
      */
     @Override
     protected void initDynamicObject() {
-        addDynamicObject(new DynamicGameObject(
-                Enums.DynamicGameObjectType.FLAG.getValue(),
-                0,
+        addGameObject(new DynamicGameObject(
+                Enums.DynamicGameObjectType.FLAG,
+                getNextDObjectId(),
                 new Point(startPosition.x, 0, startPosition.z),
                 45,
                 Short.MAX_VALUE));
 
-        addDynamicObject(new DynamicGameObject(
-                Enums.DynamicGameObjectType.FLAG.getValue(),
-                0,
+        addGameObject(new DynamicGameObject(
+                Enums.DynamicGameObjectType.FLAG,
+                getNextDObjectId(),
                 new Point(endPosition.x, 0, endPosition.z),
                 45,
                 Short.MAX_VALUE));
@@ -185,23 +185,21 @@ public class Marathon extends GameBase {
 
             envProp.typeId = propList.removeFirst();
             envProp.setId(nextPropSeqId ++);
-            envProp.setPoint(new Position());
 
             int randomBlockId = gameMap.getRandomMainRoadBlockId();
             int x = gameMap.getX(randomBlockId);
             int y = gameMap.getY(randomBlockId);
-            envProp.getPositionInfo().point = new Point(x * 1000, 100, y * 1000);
+            envProp.setPoint(new Point(x * 1000, 100, y * 1000));
             envProp.createTime = System.currentTimeMillis();
             envProp.vanishTime = envProp.createTime +
                     getGamePropConfigMap().getPropConfig(envProp.typeId).duration * 1000;
-            envProp.setMovable(getGamePropConfigMap().getPropConfig(envProp.typeId).movable);
-            getPropInSceneList().add(envProp);
+            propMap.put(envProp.getId(), envProp);
             getEnvPropChangedList().add(envProp);
 
             count --;
 
             log.info("created prop: {}:{}-{}:{}:{}", gameInfo.getId(), envProp.getId(),
-                    envProp.getPositionInfo().point.x, envProp.getPositionInfo().point.y, envProp.getPositionInfo().point.z);
+                    envProp.getPoint().x, envProp.getPoint().y, envProp.getPoint().z);
         }
     }
 }

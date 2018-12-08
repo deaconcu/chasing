@@ -59,7 +59,7 @@ public class Constant {
     public static class NPCType {
         public static byte OTHER = 1;
         public static byte MERCHANT = 2;
-        public static byte ANIMAL = 2;
+        public static byte ANIMAL = 3;
     }
 
     public static class FirstSync {

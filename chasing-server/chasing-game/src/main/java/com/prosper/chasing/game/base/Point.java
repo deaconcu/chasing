@@ -86,6 +86,16 @@ public class Point {
         return false;
     }
 
+    /**
+     * 是否在同一分区
+     */
+    public boolean sameZone(Point point) {
+        if (point.x / 1000 == x && point.y / 1000 == y && point.z / 1000 == z) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof Point)) {
@@ -109,4 +119,5 @@ public class Point {
         return "x: " + x + ", y: " + y + ", z: " + z;
 
     }
+
 }

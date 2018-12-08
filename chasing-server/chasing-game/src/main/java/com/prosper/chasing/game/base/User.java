@@ -121,9 +121,13 @@ public class User extends GameObject {
     // 目标位置
     //private Point targetPoint;
 
+    int nextBuffId = 0;
+
     private Object targetObject;
 
     private Map<Integer, ChasingInfo> chasingInfoMap = new HashMap<>();
+
+    public User() {}
 
     public User(int id, Point point, int rotateY) {
         super(id, point, rotateY);
@@ -322,9 +326,12 @@ public class User extends GameObject {
      * @return true 执行成功 false 执行失败
      */
     public boolean reduceProp(short propId, short count) {
-        if (getProp(propId) < count) {
+        int propCount = getProp(propId);
+        if (propCount < count) {
             return false;
         }
+
+        if (propCount == 0 && count == 0) return true;
         setProp(propId, (short) (propMap.get(propId) - count));
         return true;
     }
@@ -337,7 +344,7 @@ public class User extends GameObject {
         if (getPackagePropCount() + count > PROP_PACKAGE_MAX_SIZE) {
             return false;
         }
-        setProp(propId, (short) (propMap.get(propId) + count));
+        setProp(propId, (short) (getProp(propId) + count));
         return true;
     }
 
@@ -398,11 +405,7 @@ public class User extends GameObject {
      * buff 相关
      ********************************/
 
-    /**
-     * 增加buff
-     * @param buffId buff id
-     * @param values buff附带的一些信息, 比如跟随的时候需要跟随的用户id
-     */
+    /*
     public void addBuff(byte buffId, Object... values) {
         if (BuffConfig.getBuff(buffId) == null) {
             log.warn("buff is not exist" + buffId);
@@ -412,30 +415,57 @@ public class User extends GameObject {
         buffMap.put(Byte.toString(buffId), buff);
         buffChangedSet.add(buff);
     }
+    */
+    private int getNextBuffId() {
+        return nextBuffId ++;
+    }
 
-    public void addBuff(byte buffId, int groupId, Object... values)  {
-        String id = Byte.toString(buffId) + "-" + Integer.toString(groupId);
-        if (buffMap.containsKey(id)) return;
+    /**
+     * 增加buff
+     * @param buffTypeId buff id
+     * @param values buff附带的一些信息, 比如跟随的时候需要跟随的用户id
+     */
+    public void addBuff(String uniqueId, byte buffTypeId, int groupId, Object... values)  {
+        if (buffMap.containsKey(uniqueId)) return;
 
-        Buff buff = new Buff(BuffConfig.getBuff(buffId), groupId, values);
-        buffMap.put(id, buff);
+        Buff buff = new Buff(getNextBuffId(), BuffConfig.getBuff(buffTypeId), groupId, values);
+        buffMap.put(uniqueId, buff);
         buffChangedSet.add(buff);
     }
 
     /**
      * 增加buff
      */
+    public void addBuff(String uniqueId, byte buffId) {
+        addBuff(uniqueId, buffId, 0);
+    }
+
+    /**
+     * TODO 完全不对，需要修改
+     * @param buffId
+     */
     public void addBuff(byte buffId) {
-        addBuff(buffId, null);
+        // TODO
+
     }
 
     /**
      * 移除buff
      */
     public void removeBuff(byte buffId) {
-        // TODO NEED REWRITE
+        // TODO NEED REWRITE byte -> string
         Buff buff = buffMap.remove(buffId);
-        buffChangedSet.add(buff);
+        if (buff != null) {
+            buffChangedSet.add(buff);
+        }
+    }
+
+    public void removeBuff(String buffId) {
+        Buff buff = buffMap.remove(buffId);
+        if(buff != null) {
+            buff.last = 0;
+            buffChangedSet.add(buff);
+        }
     }
 
     /**
@@ -449,15 +479,18 @@ public class User extends GameObject {
             }
         }
         for (String key: removeKeyList) {
-            buffChangedSet.add(buffMap.remove(key));
+            removeBuff(key);
         }
     }
 
     /**
      * 判断用户是否有buff
      */
-    public boolean hasBuffer(short bufferId) {
-        return buffMap.containsKey(bufferId);
+    public boolean hasBuffer(short bufferTypeId) {
+        for (Buff buff: buffMap.values()) {
+            if (buff.typeId == bufferTypeId) return true;
+        }
+        return false;
     }
 
     /**
@@ -538,8 +571,6 @@ public class User extends GameObject {
         this.moveState = moveState;
         setMoved(true);
     }
-
-
 
 
     public String getName() {
@@ -760,7 +791,9 @@ public class User extends GameObject {
             byteBuilder.append((byte)buffChangedSet.size());
             for (Buff buff: buffChangedSet) {
                 byteBuilder.append(buff.id);
-                byteBuilder.append(buff.getRemainSecond());
+                byteBuilder.append(buff.typeId);
+                byteBuilder.append(buff.last);
+                byteBuilder.append(buff.startSecond);
             }
         }
         if (propChangedSet.size() != 0) {
@@ -806,6 +839,7 @@ public class User extends GameObject {
         isStateChanged = false;
         isCustomPropertyChanged = false;
         setMoved(false);
+        setCrossZone(false);
 
         buffChangedSet.clear();
         propChangedSet.clear();
@@ -820,14 +854,13 @@ public class User extends GameObject {
      */
     public void check() {
         // 检查buff是否有效，移除无效buff
-        List<Byte> removeIdList = new LinkedList<>();
-        for(Buff buff: buffMap.values()) {
-            if (!checkBuff(buff)) {
-                removeIdList.add(buff.id);
+        Iterator<Map.Entry<String,Buff>> iterator = buffMap.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String,Buff> entry = iterator.next();
+            if (!checkBuff(entry.getValue())) {
+                buffChangedSet.add(entry.getValue());
+                iterator.remove();
             }
-        }
-        for (Byte id: removeIdList) {
-            buffMap.remove(id);
         }
 
         // 如果队列中存在消息，说明用户有延时，用延时的时长来判断是否掉线
@@ -848,25 +881,6 @@ public class User extends GameObject {
      * 当buff无效时，返回false, 否则返回true
      */
     protected boolean checkBuff(Buff buff) {
-        /*
-        if (buff instanceof ChasingBuff) {
-            ChasingBuff chasingBuff = (ChasingBuff) buff;
-            if (chasingBuff.type == ChasingBuff.USER) {
-                // TODO
-            } else if (chasingBuff.type == ChasingBuff.NPCOld) {
-                NPCOld npc = game.getMoveableNPCMap().get(chasingBuff.targetId);
-                if (npc != null) {
-                    boolean isNear = game.isNear(npc.getPositionInfo().point, position.point, NEAR_DISTANCE);
-                    if (!isNear) {
-                        return false;
-                    } else if (isNear && buff.getRemainSecond() <= 0) {
-                        catchUp(npc);
-                    }
-                }
-            }
-        }
-        */
-
         if (buff.getRemainSecond() <= 0) {
             return false;
         }

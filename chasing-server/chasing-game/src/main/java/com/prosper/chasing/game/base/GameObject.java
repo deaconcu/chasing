@@ -1,5 +1,6 @@
 package com.prosper.chasing.game.base;
 
+import com.prosper.chasing.game.util.Enums;
 import com.prosper.chasing.game.util.Enums.*;
 
 /**
@@ -18,27 +19,30 @@ public class GameObject {
     // 是否移动
     private boolean isMoved;
 
+    // 是否移动到了另一个分区
+    private boolean isCrossZone;
+
+    // 是否为活着的对象
+    private boolean isAlive;
+
     // 生成时间
     private long createTime;
 
-    // 是否为新创建的对象
-    private GameObjectLifeAction lifeAction;
+    // 同步的动作, 有时候需要根据不同的同步动作同步不一样的信息
+    private SyncAction SyncAction;
 
-    public GameObject(int id, Point point, int rotateY) {
-        this.id = id;
-        this.point = point;
-        this.rotateY = rotateY;
+    public GameObject() {
         this.isMoved = true;
-        this.lifeAction = GameObjectLifeAction.BORN;
+        this.isAlive = true;
+        this.SyncAction = SyncAction.BORN;
         this.createTime = System.currentTimeMillis();
     }
 
-    public void synced() {
-        lifeAction = GameObjectLifeAction.ALIVE;
-    }
-
-    public void dead() {
-        lifeAction = GameObjectLifeAction.DEAD;
+    public GameObject(int id, Point point, int rotateY) {
+        this();
+        this.id = id;
+        this.point = point;
+        this.rotateY = rotateY;
     }
 
     public Point getPoint() {
@@ -49,6 +53,10 @@ public class GameObject {
         if (point.equals(this.point)) return;
         this.point = point;
         isMoved = true;
+
+        if (!this.point.sameZone(point)) {
+            isCrossZone = true;
+        }
     }
 
     public int getRotateY() {
@@ -77,18 +85,6 @@ public class GameObject {
         isMoved = moved;
     }
 
-    public boolean isBorn() {
-        return (lifeAction == GameObjectLifeAction.BORN);
-    }
-
-    public boolean isAlive() {
-        return (lifeAction == GameObjectLifeAction.ALIVE);
-    }
-
-    public boolean isDead() {
-        return (lifeAction == GameObjectLifeAction.DEAD);
-    }
-
     public int getId() {
         return id;
     }
@@ -97,15 +93,31 @@ public class GameObject {
         this.id = id;
     }
 
-    public GameObjectLifeAction getLifeAction() {
-        return lifeAction;
+    public SyncAction getSyncAction() {
+        return SyncAction;
+    }
+
+    public void setSyncAction(Enums.SyncAction syncAction) {
+        SyncAction = syncAction;
     }
 
     public long getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(long createTime) {
-        this.createTime = createTime;
+    public boolean isAlive() {
+        return isAlive;
+    }
+
+    public void setAlive(boolean alive) {
+        isAlive = alive;
+    }
+
+    public boolean isCrossZone() {
+        return isCrossZone;
+    }
+
+    public void setCrossZone(boolean crossZone) {
+        isCrossZone = crossZone;
     }
 }

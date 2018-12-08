@@ -304,7 +304,7 @@ public class MarathonGameMapCreator {
         System.out.println("\nblock count" + gameMap.occupiedBlockMap.size());
         System.out.print("\n");
 
-        for (GameMap.BlockGroup blockGroup : gameMap.blockGroupMap.values()) {
+        for (BlockGroup blockGroup : gameMap.blockGroupMap.values()) {
             System.out.print(blockGroup);
             System.out.print(",");
         }
@@ -316,8 +316,8 @@ public class MarathonGameMapCreator {
     public void generateTerrainTest(GameMap gameMap) {
         short groupId = gameMap.getNextGroupId();
 
-        int length = 200;
-        Block startBlock = gameMap.mainRoad.blockList.get(50);
+        int length = 50;
+        Block startBlock = gameMap.mainRoad.blockList.get(25);
         Block block = startBlock;
         Block endBlock = null;
         while (length > 0) {
@@ -329,8 +329,8 @@ public class MarathonGameMapCreator {
 
         gameMap.blockGroupMap.put(
                 groupId,
-                new GameMap.BlockGroup(
-                        groupId, TerrainType.FOG, startBlock.blockId, endBlock.blockId)
+                new BlockGroup(
+                        groupId, TerrainType.WILD_FIRE, startBlock.blockId, endBlock.blockId, length)
         );
     }
 
@@ -469,7 +469,7 @@ public class MarathonGameMapCreator {
             if (count <= 0) continue;
 
             short groupId = gameMap.getNextGroupId();
-            //gameMap.blockGroupMap.put(blockGroupId, specialSegment.getX());
+            //gameMap.blockGroupMap.put(interaciveObjectId, specialSegment.getX());
             for (int i = 0; i < count; i ++) {
                 if (currentBlock == null) {
                     break;
@@ -500,6 +500,7 @@ public class MarathonGameMapCreator {
     }
 
     private void expandRoadV3(GameMap gameMap, int width) {
+        gameMap.expandWidth = width;
         // 扩展道路
         Map<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
         for (int blockId: gameMap.unoccupiedBlockSet) {
@@ -526,7 +527,7 @@ public class MarathonGameMapCreator {
                     blockId, width, BlockType.ARTERY, BlockType.SHORTCUT, BlockType.BRANCH);
 
             if (result != null) {
-                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().blockGroupId));
+                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().interaciveObjectId));
             }
         }
 
@@ -819,7 +820,7 @@ public class MarathonGameMapCreator {
                     blockId, width, BlockType.ARTERY, BlockType.SHORTCUT, BlockType.BRANCH);
 
             if (result != null) {
-                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().blockGroupId));
+                addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().interaciveObjectId));
             }
         }
 

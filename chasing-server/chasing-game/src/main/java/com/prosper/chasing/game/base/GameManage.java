@@ -291,6 +291,15 @@ public class GameManage {
                     }
 
                     long start = System.currentTimeMillis();
+
+                    /**
+                     * TODO
+                     * java.util.ConcurrentModificationException
+                     * at java.util.HashMap$HashIterator.nextNode(HashMap.java:1437)
+                     * at java.util.HashMap$ValueIterator.next(HashMap.java:1466)
+                     * at com.prosper.chasing.game.base.GameManage.lambda$executeGameLogic$1(GameManage.java:294)
+                     * at java.lang.Thread.run(Thread.java:745)
+                     */
                     for (Game game: gamePool.values()) {
                         // 如果游戏已是等待销毁状态，则销毁游戏, 否则执行游戏逻辑
                         if (game.getState() == GameState.DESTROYING) {

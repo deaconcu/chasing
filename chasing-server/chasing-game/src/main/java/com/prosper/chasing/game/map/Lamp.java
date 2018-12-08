@@ -23,7 +23,7 @@ public class Lamp extends GameObject {
     }
 
     public void addSiblings(int blockId) {
-        if (blockId ==  id) {
+        if (blockId ==  getId()) {
             int a = 1;
         }
         if (siblingsSize >= 4) throw new RuntimeException("lamp siblings size exceed limit");
@@ -31,10 +31,10 @@ public class Lamp extends GameObject {
     }
 
     public void getBytes(ByteBuilder byteBuilder) {
-        byteBuilder.append(id);
-        byteBuilder.append((short)point.x);
-        byteBuilder.append((short)point.y);
-        byteBuilder.append((short)rotateY);
+        byteBuilder.append(getId());
+        byteBuilder.append(getPoint().x);
+        byteBuilder.append(getPoint().y);
+        byteBuilder.append(getRotateY());
         byteBuilder.append(siblingsSize);
         for (int i = 0; i < siblingsSize; i ++) {
             byteBuilder.append(siblings[i]);

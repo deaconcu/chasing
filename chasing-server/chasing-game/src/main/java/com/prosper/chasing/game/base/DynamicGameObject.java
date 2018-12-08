@@ -1,6 +1,9 @@
 package com.prosper.chasing.game.base;
 
+import com.prosper.chasing.game.util.Enums;
+
 /**
+ * 一些会消失和移动的游戏对象，比如动物
  * Created by deacon on 2018/9/26.
  */
 public class DynamicGameObject extends GameObject {
@@ -8,7 +11,7 @@ public class DynamicGameObject extends GameObject {
     /**
      * 游戏物品的类型id
      */
-    private byte typeId;
+    private Enums.DynamicGameObjectType type;
 
     /**
      * 生存时间, 单位为秒
@@ -20,14 +23,14 @@ public class DynamicGameObject extends GameObject {
      */
     private long endTime;
 
-    public DynamicGameObject(byte typeId, int id, Point point, int rotateY, short lifeTime) {
+    public DynamicGameObject(Enums.DynamicGameObjectType type, int id, Point point, int rotateY, short lifeTime) {
         super(id, point, rotateY);
-        this.typeId = typeId;
+        this.type = type;
         this.endTime = getCreateTime() + lifeTime * 1000;
     }
 
-    public byte getTypeId() {
-        return typeId;
+    public Enums.DynamicGameObjectType getTypeId() {
+        return type;
     }
 
     public long getEndTime() {

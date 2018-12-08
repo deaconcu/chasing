@@ -16,12 +16,8 @@ public class Merchant extends NPC {
     // 商人出售的道具是否有变化
     private boolean isPropIdSetChanged;
 
-    public Merchant() {
-        super();
-    }
-
     public Merchant(int id, String name, boolean movable, short[] propIds, Point position) {
-        super();
+        super(id, position, 0);
         setId(id);
         setName(name);
         setPoint(position);

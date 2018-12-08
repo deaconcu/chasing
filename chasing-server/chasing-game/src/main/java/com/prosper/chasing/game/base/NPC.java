@@ -12,4 +12,5 @@ public abstract class NPC extends GameObject {
     }
 
     abstract void logic(Map<Integer, User> playerList);
+
 }

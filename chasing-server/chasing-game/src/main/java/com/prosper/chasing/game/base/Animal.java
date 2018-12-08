@@ -1,5 +1,7 @@
 package com.prosper.chasing.game.base;
 
+import com.prosper.chasing.game.util.Enums;
+
 import java.util.Map;
 
 /**
@@ -10,20 +12,29 @@ public class Animal extends NPC {
 
     private int blockGroupId;
 
-    // 物体当前目标
+    private Enums.AnimalType animalType;
+
+    /**
+     * 目标用户id
+     */
     private User targetUser;
 
-    public Animal(int id, Point point, int rotateY, int blockGroupId) {
+    public Animal(int id, Enums.AnimalType  animalType, Point point, int rotateY, int blockGroupId, User targetUser) {
         super(id, point, rotateY);
+        this.animalType = animalType;
         this.blockGroupId = blockGroupId;
+        this.targetUser = targetUser;
     }
 
     @Override
     public void logic(Map<Integer, User> playerList) {
-        if (targetUser.getPoint().minDistanceOfAxis(getPoint()) <= 1000 &&
-                targetUser.getPoint().distance(getPoint()) <= 100) {
-            targetUser.setLife((short)0);
+        if (!getTargetUser().hasBuffer(BuffConfig.ANIMAL)) {
+            setAlive(false);
+        }
 
+        if (getTargetUser().getPoint().minDistanceOfAxis(getPoint()) <= 1000 &&
+                getTargetUser().getPoint().distance(getPoint()) <= 100) {
+            getTargetUser().setLife((short)0);
         }
     }
 
@@ -34,4 +45,9 @@ public class Animal extends NPC {
     public void setTargetUser(User targetUser) {
         this.targetUser = targetUser;
     }
+
+    public Enums.AnimalType getAnimalType() {
+        return animalType;
+    }
+
 }

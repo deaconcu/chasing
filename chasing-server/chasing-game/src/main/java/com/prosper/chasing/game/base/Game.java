@@ -51,22 +51,21 @@ public abstract class Game {
     protected LinkedList<Short> propList;
 
     // 游戏场景内的道具信息
-    private List<EnvProp> propInSceneList = new LinkedList<>();
+    //private List<EnvProp> propInSceneList = new LinkedList<>();
+
+    protected Map<Integer, EnvProp> propMap = new HashMap<>();
 
     private Map<Integer, DynamicGameObject> dGameObjectMap = new HashMap<>();
-    // npc的顺序id号
-    private int npcSequenceId = 1;
-    private int dynamicObjectSequenceId = 1;
-    // 位置不发生变化的NPC
-    private Map<Integer, NPC> staticNPCMap = new HashMap<>();
-    // 可以移动的NPC
-    private Map<Integer, NPC> movableNPCMap = new HashMap<>();
+
+    private Map<Integer, InteractiveObject> interactiveObjectMap = new HashMap<>();
 
     // 地图中的npc集合
     private Map<Integer, NPC> npcMap = new HashMap<>();
 
-    // 地图上blockGroup内的游戏对象
-    private Map<Integer, List<GameObject>> blockGroupObjectMap = new HashMap<>();
+    // npc的顺序id号
+    private int npcSequenceId = 1;
+    private int dynamicObjectSeqId = 1;
+    private int interObjectSeqId = 1;
 
     // prop顺序号id
     protected int nextPropSeqId = 1;
@@ -92,7 +91,9 @@ public abstract class Game {
     Set<Integer> positionChangedSet = new HashSet<>();
     Set<Integer> buffChangedSet = new HashSet<>();
     Set<Integer> terrainChangedSet = new HashSet<>();
-    Set<Integer> npcChangedSet = new HashSet<>();
+    Set<NPC> npcChangedSet = new HashSet<>();
+    Set<DynamicGameObject> dObjectChangedSet = new HashSet<>();
+    Set<InteractiveObject> interactiveObjectChangedSet = new HashSet<>();
 
     public long startTime = System.currentTimeMillis();
     private long lastUpdateTime = System.currentTimeMillis();
@@ -170,6 +171,7 @@ public abstract class Game {
         initProp();
         //initLamp();
         initDynamicObject();
+        initInteractiveObject();
     }
 
     private void initLamp() {
@@ -179,7 +181,7 @@ public abstract class Game {
                 dGameObjectMap.put(
                         id,
                         new DynamicGameObject(
-                                Enums.DynamicGameObjectType.LAMP.getValue(),
+                                Enums.DynamicGameObjectType.LAMP,
                                 id,
                                 new Point(block.position.x * 1000, 0, block.position.y * 1000),
                                 ThreadLocalRandom.current().nextInt(360),
@@ -194,13 +196,103 @@ public abstract class Game {
     protected abstract void initDynamicObject();
 
     /**
-     * 添加场景中动态的游戏对象
-     * @param dynamicGameObject
+     * 初始化可交互对象
+     * TODO TEST VERSION
      */
-    protected void addDynamicObject(DynamicGameObject dynamicGameObject) {
-        int id = dGameObjectMap.size();
-        dynamicGameObject.setId(id);
-        dGameObjectMap.put(id, dynamicGameObject);
+    protected void initInteractiveObject() {
+        Point2D position = gameMap.mainRoad.blockList.get(30).position;
+        int rotateY = 0;
+        if (!gameMap.isRoadAlongX(position.x, position.y)) {
+            rotateY = 90 * 1000;
+        }
+
+        int id =  getNextInterObjectId();
+        Point point = new Point(position.x *  1000, 0, position.y * 1000);
+        InteractiveObject river = new InteractiveObject(id, InteractiveObject.RIVER, point, rotateY);
+
+        interactiveObjectMap.put(id, river);
+        interactiveObjectChangedSet.add(river);
+
+        position = gameMap.mainRoad.blockList.get(65).position;
+        rotateY = 0;
+        if (!gameMap.isRoadAlongX(position.x, position.y)) {
+            rotateY = 90 * 1000;
+        }
+
+        id =  getNextInterObjectId();
+        point = new Point(position.x *  1000, 0, position.y * 1000);
+        InteractiveObject gate = new InteractiveObject(id, InteractiveObject.GATE, point, rotateY);
+
+        interactiveObjectMap.put(id, gate);
+        interactiveObjectChangedSet.add(gate);
+
+        position = gameMap.mainRoad.blockList.get(85).position;
+        rotateY = 0;
+        if (!gameMap.isRoadAlongX(position.x, position.y)) {
+            rotateY = 90 * 1000;
+        }
+
+        id =  getNextInterObjectId();
+        point = new Point(position.x *  1000, 0, position.y * 1000);
+        InteractiveObject fire = new InteractiveObject(id, InteractiveObject.FIRE, point, rotateY);
+
+        interactiveObjectMap.put(id, fire);
+        interactiveObjectChangedSet.add(fire);
+
+        position = gameMap.mainRoad.blockList.get(15).position;
+        rotateY =  0;
+        if (!gameMap.isRoadAlongX(position.x, position.y)) {
+            rotateY = 90 * 1000;
+            position.y += 3;
+        } else {
+            position.x += 3;
+        }
+
+        id =  getNextDObjectId();
+        point = new Point(position.x *  1000, 0, position.y * 1000);
+        DynamicGameObject store = new DynamicGameObject(Enums.DynamicGameObjectType.STORE, id, point, rotateY, Short.MAX_VALUE);
+        addGameObject(store);
+    }
+
+    /**
+     * 添加场景中的游戏对象
+     * @param gameObject
+     */
+    protected void addGameObject(GameObject gameObject) {
+        if (gameObject instanceof DynamicGameObject) {
+            DynamicGameObject dObject = (DynamicGameObject) gameObject;
+            dGameObjectMap.put(dObject.getId(), dObject);
+            dObjectChangedSet.add(dObject);
+        } else if (gameObject instanceof NPC) {
+            NPC npc = (NPC) gameObject;
+            npcMap.put(npc.getId(), npc);
+            npcChangedSet.add(npc);
+        }
+    }
+
+    /**
+     * 移除场景中的游戏对象
+     * @param gameObject
+     */
+    public boolean removeGameObject(GameObject gameObject) {
+        if (gameObject == null) return false;
+        if (gameObject instanceof DynamicGameObject) {
+            DynamicGameObject dObject = (DynamicGameObject) gameObject;
+            dObject.setSyncAction(Enums.SyncAction.DEAD);
+            dGameObjectMap.remove(dObject.getId());
+            dObjectChangedSet.add(dObject);
+        } else if (gameObject instanceof NPC) {
+            NPC npc = (NPC) gameObject;
+            npc.setSyncAction(Enums.SyncAction.DEAD);
+            npcMap.remove(npc.getId());
+            npcChangedSet.add(npc);
+        } else if (gameObject instanceof EnvProp) {
+            EnvProp prop = (EnvProp) gameObject;
+            prop.setSyncAction(Enums.SyncAction.DEAD);
+            propMap.remove(prop);
+            envPropChangedList.add(prop);
+        }
+        return true;
     }
 
     /**
@@ -240,7 +332,7 @@ public abstract class Game {
         doBuffLogic();
 
         // 执行buff的逻辑
-        doTerrainLogic();
+        doGameObjectLogic();
 
         // npc
         //moveNPC();
@@ -254,50 +346,60 @@ public abstract class Game {
      */
     private void doBuffLogic() {
         for (User user: userMap.values()) {
-            // TODO 只在用户所在的block有变化时执行
-            Block block = gameMap.getBlock(user.getPoint().x, user.getPoint().z);
+
+            Block block = gameMap.getBlock(user.getPoint().x / 1000, user.getPoint().z / 1000);
+            if (block == null || !gameMap.isOccupied(block.blockId)) continue;
+
             if (gameMap.getTerrainType(block) == Enums.TerrainType.FOG) {
-                user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_1_TERRAIN, block.blockGroupId);
+                if (!user.isCrossZone()) continue;
+                String uniqueId = Byte.toString(BuffConfig.SPEED_DOWN_LEVEL_1_TERRAIN) + "-g-" + Integer.toString(block.blockGroupId);
+                user.addBuff(uniqueId, BuffConfig.SPEED_DOWN_LEVEL_1_TERRAIN, block.blockGroupId);
             } else if (gameMap.getTerrainType(block) == Enums.TerrainType.RAIN) {
-                user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_2_TERRAIN, block.blockGroupId);
+                if (!user.isCrossZone()) continue;
+                String uniqueId = Byte.toString(BuffConfig.SPEED_DOWN_LEVEL_2_TERRAIN) + "-g-" + Integer.toString(block.blockGroupId);
+                user.addBuff(uniqueId, BuffConfig.SPEED_DOWN_LEVEL_2_TERRAIN, block.blockGroupId);
             } else if (gameMap.getTerrainType(block) == Enums.TerrainType.WILD_ANIMAL) {
+                if (!user.isCrossZone()) continue;
                 if (!user.hasBuffer(BuffConfig.ANIMAL)) {
                     BlockGroup blockGroup = gameMap.getBlockGroup(block.blockGroupId);
                     int blockId = gameMap.getNearestEndPoint(user.getPoint(), blockGroup);
                     Point point = gameMap.getNearestRoadEdgeBlock(blockId);
 
-                    Animal animal = new Animal(getNextNpcId(), new Point(0, 0, 0), 0, blockGroup.getId());
-                    getMoveableNPCMap().put(animal.getId(), animal);
-                    npcChangedSet.add(animal.getId());
-
-                    animal.setPoint(point);
+                    Animal animal = new Animal(getNextNpcId(), Enums.AnimalType.TIGER, new Point(point.x * 1000, 0, point.z * 1000), 0, blockGroup.getId(), user);
                     animal.setTargetUser(user);
 
-                    npcChangedSet.add(animal.getId());
-                    user.addBuff(BuffConfig.ANIMAL, block.blockGroupId);
+                    addGameObject(animal);
+                    String uniqueId = Byte.toString(BuffConfig.ANIMAL) + "-g-" + Integer.toString(block.blockGroupId);
+                    user.addBuff(uniqueId, BuffConfig.ANIMAL, block.blockGroupId);
                 }
             } else if (gameMap.getTerrainType(block) == Enums.TerrainType.WIND) {
+                if (!user.isCrossZone()) continue;
                 BlockGroup blockGroup = gameMap.getBlockGroup(block.blockGroupId);
-                user.addBuff(BuffConfig.WIND, block.blockGroupId, gameMap.getPoint(blockGroup.getStartBlockId()));
+                String uniqueId = Byte.toString(BuffConfig.WIND) + "-g-" + Integer.toString(block.blockGroupId);
+                user.addBuff(uniqueId, BuffConfig.WIND, block.blockGroupId, gameMap.getPoint(blockGroup.getStartBlockId()));
             } else if (gameMap.getTerrainType(block) == Enums.TerrainType.WILD_FIRE) {
                 List<Block> blockList = gameMap.getBlockListAroundInDistances(
                         gameMap.getBlockId(user.getPoint()), 6);
 
-                if  (ThreadLocalRandom.current().nextInt(1000) < 20) {
-                    int x = user.getPoint().x + ThreadLocalRandom.current().nextInt(6000) - 3000;
-                    int y = user.getPoint().y + ThreadLocalRandom.current().nextInt(6000) - 3000;
+                if  (ThreadLocalRandom.current().nextInt(1000) < 8) {
+                    // TODO 需要重写这个规则
+                    int offset = ThreadLocalRandom.current().nextInt(10000) - 5000;
+                    int x = user.getPoint().x + offset;
+                    int z = user.getPoint().z + offset;
 
-                    if ((x - user.getPoint().x) < 300 && (y - user.getPoint().y) < 300) {
-                        user.setLife((short)0);
+                    if ((x - user.getPoint().x) < 300 && (z - user.getPoint().z) < 300) {
+                        // TODO 测试需要注释
+                        //user.setLife((short)0);
                     }
 
-                    if (gameMap.isOccupied(gameMap.getBlockId(x / 1000, y / 1000))) {
+                    if (gameMap.isOccupied(gameMap.getBlockId(x / 1000, z / 1000))) {
                         DynamicGameObject fire = new DynamicGameObject(
-                                Enums.DynamicGameObjectType.FIRE.getValue(),
+                                Enums.DynamicGameObjectType.FIRE,
                                 getNextDObjectId(),
-                                new Point(x, 0, y),
+                                new Point(x, 0, z),
                                 0,
                                 (short)3);
+                        addGameObject(fire);
                     }
                 }
             } else {
@@ -309,20 +411,39 @@ public abstract class Game {
     /**
      * 执行地形的逻辑
      */
-    private void doTerrainLogic() {
+    private void doGameObjectLogic() {
+        List<DynamicGameObject> needRemoveList = null;
+        for (DynamicGameObject dynamicGameObject: dGameObjectMap.values()) {
+            if (dynamicGameObject.getEndTime() < System.currentTimeMillis()) {
+                if (needRemoveList == null) needRemoveList = new LinkedList<>();
+                needRemoveList.add(dynamicGameObject);
+            }
+        }
+
+        if (needRemoveList != null) {
+            for (DynamicGameObject dynamicGameObject: needRemoveList) {
+                removeGameObject(dynamicGameObject);
+            }
+        }
     }
 
     /**
      * 执行npc的业务逻辑
      */
     private void doNPCLogic() {
-        Iterator<Map.Entry<Integer, NPC>> iterator = npcMap.entrySet().iterator();
-        while (iterator.hasNext()) {
-            NPC npc = iterator.next().getValue();
-            if (!npc.isDead()) {
+        List<NPC> needRemoveNPCList = null;
+        for (NPC npc: npcMap.values()) {
+            if (npc.isAlive()) {
                 npc.logic(getNearByPlayer());
             } else {
-                npcChangedSet.add(npc.getId());
+                if (needRemoveNPCList == null) needRemoveNPCList = new LinkedList<>();
+                needRemoveNPCList.add(npc);
+            }
+        }
+
+        if (needRemoveNPCList != null) {
+            for (NPC npc: needRemoveNPCList) {
+                removeGameObject(npc);
             }
         }
     }
@@ -360,7 +481,7 @@ public abstract class Game {
 
         // 检查用户是否掉线，是否已结束游戏（死亡或者获胜）
         for (User user: userMap.values()) {
-            //user.check();
+            user.check();
             /*
             if (user.getState() == UserState.GAME_OVER) {
                 user.setState(UserState.RESULT_INFORMED);
@@ -415,6 +536,8 @@ public abstract class Game {
                 executeQuitMessage((QuitMessage) message);
             } else if (message instanceof PositionMessage) {
                 executePositionMessage((PositionMessage) message);
+            } else if (message instanceof ObjectPositionMessage) {
+                executeObjectPositionMessage((ObjectPositionMessage) message);
             } else if (message instanceof PropMessage) {
                 executePropMessage((PropMessage) message);
             } else if (message instanceof TransferPropMessage) {
@@ -470,20 +593,20 @@ public abstract class Game {
             if (userChangeBytes != null) {
                 user.offerMessage(userChangeBytes);
             }
+            user.clearAfterSync();
         }
 
         envPropChangedList.clear();
         npcChangedSet.clear();
         positionChangedSet.clear();
         buffChangedSet.clear();
-        isStepChanged = false;
-        for (User user: userMap.values()) {
-            user.clearAfterSync();
-        }
+        npcChangedSet.clear();
+        dObjectChangedSet.clear();
+        interactiveObjectChangedSet.clear();
     }
 
     /**
-     * sign: specialRoad|dynamicGameObject|target|step|envProp|npc|action|state|
+     * sign: specialRoad|dynamicGameObject|target|interactiveObject|envProp|npc|action|state|
      *     position|life|speed|buff|prop|customProperty|otherUserPosition|otherUserBuff|
      */
     private ByteBuilder changesToBytes() {
@@ -495,13 +618,6 @@ public abstract class Game {
         short sign = 0;
         byteBuilder.append(sign);
         byteBuilder.append(System.currentTimeMillis());
-
-        short dynamicGameObjectCount = 0;
-        for(DynamicGameObject dynamicGameObject: dGameObjectMap.values()) {
-            if (dynamicGameObject.isMoved()) {
-                dynamicGameObjectCount++;
-            }
-        }
 
         if (terrainChangedSet.size() > 0) {
             if (byteBuilder == null) {
@@ -516,25 +632,40 @@ public abstract class Game {
             }
         }
 
-        if (dynamicGameObjectCount > 0) {
+        if (dObjectChangedSet.size() > 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
             sign = (short) (sign | 16384);
-            byteBuilder.append(dynamicGameObjectCount);
-            for(DynamicGameObject dynamicGameObject: dGameObjectMap.values()) {
-                if (dynamicGameObject.isMoved()) {
-                    byteBuilder.append(dynamicGameObject.getId());
-                    byteBuilder.append(dynamicGameObject.getTypeId());
-                    byteBuilder.append(dynamicGameObject.getPoint().x);
-                    byteBuilder.append(dynamicGameObject.getPoint().y);
-                    byteBuilder.append(dynamicGameObject.getPoint().z);
-                    byteBuilder.append(dynamicGameObject.getRotateY());
-                    dynamicGameObject.setMoved(false);
-                }
+            byteBuilder.append((short)dObjectChangedSet.size());
+            for(DynamicGameObject dynamicGameObject: dObjectChangedSet) {
+                byteBuilder.append(dynamicGameObject.getSyncAction().getValue());
+                byteBuilder.append(dynamicGameObject.getId());
+                byteBuilder.append(dynamicGameObject.getTypeId().getValue());
+                byteBuilder.append(dynamicGameObject.getPoint().x);
+                byteBuilder.append(dynamicGameObject.getPoint().y);
+                byteBuilder.append(dynamicGameObject.getPoint().z);
+                byteBuilder.append(dynamicGameObject.getRotateY());
             }
         }
 
+        if (interactiveObjectChangedSet.size() > 0) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 4096);
+            byteBuilder.append((short)interactiveObjectChangedSet.size());
+            for(InteractiveObject interactiveObject: interactiveObjectChangedSet) {
+                byteBuilder.append(interactiveObject.getId());
+                byteBuilder.append(interactiveObject.getTypeId());
+                byteBuilder.append(interactiveObject.getPoint().x);
+                byteBuilder.append(interactiveObject.getPoint().y);
+                byteBuilder.append(interactiveObject.getPoint().z);
+                byteBuilder.append(interactiveObject.getRotateY());
+            }
+        }
+
+        /*
         if (isStepChanged()) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
@@ -542,6 +673,7 @@ public abstract class Game {
             sign = (short) (sign | 4096);
             byteBuilder.append(getStep());
         }
+        */
         if (envPropChangedList.size() != 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
@@ -549,12 +681,16 @@ public abstract class Game {
             sign = (short) (sign | 2048);
             byteBuilder.append((short)envPropChangedList.size());
             for (EnvProp envProp: envPropChangedList) {
+                byteBuilder.append(envProp.getSyncAction().getValue());
                 byteBuilder.append(envProp.typeId);
                 byteBuilder.append(envProp.getId());
                 byteBuilder.append(envProp.getPoint().x);
                 byteBuilder.append(envProp.getPoint().y);
                 byteBuilder.append(envProp.getPoint().z);
                 byteBuilder.append(envProp.getRemainSecond());
+
+                if (envProp.getSyncAction() == Enums.SyncAction.BORN)
+                    envProp.setSyncAction(Enums.SyncAction.ALIVE);
             }
         }
 
@@ -565,21 +701,19 @@ public abstract class Game {
             sign = (short) (sign | 1024);
 
             byteBuilder.append((short) npcChangedSet.size());
-            for (int npcId: npcChangedSet) {
-                NPC npc = npcMap.get(npcId);
-                if (npc.isDead()) npcMap.remove(npcId);
-                if (npc != null && npc.isMoved()) {
+            for (NPC npc: npcChangedSet) {
+                if (npc != null) {
                     if (npc instanceof Merchant) {
                         byteBuilder.append(Constant.NPCType.MERCHANT);
-                        if (npc.isBorn()) {
-                            byteBuilder.append(Constant.FirstSync.TRUE);
 
-                            byteBuilder.append(npc.getId());
-                            byteBuilder.append(npc.getPoint().x);
-                            byteBuilder.append(npc.getPoint().y);
-                            byteBuilder.append(npc.getPoint().z);
-                            byteBuilder.append(npc.getRotateY());
+                        byteBuilder.append(npc.getSyncAction().getValue());
+                        byteBuilder.append(npc.getId());
+                        byteBuilder.append(npc.getPoint().x);
+                        byteBuilder.append(npc.getPoint().y);
+                        byteBuilder.append(npc.getPoint().z);
+                        byteBuilder.append(npc.getRotateY());
 
+                        if (npc.getSyncAction() == Enums.SyncAction.BORN) {
                             Merchant merchant = (Merchant) npc;
                             byte[] nameBytes = merchant.getName().getBytes();
                             byteBuilder.append(nameBytes.length);
@@ -588,24 +722,23 @@ public abstract class Game {
                             for (short propId: merchant.getPropIds()) {
                                 byteBuilder.append(propId);
                             }
-                        } else {
-                            byteBuilder.append(Constant.FirstSync.FALSE);
-                            byteBuilder.append(npc.getId());
-                            byteBuilder.append(npc.getPoint().x);
-                            byteBuilder.append(npc.getPoint().y);
-                            byteBuilder.append(npc.getPoint().z);
-                            byteBuilder.append(npc.getRotateY());
-                            byteBuilder.append(npc.getLifeAction().getValue());
+                            npc.setSyncAction(Enums.SyncAction.ALIVE);
                         }
                     } else if (npc instanceof Animal){
+                        Animal animal = (Animal) npc;
                         byteBuilder.append(Constant.NPCType.ANIMAL);
-                        byteBuilder.append(npc.getId());
-                        byteBuilder.append(npc.getPoint().x);
-                        byteBuilder.append(npc.getPoint().y);
-                        byteBuilder.append(npc.getPoint().z);
-                        byteBuilder.append(npc.getRotateY());
+                        byteBuilder.append(npc.getSyncAction().getValue());
+                        byteBuilder.append(animal.getAnimalType().getValue());
+                        byteBuilder.append(animal.getId());
+                        byteBuilder.append(animal.getTargetUser().getId());
+                        byteBuilder.append(animal.getPoint().x);
+                        byteBuilder.append(animal.getPoint().y);
+                        byteBuilder.append(animal.getPoint().z);
+                        byteBuilder.append(animal.getRotateY());
+                        if (npc.getSyncAction() == Enums.SyncAction.BORN) {
+                            npc.setSyncAction(Enums.SyncAction.ALIVE);
+                        }
                     }
-                    npc.synced();
                     npc.setMoved(false);
                 }
             }
@@ -718,14 +851,17 @@ public abstract class Game {
         bb.append(mapBytes);
         */
 
-        bb.append(gameMap.buildingMap.size());
-        for (Map.Entry<Integer, Building> entry: gameMap.buildingMap.entrySet()) {
-            bb.append(entry.getKey());
-            bb.append(entry.getValue().buildingType.getValue());
-            bb.append(entry.getValue().point2D.x);
-            bb.append(entry.getValue().point2D.y);
-            bb.append(entry.getValue().direction.getValue());
+        /*
+        bb.append(interactiveObjectMap.size());
+        for (InteractiveObject interactiveObject: interactiveObjectMap.values()) {
+            bb.append(interactiveObject.getId());
+            bb.append(interactiveObject.getTypeId());
+            bb.append(interactiveObject.getPoint().x);
+            bb.append(interactiveObject.getPoint().y);
+            bb.append(interactiveObject.getPoint().z);
+            bb.append(interactiveObject.getRotateY());
         }
+        */
 
         if (bb.getSize() > 0) {
             for (User user: userMap.values()) {
@@ -805,6 +941,21 @@ public abstract class Game {
     }
 
     /**
+     * 处理其他对象的位置消息
+     */
+    public void executeObjectPositionMessage(ObjectPositionMessage message) {
+        NPC npc = npcMap.get(message.objectId);
+        if (npc == null) return;
+
+        // TODO check if could move
+        npc.setRotateY(message.rotationY);
+        npc.setPoint(new Point(message.positionX, message.positionY, message.positionZ));
+        //user.setMoveState(message.moveState);
+
+        npcChangedSet.add(npc);
+    }
+
+    /**
      * 当用户的位置有变化时，执行一些自定义逻辑
      */
     protected abstract void doPositionChanged(User user);
@@ -863,13 +1014,27 @@ public abstract class Game {
         if (user.getState() == UserState.GAME_OVER) return;
         // for override
 
-        BlockGroup blockGroup = gameMap.blockGroupMap.get(message.blockGroupId);
+        if (message.interactiveObjectType == Enums.GameObjectType.INTERACT) {
+            InteractiveObject interactiveObject = interactiveObjectMap.get(message.interactiveObjectId);
+            if (interactiveObject == null) return;
+
+            // TODO 需要判断玩家是不是在这个对象附近
+            interactiveObject.interact(this, user);
+        } else if (message.interactiveObjectType ==  Enums.GameObjectType.PROP) {
+            EnvProp prop = propMap.get(message.interactiveObjectId);
+            if (prop != null && removeGameObject(prop)) {
+                user.increaseProp((short)prop.typeId, (short)1);
+            }
+        }
+
+        /*
+        BlockGroup blockGroup = gameMap.blockGroupMap.get(message.interactiveObjectId);
         if (blockGroup == null) return;
 
         BlockGroup blockGroupAround = null;
         List<Block> blocksAround = gameMap.getBlocksAroundInDistance(user.getPoint(), 1);
         for (Block block:  blocksAround) {
-            if (block.blockGroupId == message.blockGroupId) {
+            if (block.blockGroupId == message.interactiveObjectId) {
                 blockGroupAround = gameMap.blockGroupMap.get(block.blockGroupId);
             }
         }
@@ -887,6 +1052,7 @@ public abstract class Game {
             user.reduceProp(propId, (short)config.count);
         }
         blockGroupAround.setTerrainType(config.target);
+        */
     }
 
     /**
@@ -1047,10 +1213,12 @@ public abstract class Game {
                 currentStartTime =  (Long)user.getBufferInfo(BuffConfig.EXPEL).get(0);
             }
 
+            /** TODO
             if (buffStartTime != currentStartTime) {
                 user.removeBuff(BuffConfig.EXPEL);
-                user.addBuff(BuffConfig.EXPEL, buffStartTime);
+                user.addBuff(BuffConfig.EXPEL, 0, buffStartTime);
             }
+             */
 
             for (int i = 0; i < groupChasingCounts.length; i ++) {
                 groupChasingCounts[i] = 0;
@@ -1161,7 +1329,7 @@ public abstract class Game {
             envProp.createTime = System.currentTimeMillis();
             envProp.vanishTime = envProp.createTime +
                     getGamePropConfigMap().getPropConfig(envProp.typeId).duration * 1000;
-            getPropInSceneList().add(envProp);
+            propMap.put(envProp.getId(), envProp);
             getEnvPropChangedList().add(envProp);
             log.info("created prop: {}:{}-{}:{}:{}", gameInfo.getId(), envProp.getId(),
                     envProp.getPoint().x, envProp.getPoint().y, envProp.getPoint().z);
@@ -1170,9 +1338,11 @@ public abstract class Game {
         }
 
         // 为到期的道具生成新的位置
-        ListIterator<EnvProp> iterator = getPropInSceneList().listIterator();
+        /*
+        ListIterator<EnvProp> iterator = propMap.listIterator();
         while(iterator.hasNext()) {
-            EnvProp prop = iterator.next();
+        */
+        for (EnvProp prop: propMap.values()) {
             // 如果道具到期，移除道具
             if (prop.vanishTime <= System.currentTimeMillis()) {
                 int randomBlockId = gameMap.getRandomMainRoadBlockId();
@@ -1194,12 +1364,15 @@ public abstract class Game {
      * 根据id获取环境道具
      */
     public EnvProp getProp(int id) {
+        return propMap.get(id);
+        /*
         for (EnvProp prop: propInSceneList) {
             if (prop.getId() == id) {
                 return prop;
             }
         }
         return null;
+        */
     }
 
     /**
@@ -1228,20 +1401,23 @@ public abstract class Game {
      * NPC 相关
      ********************************/
 
-    private int getNextNpcId() {
+    protected int getNextNpcId() {
         return npcSequenceId ++;
     }
 
-    private int getNextDObjectId() {
-        return dynamicObjectSequenceId++;
+    protected int getNextDObjectId() {
+        return dynamicObjectSeqId ++;
+    }
+
+    protected int getNextInterObjectId() {
+        return interObjectSeqId ++;
     }
 
     private void initNPC() {
         List<NPC> npcList = generateNPC();
         if (npcList == null) return;
         for(NPC npc : generateNPC()) {
-            getMoveableNPCMap().put(npc.getId(), npc);
-            npcChangedSet.add(npc.getId());
+            addGameObject(npc);
         }
     }
 
@@ -1277,7 +1453,7 @@ public abstract class Game {
      * 根据id获取NPC
      */
     public NPC getNPC(int id) {
-        return getMoveableNPCMap().get(id);
+        return npcMap.get(id);
     }
 
     /************************************
@@ -1356,17 +1532,11 @@ public abstract class Game {
         return envPropChangedList;
     }
 
+    /*
     public List<EnvProp> getPropInSceneList() {
         return propInSceneList;
     }
-
-    public Map<Integer, NPC> getStaticNPCMap() {
-        return staticNPCMap;
-    }
-
-    public Map<Integer, NPC> getMoveableNPCMap() {
-        return movableNPCMap;
-    }
+    */
 
     public byte getStep() {
         return step;

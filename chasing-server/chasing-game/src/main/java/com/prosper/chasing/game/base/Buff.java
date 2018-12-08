@@ -8,29 +8,32 @@ import java.util.List;
  */
 public class Buff {
 
-    byte id;
-    int startSecond; // 起始时间
+    int id;
+    byte typeId;
+    long startSecond; // 起始时间
     short last;      // 持续时间
     int groupId;
     List<Object> valueList;
 
-    public Buff(byte id, short last) {
+    public Buff(int id, byte typeId, short last) {
         this.id = id;
-        this.startSecond = (int)(System.currentTimeMillis() / 1000);
+        this.typeId = typeId;
+        this.startSecond = System.currentTimeMillis();
         this.last = last;
         this.valueList = new LinkedList<>();
+        this.groupId = 0;
     }
 
-    public Buff(BuffConfig config) {
-        this(config.id, config.last);
+    public Buff(int id, BuffConfig config) {
+        this(id, config.id, config.last);
     }
 
-    public Buff(BuffConfig config, Object... values) {
-        this(config, 0,  values);
+    public Buff(int id, BuffConfig config, Object... values) {
+        this(id, config, 0,  values);
     }
 
-    public Buff(BuffConfig config, int groupId, Object... values) {
-        this(config.id, config.last);
+    public Buff(int id, BuffConfig config, int groupId, Object... values) {
+        this(id, config.id, config.last);
         this.groupId = groupId;
         if (values != null) {
             for (Object o: values) {
@@ -40,6 +43,7 @@ public class Buff {
     }
 
     public int getRemainSecond() {
-        return (int) (System.currentTimeMillis() / 1000 - (startSecond + last));
+        if (last < 0) return Integer.MAX_VALUE;
+        return (int)Math.ceil((double) (System.currentTimeMillis() - startSecond - last * 1000) / 1000);
     }
 }

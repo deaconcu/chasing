@@ -58,7 +58,8 @@ public class Enums {
         BRIDGE(2),
         FLAG(3),
         SNOW(4),
-        FIRE(5);
+        FIRE(5),
+        STORE(6);
 
         private int value;
 
@@ -71,12 +72,30 @@ public class Enums {
         }
     }
 
-    public enum StaticGameObjectType {
-        WELL(1);
+    public enum AnimalType {
+        TIGER(1),
+        WOLF(2);
 
         private int value;
 
-        StaticGameObjectType(int value) {
+        AnimalType(int value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return (byte)value;
+        }
+    }
+
+    public enum GameObjectType {
+        NPC(1),
+        INTERACT(2),
+        DYNAMIC(3),
+        PROP(4);
+
+        private int value;
+
+        GameObjectType(int value) {
             this.value = value;
         }
 
@@ -191,14 +210,14 @@ public class Enums {
         PROP
     }
 
-    public enum GameObjectLifeAction {
+    public enum SyncAction {
         BORN((byte)0),
         ALIVE((byte)1),
         DEAD((byte)2);
 
         private byte value;
 
-        GameObjectLifeAction(byte value) {
+        SyncAction(byte value) {
             this.value = value;
         }
 
