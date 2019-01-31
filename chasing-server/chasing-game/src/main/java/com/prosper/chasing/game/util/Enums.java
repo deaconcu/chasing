@@ -7,18 +7,20 @@ public class Enums {
 
     public enum TerrainType {
         NONE(0),
+
+        RAIN(8),
+        SNOW(12),
+
         ANIMAL(1),
         BLANK(2),
         BUILDING(3),
         FOG(4),
         FOREST(5),
-        GRASS(6),
-        LAVA(7),
-        RAIN(8),
+        DREAM_L1(6),
+        DREAM_L2(7),
         PAVEMENT(9),
-        ROCK(10),
+        ANIMAL_OSTRICH(10),
         SAND(11),
-        SNOW(12),
         SWAMP(13),
         VEGETABLE(14),
         VIEW(15),
@@ -53,17 +55,26 @@ public class Enums {
         }
     }
 
-    public enum DynamicGameObjectType {
+    public enum StationaryType {
         LAMP(1),
         BRIDGE(2),
         FLAG(3),
         SNOW(4),
         FIRE(5),
-        STORE(6);
+        STORE(6),
+
+        RIVER(7), // 河流
+        RIVER_WITH_BRIDGE(8),   // 有桥的河流
+        GATE(9),   // 不能通过的门
+        GATE_OPEN(10),   // 可以通过的门
+        FIRE_FENCE(11),   // 火焰
+        FIRE_FENCE_PUT_OUT(12),   // 已经熄灭的火焰
+        STONES(13), // 石墙
+        STONES_BROKEN(14); // 已破裂的石墙
 
         private int value;
 
-        DynamicGameObjectType(int value) {
+        StationaryType(int value) {
             this.value = value;
         }
 
@@ -125,7 +136,7 @@ public class Enums {
     }
 
     public enum BlockType {
-        ARTERY(1),
+        MAIN_ROAD(1),
         SHORTCUT(2),
         BRANCH(3),
         ROAD_EXTENSION(4),

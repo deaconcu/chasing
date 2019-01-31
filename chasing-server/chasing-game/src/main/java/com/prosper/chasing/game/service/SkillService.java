@@ -45,7 +45,7 @@ public class SkillService {
 
         /*
         if (skillId == CHASING) {
-            if (message.getType() == SkillMessage.TYPE_NPC) {
+            if (message.getType() == SkillMessage.TYPE_STATIONARY) {
                 user.setBuff(new ChasingBuff(
                         BuffService.CHASING, (short)3000, ChasingBuff.NPCOld, message.getToNPCSeqId()));
             }

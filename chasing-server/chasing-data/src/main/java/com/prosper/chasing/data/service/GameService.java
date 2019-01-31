@@ -549,6 +549,7 @@ public class GameService {
                 userTr.setGameId(userData.getGameId());
                 userTr.setState(userData.getState().byteValue());
                 userTr.setDistance(userData.getDistance());
+                userTr.setRoleType(userData.getRoleType());
                 for (User user: userInfoList) {
                     if (user.getId() == userData.getId()) {
                         userTr.setName(user.getName());

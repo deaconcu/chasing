@@ -69,10 +69,10 @@ public class UserService {
         
         UserData userData = new UserData();
         userData.setId(user.getId());
+        userData.setRoleType((byte)1);
         userData.setDistance(0);
         userData.setHill(0);
         userData.setRiver(0);
-        userData.setRoad(0);
         userData.setState(Constant.UserState.NORMAL);
         userData.setGameId(-1);
         

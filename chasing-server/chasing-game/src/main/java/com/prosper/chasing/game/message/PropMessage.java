@@ -7,7 +7,8 @@ import java.nio.ByteBuffer;
 public class PropMessage extends UserMessage {
     
     public static byte TYPE_SELF = 0; // 对自己使用
-    public static byte TYPE_USER = 1; // 对其他玩家使用
+    public static byte TYPE_FRIEND = 0; // 对自己阵容别的玩家使用
+    public static byte TYPE_ENEMY = 1; // 对其他玩家使用
     public static byte TYPE_PROP = 2; // 对道具使用
     public static byte TYPE_POSITION = 3; // 对某一个位置使用
     public static byte TYPE_NONE = 4; // 不能使用,比如重生
@@ -32,7 +33,7 @@ public class PropMessage extends UserMessage {
         ByteBuffer content = message.getContent();
         this.propId = content.getShort();
         this.type = content.get();
-        if (type == TYPE_USER) {
+        if (type == TYPE_ENEMY || type == TYPE_FRIEND) {
             this.toUserId = content.getInt();
         } else if (type == TYPE_PROP) {
             this.toPropId = content.getInt();
@@ -41,7 +42,7 @@ public class PropMessage extends UserMessage {
         }
     }
 
-    public short getPropId() {
+    public short getPropTypeId() {
         return propId;
     }
 

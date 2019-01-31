@@ -13,6 +13,7 @@ public class Constant {
         public static byte PREPARE = 2;
         public static byte RESULT = 3;
         public static byte NO_GAME = 4;
+        public static byte INTRODUCTION = 5;
     }
 
     public static class UserState {
@@ -42,7 +43,7 @@ public class Constant {
         public static byte TYPE_SELF = 0; // 自身
         public static byte TYPE_USER = 1; // 玩家
         public static byte TYPE_PROP = 2; // 道具
-        public static byte TYPE_NPC = 3; // npc
+        public static byte TYPE_STATIONARY = 3; // 固定物
         public static byte TYPE_POSITION = 4; // 位置
         public static byte TYPE_NONE = 5; // 没有对象
     }

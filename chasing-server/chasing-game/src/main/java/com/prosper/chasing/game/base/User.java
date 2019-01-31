@@ -19,6 +19,13 @@ public class User extends GameObject {
     private static final int NEAR_DISTANCE = 10;
     private static final int REPLY_GAP = 1000;
 
+    // 体力最大值
+    private static final int STRENGTH_MAX = 100000;
+    // 体力值每秒恢复速度
+    private static final int STRENGTH_RECOVER_RATE = 1;
+    // 体力值每秒消耗与速度的比值
+    private static final int STRENGTH_CONSUME_SPEED_RATE = 1;
+
     private static final int PROP_PACKAGE_MAX_SIZE = 10;
 
     // 用户所属的游戏
@@ -27,6 +34,9 @@ public class User extends GameObject {
     
     // 用户id
     private int id;
+
+    // 角色类型
+    private byte roleType;
 
     // 用户名称
     private String name;
@@ -40,8 +50,27 @@ public class User extends GameObject {
     // 运动步数
     private int steps;
 
-    // 速度
-    private int speed;
+    // 当前速度
+    private int speed = 0;
+
+    // 体力值
+    private int strength;
+
+    // 上次计算体力值的时间
+    private long lastStrengthCountTime;
+
+    // 上次同步体力给客户端的时间
+    private long lastStrengthInfoTime;
+
+    // 上次陷入沉睡的时间
+    private long lastDreamTime;
+
+    // 距离上次计算体力值后消耗的体力值
+    private int strengthConsumed;
+
+    // 速度百分比，有一些buff可以造成速度降低或者加快，用这个值来表示。
+    // 100表示正常速度。200表示正常速度的两倍，50表示正常速度的一半，以此类推
+    private short speedRate = 100;
 
     // 生命值
     private short life = 1;
@@ -51,33 +80,53 @@ public class User extends GameObject {
 
     // 钱
     private int money;
-    
+
+    // 聚焦对象
+    private User focusUser;
+
     // 所拥有的道具
     private Map<Short, Short> propMap = new HashMap<>();
-    
-    // Buff Map
-    private Map<String, Buff> buffMap = new HashMap<>();
 
-    // 周围追逐当前用户的玩家信息
-    private ChasingInfo chasingInfo;
-    
+    // Buff Map
+    private List<Buff> buffList = new LinkedList<>();
+
+    private List<UsePropAction> usePropList = new LinkedList<>();
+
+    private List<UsePropAction> usePropIncList = new LinkedList<>();
+
     // 用户状态 @see #Constant.UserState
     private byte state;
 
+    // 是否在灵魂状态
+    private boolean isGhost;
+
+    // 一些不太容易变化的数据是否有更新，包括生命值，状态，队伍
+    boolean isBaseInfoChanged = false;
+
+    // 自定义属性是否有变化
+    public boolean isCustomPropertyChanged = false;
+
+    // 是否需要同步位置
+    private boolean positionReseted;
+
+    /*
     // 生命值是否有修改
     boolean isLifeChanged = false;
-
-    // 速度是否有修改
-    boolean isSpeedChanged = false;
-
     // 状态是否有修改
     boolean isStateChanged = false;
+    */
+
+    // 速度是否有修改
+    boolean isSpeedRateChanged = false;
 
     // 目标对象是否有修改
     boolean isTargetChanged = false;
 
-    // 自定义属性是否有变化
-    public boolean isCustomPropertyChanged = false;
+    // 聚焦对象是否有修改
+    boolean isFocusChanged = false;
+
+    // 体力是否有修改
+    boolean isStrengthChanged = false;
 
     // 结束游戏的时间
     public long gameOverTime;
@@ -125,26 +174,43 @@ public class User extends GameObject {
 
     private Object targetObject;
 
+    private Object dreamTargetObject;
+
     private Map<Integer, ChasingInfo> chasingInfoMap = new HashMap<>();
 
-    public User() {}
-
-    public User(int id, Point point, int rotateY) {
-        super(id, point, rotateY);
+    public User() {
+        this.lastStrengthCountTime = System.currentTimeMillis();
     }
 
-    public byte getGroupId() {
-        return groupId;
+    public void init() {
+        setStrength(STRENGTH_MAX);
     }
 
-    public void setGroupId(byte groupId) {
-        this.groupId = groupId;
-    }
 
     public Map<Integer, ChasingInfo> getChasingInfoMap() {
         return chasingInfoMap;
     }
 
+    public byte getRoleType() {
+        return roleType;
+    }
+
+    public long getLastDreamTime() {
+        return lastDreamTime;
+    }
+
+    public void setLastDreamTime(long lastDreamTime) {
+        this.lastDreamTime = lastDreamTime;
+    }
+
+    public boolean isGhost() {
+        return isGhost;
+    }
+
+    public void setGhost(boolean ghost) {
+        isGhost = ghost;
+        isBaseInfoChanged = true;
+    }
 
 
     /********************************
@@ -178,6 +244,15 @@ public class User extends GameObject {
     }
 
     /**
+     * 重新设定位置 ，需要客户端同步
+     * @param point
+     */
+    public void resetPoint(Point point) {
+        setPoint(point);
+        positionReseted = true;
+    }
+
+    /**
      * 获得当前目标对象
      * @return null 如果目标对象不存在返回null
      */
@@ -188,8 +263,8 @@ public class User extends GameObject {
     public GameObject getTargetObject(byte type, int id) {
         if (type == Constant.TargetType.TYPE_PROP) {
             return game.getProp(id);
-        } else if (type == Constant.TargetType.TYPE_NPC) {
-            return game.getNPC(id);
+        } else if (type == Constant.TargetType.TYPE_STATIONARY) {
+            return game.getStationary(id);
         } else if (type == Constant.TargetType.TYPE_USER) {
             return game.getUser(id);
         }
@@ -198,8 +273,9 @@ public class User extends GameObject {
 
     public byte getTargetType() {
         if (targetObject instanceof Point) return Constant.TargetType.TYPE_POSITION;
-        else if (targetObject instanceof PropConfig.Prop) return Constant.TargetType.TYPE_PROP;
+        else if (targetObject instanceof EnvProp) return Constant.TargetType.TYPE_PROP;
         else if (targetObject instanceof User) return Constant.TargetType.TYPE_USER;
+        else if (targetObject instanceof Stationary) return Constant.TargetType.TYPE_STATIONARY;
         else return Constant.TargetType.TYPE_NONE;
     }
 
@@ -209,7 +285,7 @@ public class User extends GameObject {
      */
     public boolean setTarget(byte type, int id, Point point) {
         if (type == Constant.TargetType.TYPE_POSITION)  {
-            if (targetObject.equals(point)) {
+            if (targetObject != null && targetObject.equals(point)) {
                 return false;
             }
             // 设置当前目标
@@ -217,17 +293,17 @@ public class User extends GameObject {
         } else {
             // 如果target和当前目标一致，不做处理
             Object intendTargetObject = getTargetObject(type, id);
-            if (targetObject.equals(intendTargetObject) || intendTargetObject == null) {
+            if (targetObject != null && targetObject.equals(intendTargetObject) || intendTargetObject == null) {
                 return false;
             }
 
-            if (targetObject instanceof User) {
+            if (targetObject != null && targetObject instanceof User) {
                 chasingInfoMap.remove(((User) targetObject).getId());
             }
 
             if (intendTargetObject instanceof User) {
                 User intendTargetUser = (User) intendTargetObject;
-                chasingInfoMap.put(intendTargetUser.getId(), new ChasingInfo(intendTargetUser));
+                intendTargetUser.chasingInfoMap.put(getId(), new ChasingInfo(this));
             }
 
             // 设置当前目标
@@ -236,6 +312,92 @@ public class User extends GameObject {
 
         isTargetChanged = true;
         return true;
+    }
+
+    public Object getDreamTargetObject() {
+        return dreamTargetObject;
+    }
+
+    public void setDreamTargetObject(Object dreamTargetObject) {
+        this.dreamTargetObject = dreamTargetObject;
+        isTargetChanged = true;
+    }
+
+    /**
+     * 清除目标
+     */
+    public void clearTarget() {
+        targetObject = null;
+        isTargetChanged = true;
+    }
+
+    /**
+     * 设置聚焦对象
+     */
+    public void setFocus(User user) {
+        if (focusUser != user) {
+            focusUser = user;
+            isFocusChanged = true;
+        }
+    }
+
+    /**
+     * 允许进入睡眠
+     */
+    public boolean allowIntoDream() {
+        if (System.currentTimeMillis() - lastDreamTime > 3000) {
+            return true;
+        }
+        return false;
+    }
+
+    public void countEnergy() {
+        //if (hasBuff(BuffConfig.FLASH_LEVEL_1) || hasBuff(BuffConfig.FLASH_LEVEL_2)) return;
+
+        long currentTime = System.currentTimeMillis();
+        long timeGap = System.currentTimeMillis() - lastStrengthCountTime;
+        this.strengthConsumed += (int)(((float)this.speed / 1000 * STRENGTH_CONSUME_SPEED_RATE  - STRENGTH_RECOVER_RATE) * timeGap);
+        this.lastStrengthCountTime = currentTime;
+
+        int strength = this.strength - strengthConsumed;
+        if (strength < 0)   {
+            strength = 0;
+        }
+        else if (strength > STRENGTH_MAX) strength = STRENGTH_MAX;
+        setStrength(strength);
+        this.strengthConsumed = 0;
+    }
+
+    public void countSpeedRate() {
+        short speedRate = 100;
+        if (hasBuff(BuffConfig.SPEED_UP_LEVEL_2)) {
+            speedRate += 40;
+        } else if (hasBuff(BuffConfig.SPEED_UP_LEVEL_1)) {
+            speedRate += 20;
+        } else if (hasBuff(BuffConfig.SPEED_DOWN_LEVEL_2)) {
+            speedRate -= 40;
+        } else if (hasBuff(BuffConfig.SPEED_DOWN_LEVEL_1)) {
+            speedRate -= 20;
+        }
+
+        if (hasBuff(BuffConfig.SPEED_DOWN_LEVEL_1_TERRAIN)) {
+            speedRate -= 20;
+        } else if (hasBuff(BuffConfig.SPEED_DOWN_LEVEL_2_TERRAIN)) {
+            speedRate -= 40;
+        } else if (hasBuff(BuffConfig.SPEED_DOWN_LEVEL_3_TERRAIN)) {
+            speedRate -= 60;
+        } else if (hasBuff(BuffConfig.SLEEPY_LEVEL_1)) {
+            speedRate -= 25;
+        } else if (hasBuff(BuffConfig.SLEEPY_LEVEL_2)) {
+            speedRate -= 50;
+        }
+
+        if (hasBuff(BuffConfig.HOLD_POSITION)) {
+            speedRate = 0;
+        }
+
+        if (speedRate < 0) speedRate = 0;
+        setSpeedRate(speedRate);
     }
 
     /**
@@ -420,50 +582,54 @@ public class User extends GameObject {
         return nextBuffId ++;
     }
 
+
     /**
-     * 增加buff
+     * 增加地形造成的buff
      * @param buffTypeId buff id
+     * @param last 持续时间，单位为秒
+     * @param groupId group id 地形的组id
      * @param values buff附带的一些信息, 比如跟随的时候需要跟随的用户id
      */
-    public void addBuff(String uniqueId, byte buffTypeId, int groupId, Object... values)  {
-        if (buffMap.containsKey(uniqueId)) return;
-
-        Buff buff = new Buff(getNextBuffId(), BuffConfig.getBuff(buffTypeId), groupId, values);
-        buffMap.put(uniqueId, buff);
+    public boolean addBuff(byte buffTypeId, short last, int groupId, Object... values)  {
+        if (groupId <= 0 || hasBuff(buffTypeId, groupId)) return false;
+        Buff buff = new Buff(getNextBuffId(), buffTypeId, last, groupId, values);
+        buffList.add(buff);
         buffChangedSet.add(buff);
+        return true;
     }
 
     /**
-     * 增加buff
+     * 增加其他因素形成的buff
+     * @param buffTypeId
+     * @return
      */
-    public void addBuff(String uniqueId, byte buffId) {
-        addBuff(uniqueId, buffId, 0);
-    }
-
-    /**
-     * TODO 完全不对，需要修改
-     * @param buffId
-     */
-    public void addBuff(byte buffId) {
-        // TODO
-
+    public boolean addBuff(byte buffTypeId, short last, boolean refresh, Object... values) {
+        Buff buff = getBuff(buffTypeId);
+        if (buff != null && refresh) {
+            buff.refresh(last);
+        } else {
+            buff = new Buff(getNextBuffId(), buffTypeId, last);
+            buffList.add(buff);
+        }
+        buffChangedSet.add(buff);
+        return true;
     }
 
     /**
      * 移除buff
      */
-    public void removeBuff(byte buffId) {
-        // TODO NEED REWRITE byte -> string
-        Buff buff = buffMap.remove(buffId);
-        if (buff != null) {
-            buffChangedSet.add(buff);
+    public void removeBuff(byte buffTypeId) {
+        for (Buff buff: buffList) {
+            if (buff.typeId == buffTypeId) {
+                buff.expire();
+                buffChangedSet.add(buff);
+            }
         }
     }
 
-    public void removeBuff(String buffId) {
-        Buff buff = buffMap.remove(buffId);
-        if(buff != null) {
-            buff.last = 0;
+    public void clearBuff() {
+        for (Buff buff: buffList) {
+            buff.expire();
             buffChangedSet.add(buff);
         }
     }
@@ -472,23 +638,30 @@ public class User extends GameObject {
      * 清除用户身上的地形buff
      */
     public void clearTerrainBuff() {
-        List<String> removeKeyList = new LinkedList<>();
-        for (String key: buffMap.keySet()) {
-            if (buffMap.get(key).groupId > 0) {
-                removeKeyList.add(key);
+        for (Buff buff: buffList) {
+            if (buff.groupId > 0) {
+                buff.expire();
+                buffChangedSet.add(buff);
             }
-        }
-        for (String key: removeKeyList) {
-            removeBuff(key);
         }
     }
 
     /**
      * 判断用户是否有buff
      */
-    public boolean hasBuffer(short bufferTypeId) {
-        for (Buff buff: buffMap.values()) {
-            if (buff.typeId == bufferTypeId) return true;
+    public boolean hasBuff(byte buffTypeId) {
+        for (Buff buff: buffList) {
+            if (buff.typeId == buffTypeId) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 判断用户是否有某一个类型的地形buff
+     */
+    public boolean hasBuff(byte buffTypeId, int groupId) {
+        for (Buff buff: buffList) {
+            if (buff.typeId == buffTypeId && buff.groupId == groupId) return true;
         }
         return false;
     }
@@ -496,9 +669,13 @@ public class User extends GameObject {
     /**
      * 获取buff上的信息
      */
-    public List<Object> getBufferInfo(byte bufferId) {
-        if (!hasBuffer(bufferId)) return null;
-        return buffMap.get(bufferId).valueList;
+    public Buff getBuff(byte bufferTypeId) {
+        for (Buff buff: buffList) {
+            if (buff.typeId == bufferTypeId) {
+                return buff;
+            }
+        }
+        return null;
     }
 
     /**
@@ -506,7 +683,7 @@ public class User extends GameObject {
      */
     public int getBuffBytes() {
         int value = 0;
-        for (Buff buff: buffMap.values()) {
+        for (Buff buff: buffList) {
             value = value | (1 << (buff.id - 1));
         }
         return value;
@@ -523,7 +700,7 @@ public class User extends GameObject {
     public void setLife(short life) {
         if (this.life == life || life > maxLife) return;
         this.life = life;
-        isLifeChanged = true;
+        isBaseInfoChanged = true;
     }
 
     public void addOneLife() {
@@ -559,8 +736,43 @@ public class User extends GameObject {
 
     public void setSpeed(int speed) {
         if (this.speed == speed) return;
+
+        /*
+        long currentTime = System.currentTimeMillis();
+        float timeGap = (System.currentTimeMillis() - lastStrengthCountTime) / 1000;
+        this.strengthConsumed += (int)(this.speed * STRENGTH_CONSUME_SPEED_RATE * timeGap) - STRENGTH_RECOVER_RATE * timeGap;
+        this.lastStrengthCountTime = currentTime;
+        */
         this.speed = speed;
-        isSpeedChanged = true;
+    }
+
+    public byte getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(byte groupId) {
+        this.groupId = groupId;
+        this.isBaseInfoChanged = true;
+    }
+
+    public short getSpeedRate() {
+        return speedRate;
+    }
+
+    public void setSpeedRate(short speedRate) {
+        if (speedRate == this.speedRate) return;
+        this.speedRate = speedRate;
+        isSpeedRateChanged = true;
+    }
+
+    public int getStrength() {
+        return strength;
+    }
+
+    public void setStrength(int strength) {
+        if (this.strength == strength) return;
+        this.strength = strength;
+        this.isStrengthChanged = true;
     }
 
     public byte getMoveState() {
@@ -588,7 +800,7 @@ public class User extends GameObject {
     public void setState(byte state) {
         if (state != this.state) {
             this.state = state;
-            this.isStateChanged = true;
+            this.isBaseInfoChanged = true;
         }
     }
 
@@ -599,6 +811,7 @@ public class User extends GameObject {
     public boolean modifyMoney(int amount) {
         if (money + amount >= 0) {
             money += amount;
+            this.isBaseInfoChanged = true;
             return true;
         }
         return false;
@@ -623,7 +836,6 @@ public class User extends GameObject {
     public void addSteps(short steps) {
         this.steps += steps;
     }
-
 
     /********************************
      * 消息相关
@@ -701,8 +913,8 @@ public class User extends GameObject {
      * userCount(1)|list<UserPosition>
      * userCount(1)|list<UserBuff>
      *
-     * sign: reserved(2bit)|target|step|envProp|npc|action|state|
-     *       position|life|speed|buff|prop|customProperty|otherUserPosition|otherUserBuff|
+     * sign: gameChanges|focusUserInfo|target|RESERVED|RESERVED|RESERVED|action|baseInfo|
+     *       position|strength|speedRate|buff|prop|customProperty|RESERVED|RESERVED|
      * EnvProp: id(2)|seqId(4)|positionX(4)|positionY(4)|positionZ(4)|remainSecond(4)|
      * NPCOld: id(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * Action: id(2)|code(1)|type(1)|value(4)|
@@ -719,6 +931,45 @@ public class User extends GameObject {
         short sign = 0;
         byteBuilder.append(sign);
         byteBuilder.append(System.currentTimeMillis());
+
+        if (isFocusChanged) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 16384);
+            if (focusUser != null) {
+                byteBuilder.append(focusUser.getId());
+                byteBuilder.append(focusUser.getStrength());
+                byteBuilder.append((byte)1);
+                byteBuilder.append((byte)focusUser.buffList.size());
+                for (Buff buff: focusUser.buffList) {
+                    byteBuilder.append(buff.id);
+                    byteBuilder.append(buff.typeId);
+                }
+            } else {
+                byteBuilder.append(0);
+            }
+        } else if (focusUser != null && (focusUser.isStrengthChanged || focusUser.buffChangedSet.size() > 0)) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 16384);
+            byteBuilder.append(focusUser.getId());
+            byteBuilder.append(focusUser.getStrength());
+            /*
+            if (focusUser.buffChangedSet.size() > 0)  {
+                byteBuilder.append((byte)1);
+                byteBuilder.append((byte)focusUser.buffList.size());
+                for (Buff buff: focusUser.buffList) {
+                    byteBuilder.append(buff.id);
+                    byteBuilder.append(buff.typeId);
+                }
+            } else {
+                byteBuilder.append((byte)0);
+            }
+            */
+        }
+
         if (isTargetChanged) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
@@ -731,8 +982,17 @@ public class User extends GameObject {
                 byteBuilder.append(((Point) targetObject).x);
                 byteBuilder.append(((Point) targetObject).y);
                 byteBuilder.append(((Point) targetObject).z);
-            } else {
+            } else if (targetObject != null){
                 byteBuilder.append(((GameObject) targetObject).getId());
+            }
+
+            if (dreamTargetObject instanceof Point) {
+                byteBuilder.append((byte) 1);
+                byteBuilder.append(((Point) dreamTargetObject).x);
+                byteBuilder.append(((Point) dreamTargetObject).y);
+                byteBuilder.append(((Point) dreamTargetObject).z);
+            } else {
+                byteBuilder.append((byte) 0);
             }
         }
 
@@ -751,6 +1011,18 @@ public class User extends GameObject {
                 }
             }
         }
+        if (isBaseInfoChanged) {
+            if (byteBuilder == null) {
+                byteBuilder =  new ByteBuilder();
+            }
+            sign = (short) (sign | 256);
+            byteBuilder.append(state);
+            byteBuilder.append(getMoney());
+            byteBuilder.append(getGroupId());
+            byteBuilder.append(getLife());
+            byteBuilder.append(isGhost ? (byte)1 : (byte)0);
+        }
+        /*
         if (isStateChanged) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
@@ -758,6 +1030,7 @@ public class User extends GameObject {
             sign = (short) (sign | 256);
             byteBuilder.append(state);
         }
+        */
         if (isMoved()) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
@@ -768,20 +1041,27 @@ public class User extends GameObject {
             byteBuilder.append(getPoint().y);
             byteBuilder.append(getPoint().z);
             byteBuilder.append(getRotateY());
+            if (positionReseted) {
+                byteBuilder.append((byte)1);
+            } else {
+                byteBuilder.append((byte)0);
+            }
         }
-        if (isLifeChanged) {
+        if (isStrengthChanged && (java.lang.System.currentTimeMillis() - lastStrengthInfoTime > 1000)) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
             sign = (short) (sign | 64);
-            byteBuilder.append(getLife());
+            byteBuilder.append(getStrength());
+            lastStrengthInfoTime = java.lang.System.currentTimeMillis();
+            isStrengthChanged = false;
         }
-        if (isSpeedChanged) {
+        if (isSpeedRateChanged) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
             sign = (short) (sign | 32);
-            byteBuilder.append(getSpeed());
+            byteBuilder.append(getSpeedRate());
         }
         if (buffChangedSet.size() != 0) {
             if (byteBuilder == null) {
@@ -834,10 +1114,14 @@ public class User extends GameObject {
      */
     public void clearAfterSync() {
         isTargetChanged = false;
-        isLifeChanged = false;
-        isSpeedChanged = false;
-        isStateChanged = false;
+        //isLifeChanged = false;
+        isSpeedRateChanged = false;
+        //isStateChanged = false;
+        isBaseInfoChanged = false;
         isCustomPropertyChanged = false;
+        isFocusChanged = false;
+        positionReseted = false;
+
         setMoved(false);
         setCrossZone(false);
 
@@ -854,11 +1138,11 @@ public class User extends GameObject {
      */
     public void check() {
         // 检查buff是否有效，移除无效buff
-        Iterator<Map.Entry<String,Buff>> iterator = buffMap.entrySet().iterator();
+        Iterator<Buff> iterator = buffList.iterator();
         while (iterator.hasNext()) {
-            Map.Entry<String,Buff> entry = iterator.next();
-            if (!checkBuff(entry.getValue())) {
-                buffChangedSet.add(entry.getValue());
+            Buff buff = iterator.next();
+            if (!checkBuff(buff)) {
+                buffChangedSet.add(buff);
                 iterator.remove();
             }
         }
@@ -907,5 +1191,10 @@ public class User extends GameObject {
             gameOverTime = System.currentTimeMillis();
         }
     }
+
+    public List<Buff> getBuffList() {
+        return buffList;
+    }
+
 
 }

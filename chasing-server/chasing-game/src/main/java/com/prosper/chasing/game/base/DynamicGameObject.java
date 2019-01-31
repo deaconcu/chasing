@@ -11,30 +11,25 @@ public class DynamicGameObject extends GameObject {
     /**
      * 游戏物品的类型id
      */
-    private Enums.DynamicGameObjectType type;
+    private Enums.StationaryType type;
 
     /**
      * 生存时间, 单位为秒
      */
     private short lifeTime;
 
-    /**
-     * 消失时间, 单位毫秒
-     */
-    private long endTime;
-
-    public DynamicGameObject(Enums.DynamicGameObjectType type, int id, Point point, int rotateY, short lifeTime) {
+    public DynamicGameObject(Enums.StationaryType type, int id, Point point, int rotateY, short lifeTime) {
         super(id, point, rotateY);
         this.type = type;
-        this.endTime = getCreateTime() + lifeTime * 1000;
+        this.lifeTime = lifeTime;
     }
 
-    public Enums.DynamicGameObjectType getTypeId() {
+    public Enums.StationaryType getTypeId() {
         return type;
     }
 
     public long getEndTime() {
-        return endTime;
+        return getCreateTime() + lifeTime * 1000;
     }
 
     public int getLifeTime() {

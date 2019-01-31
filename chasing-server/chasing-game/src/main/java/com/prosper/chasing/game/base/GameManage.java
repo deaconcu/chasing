@@ -12,7 +12,7 @@ import javax.annotation.PostConstruct;
 import com.prosper.chasing.game.map.GameMap;
 import com.prosper.chasing.game.map.MapCreator;
 import com.prosper.chasing.game.message.*;
-import com.prosper.chasing.game.navmesh.NaviMeshGroup;
+import com.prosper.chasing.game.navmesh.NavMeshGroup;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import org.apache.thrift.TException;
@@ -67,7 +67,7 @@ public class GameManage {
     Jedis jedis;
 
     @Autowired
-    NaviMeshGroup navimeshGroup;
+    NavMeshGroup navimeshGroup;
 
     /**
      * 初始化游戏管理，主要实现把现有的游戏类加载到game class map里
@@ -148,7 +148,7 @@ public class GameManage {
                     propMap.put((byte)propTr.getPropId(), (byte)propTr.getCount());
                 }
                 // TODO DELETE FOR TEST
-                user.modifyMoney(20000);
+                user.modifyMoney(1800);
                 user.setState(Constant.UserState.LOADED);
                 user.setGame(game);
             }
@@ -308,19 +308,23 @@ public class GameManage {
                         } else {
                             if (game.getState() == GameState.PREPARE) {
                                 game.prepare();
+                                game.generateUserMessage();
+
+                                game.createIntroductionMessages();
                                 game.setState(GameState.PROCESSING);
                             } else if (game.getState() == GameState.PROCESSING) {
                                 game.execute();
+                                game.generateUserMessage();
                             } else if (game.getState() == GameState.FINISHED) {
                                 // 执行玩家退出消息
                                 game.executeMessage();
                                 game.check();
+                                game.generateUserMessage();
                             }
                             // 发送玩家同步消息, prepare阶段不要发送同步信息
-                            if (game.getState() != GameState.PREPARE) {
-                                game.generateUserMessage();
-                                game.syncUser();
-                            }
+                            //if (game.getState() != GameState.PREPARE) {
+                            game.syncUser();
+                            //}
                         }
                     }
                     long cost = System.currentTimeMillis() - start;

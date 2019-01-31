@@ -1,5 +1,7 @@
 package com.prosper.chasing.game.base;
 
+import com.prosper.chasing.game.util.ByteBuilder;
+
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +16,12 @@ public class GameBase extends Game {
     }
 
     @Override
-    protected void initDynamicObject() {
+    protected ByteBuilder createIntroductionMessage() {
+        return null;
+    }
+
+    @Override
+    protected void initStationary() {
 
     }
 
@@ -49,7 +56,7 @@ public class GameBase extends Game {
     }
 
     @Override
-    protected void initUser(Map<Integer, User> userMap) {
+    protected void customInitUser(Map<Integer, User> userMap) {
 
     }
 }

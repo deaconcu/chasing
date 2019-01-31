@@ -72,7 +72,7 @@ public class King extends GameBase {
     }
 
     @Override
-    protected void initUser(Map<Integer, User> userMap) {
+    protected void customInitUser(Map<Integer, User> userMap) {
         byte groupId = 1;
         for (User user: userMap.values()) {
             Point point = gameMap.getRandomRoadPosition(true);

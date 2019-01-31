@@ -15,7 +15,8 @@ public class PositionMessage extends UserMessage {
     public int positionZ;
     public int rotationY;
     public short steps;
-    
+    public int speed;
+
     public PositionMessage(UserMessage message) {
         super(message);
         time = message.getContent().getLong(5);
@@ -25,6 +26,7 @@ public class PositionMessage extends UserMessage {
         positionZ = message.getContent().getInt(22);
         rotationY = message.getContent().getInt(26);
         steps = message.getContent().getShort(30);
+        speed = message.getContent().getInt(32);
     }
 
 }

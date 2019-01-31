@@ -28,7 +28,7 @@ public class Animal extends NPC {
 
     @Override
     public void logic(Map<Integer, User> playerList) {
-        if (!getTargetUser().hasBuffer(BuffConfig.ANIMAL)) {
+        if (!getTargetUser().hasBuff(BuffConfig.ANIMAL)) {
             setAlive(false);
         }
 

@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 /**
  * Created by deacon on 2018/2/2.
  */
-public class NaviMesh {
+public class NavMesh {
 
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -82,7 +82,7 @@ public class NaviMesh {
 
         //System.out.println(data.toString());
 
-        NaviMesh navimashJson = mapper.readValue(data.toString(), getClass());
+        NavMesh navimashJson = mapper.readValue(data.toString(), getClass());
         List<Triangle>  allTriangles = navimashJson.triangles;
 
         // 计算中心点
@@ -595,7 +595,7 @@ public class NaviMesh {
     }
 
     public static void main(String[] s) throws IOException, URISyntaxException {
-        NaviMesh navmesh = new NaviMesh();
+        NavMesh navmesh = new NavMesh();
         navmesh.load("navimesh/king.json");
 
         for(int i = 0; i < 100000; i ++) {

@@ -31,6 +31,10 @@ public class GamePropConfigMap {
         return total;
     }
 
+    public Map<Short, GamePropConfig> getConfigMap() {
+        return configMap;
+    }
+
     /**
      * 添加道具
      * @param duration duration单位为秒
@@ -100,6 +104,4 @@ public class GamePropConfigMap {
             this.movable = movable;
         }
     }
-
-
 }

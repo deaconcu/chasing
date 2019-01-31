@@ -185,6 +185,16 @@ public class GameMap {
         return occupiedBlockMap.containsKey(blockId);
     }
 
+    public Block getBlock(int blockId) {
+        if (!isOccupied(blockId)) return null;
+        return occupiedBlockMap.get(blockId);
+    }
+
+    public boolean isArtery(int blockId) {
+        if (!isOccupied(blockId) || occupiedBlockMap.get(blockId).distanceAwayFromRoad != 0) return false;
+        return true;
+    }
+
     public boolean isOccupiedAround(int blockId, int aroundDistance) {
         int x = getX(blockId);
         int y = getY(blockId);
@@ -262,7 +272,7 @@ public class GameMap {
             int x = block.position.x;
             int y = block.position.y;
 
-            if (block.type == BlockType.ARTERY) terrainBytes[x][y] = 'm';
+            if (block.type == BlockType.MAIN_ROAD) terrainBytes[x][y] = 'm';
             if (block.type == BlockType.SHORTCUT) terrainBytes[x][y] = 'n';
             if (block.type == BlockType.BRANCH) terrainBytes[x][y] = 'o';
             if (block.type == BlockType.ROAD_EXTENSION) terrainBytes[x][y] = 'p';
@@ -285,11 +295,11 @@ public class GameMap {
             else if (getTerrainType(block) == TerrainType.BLANK) terrainBytes[x][y] = 'B';
             else if (getTerrainType(block) == TerrainType.FOG) terrainBytes[x][y] = 'C';
             else if (getTerrainType(block) == TerrainType.FOREST) terrainBytes[x][y] = 'D';
-            else if (getTerrainType(block) == TerrainType.GRASS) terrainBytes[x][y] = 'E';
-            else if (getTerrainType(block) == TerrainType.LAVA) terrainBytes[x][y] = 'F';
+            else if (getTerrainType(block) == TerrainType.DREAM_L1) terrainBytes[x][y] = 'E';
+            else if (getTerrainType(block) == TerrainType.DREAM_L2) terrainBytes[x][y] = 'F';
             else if (getTerrainType(block) == TerrainType.RAIN) terrainBytes[x][y] = 'G';
             //else if (block.terrainType == TerrainType.PAVEMENT) terrainBytes[x][y] = 'V';
-            else if (getTerrainType(block) == TerrainType.ROCK) terrainBytes[x][y] = 'I';
+            else if (getTerrainType(block) == TerrainType.ANIMAL_OSTRICH) terrainBytes[x][y] = 'I';
             else if (getTerrainType(block) == TerrainType.SAND) terrainBytes[x][y] = 'J';
             else if (getTerrainType(block) == TerrainType.SNOW) terrainBytes[x][y] = 'K';
             else if (getTerrainType(block) == TerrainType.SWAMP) terrainBytes[x][y] = 'L';
@@ -626,6 +636,7 @@ public class GameMap {
         return blockMap;
     }
 
+    /*
     public boolean isAdjacent(int blockId, int distance, BlockType... blockTypes) {
         int x = getX(blockId);
         int y = getY(blockId);
@@ -642,10 +653,12 @@ public class GameMap {
         }
         return false;
     }
+    */
 
     /**
      * 获取在某一个block的十字交叉线上指定距离和指定类型的block集合
      */
+    /*
     public List<Block> getBlocksInRangeOfCross(int blockId, int range, BlockType... blockTypes) {
         int x = getX(blockId);
         int y = getY(blockId);
@@ -667,6 +680,7 @@ public class GameMap {
         }
         return blockList;
     }
+    */
 
     /**
      * 获取在指定距离内，给定block与指定类型最近的距离
@@ -701,6 +715,7 @@ public class GameMap {
     /**
      * 获取在某一个block的四个对角线方向, 指定距离和指定类型的block集合
      */
+    /*
     public List<Block> getBlocksInRangeOfCorner(int blockId, int range, BlockType... blockTypes) {
         int x = getX(blockId);
         int y = getY(blockId);
@@ -720,10 +735,12 @@ public class GameMap {
         }
         return blockList;
     }
+    */
 
     /**
      * 获取在某一个block周围, 指定距离和指定类型的block集合
      */
+    /*
     public List<Block> getBlocksInRange(int blockId, int range, BlockType... blockTypes) {
         int x = getX(blockId);
         int y = getY(blockId);
@@ -759,7 +776,7 @@ public class GameMap {
     public int getNearestBlockDistanceOfAround(int blockId, int distance, BlockType... blockTypes) {
         if (distance < 1) return -1;
         for (int i = 1; i <= distance; i ++ ) {
-            if (getBlocksAroundInDistance(blockId, i, blockTypes).size() > 0) return i;
+            if (getBlocksInDistance(blockId, i, blockTypes).size() > 0) return i;
         }
         return -1;
     }
@@ -767,20 +784,21 @@ public class GameMap {
     public List<Block> getNearestBlocksOfAround(int blockId, int distance, BlockType... blockTypes) {
         if (distance < 1) return null;
         for (int i = 1; i <= distance; i ++ ) {
-            List<Block> blockList = getBlocksAroundInDistance(blockId, i, blockTypes);
+            List<Block> blockList = getBlocksInDistance(blockId, i, blockTypes);
             if (blockList.size() > 0) return blockList;
         }
         return null;
     }
+    */
 
     /**
      * 获取离中心点距离为 distance 的一个正方形区域内的全部block
      */
-    public List<Block> getBlockListAroundInDistances(int blockId, int distance, BlockType... blockTypes) {
+    public List<Block> getBlockListInDistances(int blockId, int distance, BlockType... blockTypes) {
         if (distance < 1) return null;
         List<Block> blockList = new LinkedList<>();
         for (int i = 1; i <= distance; i ++ ) {
-            blockList.addAll(getBlocksAroundInDistance(blockId, i, blockTypes));
+            blockList.addAll(getBlocksInDistance(blockId, i, blockTypes));
         }
         blockList.add(occupiedBlockMap.get(blockId));
         return blockList;
@@ -789,11 +807,11 @@ public class GameMap {
     /**
      * 获取离中心点距离为 distance 的一个正方形区域内的全部block
      */
-    public Map<Integer, List<Block>> getBlocksAroundInDistances(int blockId, int distance, BlockType... blockTypes) {
+    public Map<Integer, List<Block>> getBlocksInDistances(int blockId, int distance, BlockType... blockTypes) {
         if (distance < 1) return null;
         Map<Integer, List<Block>> blockMap = new HashMap<>();
         for (int i = 1; i <= distance; i ++ ) {
-            blockMap.put(i, getBlocksAroundInDistance(blockId, i, blockTypes));
+            blockMap.put(i, getBlocksInDistance(blockId, i, blockTypes));
         }
         return blockMap;
     }
@@ -801,7 +819,7 @@ public class GameMap {
     /**
      * 获取离中心点距离为 distance 的一个正方形边的全部block
      */
-    public List<Block> getBlocksAroundInDistance(int blockId, int distance, BlockType... blockTypes) {
+    public List<Block> getBlocksInDistance(int blockId, int distance, BlockType... blockTypes) {
         int x = getX(blockId);
         int y = getY(blockId);
 
@@ -831,8 +849,43 @@ public class GameMap {
         return blockList;
     }
 
-    public List<Block> getBlocksAroundInDistance(Point position, int distance, BlockType... blockTypes) {
-        return getBlocksAroundInDistance(getBlockId(position.x, position.z), distance, blockTypes);
+    public List<Block> getBlocksInDistance(Point position, int distance, BlockType... blockTypes) {
+        return getBlocksInDistance(getBlockId(position.x, position.z), distance, blockTypes);
+    }
+
+    /**
+     * 获取某一个block周围指定距离为distance的非道路块
+     */
+    public List<Integer> getUnoccupiedBlocksInDistance(int blockId, int distance) {
+        int x = getX(blockId);
+        int y = getY(blockId);
+
+        //List<Integer> blockIdList = new LinkedList<>();
+        List<Integer> blockList = new LinkedList<>();
+        for (int i = -distance ; i <= distance; i += distance * 2) {
+            for (int j = -distance; j <= distance; j ++) {
+                if (isInBound(x + i, y + j)) {
+                    int distanceBlockId = getBlockId(x + i, y + j);
+                    Block block = occupiedBlockMap.get(distanceBlockId);
+                    if (block == null && unoccupiedBlockSet.contains(distanceBlockId)) {
+                        blockList.add(distanceBlockId);
+                    }
+                }
+            }
+        }
+
+        for (int j = -distance ; j <= distance; j += distance * 2) {
+            for (int i = -distance + 1; i <= distance - 1; i++) {
+                if (isInBound(x + i, y + j)) {
+                    int distanceBlockId = getBlockId(x + i, y + j);
+                    Block block = occupiedBlockMap.get(distanceBlockId);
+                    if (block == null && unoccupiedBlockSet.contains(distanceBlockId)) {
+                        blockList.add(distanceBlockId);
+                    }
+                }
+            }
+        }
+        return blockList;
     }
 
     public TerrainType getTerrainType(Block block) {
@@ -846,7 +899,7 @@ public class GameMap {
      */
     public int getNearestEndPoint(Point point, BlockGroup blockGroup) {
         int distance1 = point.distance(getX(blockGroup.getStartBlockId()) * 1000, 0, getY(blockGroup.getStartBlockId()) * 1000);
-        int distance2 = point.distance(getX(blockGroup.getEndBlockId() * 1000), 0, getY(blockGroup.getEndBlockId()) * 1000);
+        int distance2 = point.distance(getX(blockGroup.getEndBlockId()) * 1000, 0, getY(blockGroup.getEndBlockId()) * 1000);
 
         if (distance1 < distance2) return blockGroup.getStartBlockId();
         return blockGroup.getEndBlockId();
@@ -856,7 +909,7 @@ public class GameMap {
      * 获取与当前点最临近的道路边缘block
      */
     public Point getNearestRoadEdgeBlock(int blockId) {
-        Map<Integer, List<Block>> blockMapAround = getBlocksAroundInDistances(blockId, 3);
+        Map<Integer, List<Block>> blockMapAround = getBlocksInDistances(blockId, 3);
         for (List<Block> blockList: blockMapAround.values()) {
             for (Block block: blockList) {
                 if (block.distanceAwayFromRoad == 3) {
@@ -865,6 +918,15 @@ public class GameMap {
             }
         }
         return new Point(getX(blockId), 0, getY(blockId));
+    }
+
+    public int getNearestArteryBlockId(int blockId, int distance) {
+        for (int d = 1; d <= distance; d ++) {
+            List<Block> blockList = getBlocksInDistance(
+                    blockId, distance, BlockType.MAIN_ROAD, BlockType.SHORTCUT);
+            if (blockList.size() > 0) return blockList.get(0).blockId;
+        }
+        return -1;
     }
 
     public BlockGroup getBlockGroup(short id) {
@@ -904,6 +966,9 @@ public class GameMap {
     }
 
     public void generateMapBytes() {
+        Block startBlock = mainRoad.blockList.get(25);
+        Block endBlock = mainRoad.blockList.get(125);
+
         ByteBuilder byteBuilder = new ByteBuilder();
         for (int i = 1; i <= boundX * boundY; i ++) {
             Block block = occupiedBlockMap.get(i);

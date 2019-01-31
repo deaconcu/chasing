@@ -69,7 +69,7 @@ public class Legion extends GameBase {
     }
 
     @Override
-    protected void initUser(Map<Integer, User> userMap) {
+    protected void customInitUser(Map<Integer, User> userMap) {
         byte groupId = 1;
         int count = 1;
         int halfSize = userMap.size() / 2;

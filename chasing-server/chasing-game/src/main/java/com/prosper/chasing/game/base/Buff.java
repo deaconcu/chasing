@@ -24,16 +24,8 @@ public class Buff {
         this.groupId = 0;
     }
 
-    public Buff(int id, BuffConfig config) {
-        this(id, config.id, config.last);
-    }
-
-    public Buff(int id, BuffConfig config, Object... values) {
-        this(id, config, 0,  values);
-    }
-
-    public Buff(int id, BuffConfig config, int groupId, Object... values) {
-        this(id, config.id, config.last);
+    public Buff(int id, byte typeId, short last, int groupId, Object... values) {
+        this(id, typeId, last);
         this.groupId = groupId;
         if (values != null) {
             for (Object o: values) {
@@ -42,8 +34,25 @@ public class Buff {
         }
     }
 
+    public Buff(int id, byte typeId, short last, Object... values) {
+        this(id, typeId, last, 0, values);
+    }
+
+    /**
+     * 使buff失效
+     */
+    public void expire() {
+        this.last = 0;
+    }
+
     public int getRemainSecond() {
         if (last < 0) return Integer.MAX_VALUE;
-        return (int)Math.ceil((double) (System.currentTimeMillis() - startSecond - last * 1000) / 1000);
+        int remainSecond = (int)Math.ceil((double) (startSecond + last * 1000 - System.currentTimeMillis()) / 1000);
+        return remainSecond;
+    }
+
+    public void refresh(short last) {
+        this.startSecond = System.currentTimeMillis();
+        this.last = last;
     }
 }

@@ -32,7 +32,7 @@ struct UserTr {
     1: i32 id,
     2: string name,
     3: i32 distance,
-    4: i32 road,
+    4: i8 roleType,
     5: i32 hill,
     6: i32 river,
     7: i8 state,

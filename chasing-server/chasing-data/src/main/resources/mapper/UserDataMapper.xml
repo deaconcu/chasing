@@ -8,7 +8,7 @@
 	<resultMap id="userDataMap" type="UserData">
 		<result property="id" column="pk_id" />
 		<result property="distance" column="distance" />
-		<result property="road" column="road" />
+		<result property="roleType" column="role_type" />
 		<result property="hill" column="hill" />
 		<result property="river" column="river" />
 		<result property="state" column="state" />
@@ -42,7 +42,7 @@
 		INSERT INTO t_user_data
 		SET pk_id = #{id},
 		    distance = #{distance},
-		    road = #{road},
+		    role_type = #{roleType},
 		    hill = #{hill},
             river = #{river},
 			state = #{state},
@@ -55,7 +55,7 @@
 	<update id="update" parameterType="UserData">
 		UPDATE t_user_data
 		SET distance = #{distance},
-            road = #{road},
+			role_type = #{roleType},
             hill = #{hill},
             river = #{river},
 			state = #{state},

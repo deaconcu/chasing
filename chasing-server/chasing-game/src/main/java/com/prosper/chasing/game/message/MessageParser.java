@@ -16,6 +16,7 @@ public class MessageParser {
     private static int PURCHASE_MESSAGE = 7;
     private static int INTERACT_MESSAGE = 8;
     private static int OBJECT_MESSAGE = 9;
+    private static int FOCUS_MESSAGE = 10;
 
     /**
      * 解析消息
@@ -36,6 +37,8 @@ public class MessageParser {
             return new PropMessage(userMessage);
         } else if (type == TARGET_MESSAGE) {
             return new TargetMessage(userMessage);
+        } else if (type == FOCUS_MESSAGE) {
+            return new FocusMessage(userMessage);
         } else if (type == ECHO_MESSAGE) {
             return new EchoMessage(userMessage);
         } else if (type == PURCHASE_MESSAGE) {

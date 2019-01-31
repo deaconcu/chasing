@@ -4,7 +4,7 @@ public class UserData {
     
     private int id;
     private int distance;
-    private int road;
+    private byte roleType;
     private int hill;
     private int river;
     private String createTime;
@@ -24,12 +24,6 @@ public class UserData {
     }
     public void setDistance(int distance) {
         this.distance = distance;
-    }
-    public int getRoad() {
-        return road;
-    }
-    public void setRoad(int road) {
-        this.road = road;
     }
     public int getHill() {
         return hill;
@@ -78,5 +72,13 @@ public class UserData {
 
     public void setSteps(int steps) {
         this.steps = steps;
+    }
+
+    public byte getRoleType() {
+        return roleType;
+    }
+
+    public void setRoleType(byte roleType) {
+        this.roleType = roleType;
     }
 }

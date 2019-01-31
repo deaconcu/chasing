@@ -74,18 +74,18 @@ public class MarathonGameMapCreator {
         /**
          * 不能通过，需要找资源才能通过
          */
-        terrainConfigMap.put(TerrainType.LAVA, new TerrainConfig(
+        terrainConfigMap.put(TerrainType.DREAM_L2, new TerrainConfig(
                 // 岩浆：存在于快速路，
-                TerrainType.LAVA, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0));
+                TerrainType.DREAM_L2, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0));
         terrainConfigMap.put(TerrainType.WATER, new TerrainConfig(
                 // 水面：存在于快速路，
                 TerrainType.WATER, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0, 0.05f));
         terrainConfigMap.put(TerrainType.FOREST, new TerrainConfig(
                 // 森林：存在于快速路
                 TerrainType.FOREST, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0, 0.05f));
-        terrainConfigMap.put(TerrainType.ROCK, new TerrainConfig(
+        terrainConfigMap.put(TerrainType.ANIMAL_OSTRICH, new TerrainConfig(
                 // 石头地：存在于快速路
-                TerrainType.ROCK, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0, 0.05f));
+                TerrainType.ANIMAL_OSTRICH, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0, 0.05f));
         terrainConfigMap.put(TerrainType.BLANK, new TerrainConfig(
                 // 下沉路面：存在于快速路，
                 TerrainType.BLANK, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0, 0.05f));
@@ -93,9 +93,9 @@ public class MarathonGameMapCreator {
         /**
          * 缓慢通过，可以停止运动休息，单纯增加运动距离
          */
-        terrainConfigMap.put(TerrainType.GRASS, new TerrainConfig(
+        terrainConfigMap.put(TerrainType.DREAM_L1, new TerrainConfig(
                 // 荒地：很多比较高的野草，存在于主路或者支路，速度降低30%，单段长度10-30
-                TerrainType.GRASS, new LocateType[]{LocateType.ROAD, LocateType.SHORTCUT}, 2, 4, 0.9f, 0));
+                TerrainType.DREAM_L1, new LocateType[]{LocateType.ROAD, LocateType.SHORTCUT}, 2, 4, 0.9f, 0));
         terrainConfigMap.put(TerrainType.WHEAT, new TerrainConfig(
                 // 麦田：存在于主路和快速路，速度降低30%，单端长度7-24
                 TerrainType.WHEAT, new LocateType[]{LocateType.ROAD, LocateType.SHORTCUT}, 2, 4, 0.7f, 0, 0.05f));
@@ -161,7 +161,7 @@ public class MarathonGameMapCreator {
          *****************/
 
         viewConfigMap.put(TerrainType.FOREST, 0.05f);
-        viewConfigMap.put(TerrainType.ROCK, 0.01f);
+        viewConfigMap.put(TerrainType.ANIMAL_OSTRICH, 0.01f);
         viewConfigMap.put(TerrainType.VEGETABLE, 0.005f);
     }
 
@@ -281,18 +281,19 @@ public class MarathonGameMapCreator {
             block.blockGroupId = gameMap.ROAD_GROUP_ID;
         }
 
+        twistMap(gameMap, 20);
+
         //generateTerrainForMainRoad(gameMap);
         //generateTerrainForShortcuts(gameMap);
         generateTerrainTest(gameMap);
 
-        twistMap(gameMap, 20);
-        gameMap.printMap();
+        ////gameMap.printMap();
 
         expandRoadV3(gameMap, 6);
-        gameMap.printMap();
+        ////gameMap.printMap();
         generateLamp(gameMap);
 
-        gameMap.generateMapBytes();
+        ////gameMap.generateMapBytes();
         /*
         generateBuildings(gameMap);
         */
@@ -316,7 +317,7 @@ public class MarathonGameMapCreator {
     public void generateTerrainTest(GameMap gameMap) {
         short groupId = gameMap.getNextGroupId();
 
-        int length = 50;
+        int length = 100;
         Block startBlock = gameMap.mainRoad.blockList.get(25);
         Block block = startBlock;
         Block endBlock = null;
@@ -505,7 +506,7 @@ public class MarathonGameMapCreator {
         Map<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
         for (int blockId: gameMap.unoccupiedBlockSet) {
             Pair<Integer, Block> result = gameMap.getNearestBlockOfCross(
-                    blockId, width, BlockType.ARTERY, BlockType.SHORTCUT, BlockType.BRANCH);
+                    blockId, width, BlockType.MAIN_ROAD, BlockType.SHORTCUT, BlockType.BRANCH);
 
             if (result != null) {
                 addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().blockGroupId));
@@ -524,7 +525,7 @@ public class MarathonGameMapCreator {
         Map<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
         for (int blockId: gameMap.unoccupiedBlockSet) {
             Pair<Integer, Block> result = gameMap.getNearestBlockOfCross(
-                    blockId, width, BlockType.ARTERY, BlockType.SHORTCUT, BlockType.BRANCH);
+                    blockId, width, BlockType.MAIN_ROAD, BlockType.SHORTCUT, BlockType.BRANCH);
 
             if (result != null) {
                 addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().interaciveObjectId));
@@ -697,7 +698,7 @@ public class MarathonGameMapCreator {
         for (Block block: gameMap.occupiedBlockMap.values()) {
             if (block.type == BlockType.ROAD_EXTENSION) {
                 List<Block> nearestRoadBlockList = gameMap.getNearestBlocksOfAround(block.blockId, 10,
-                        BlockType.ARTERY, BlockType.SHORTCUT, BlockType.BRANCH);
+                        BlockType.MAIN_ROAD, BlockType.SHORTCUT, BlockType.BRANCH);
                 if (nearestRoadBlockList == null) continue;
                 int sum = 0;
                 for (Block roadBlock: nearestRoadBlockList) {
@@ -817,7 +818,7 @@ public class MarathonGameMapCreator {
         Map<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
         for (int blockId: gameMap.unoccupiedBlockSet) {
             Pair<Integer, Block> result = gameMap.getNearestBlockOfCross(
-                    blockId, width, BlockType.ARTERY, BlockType.SHORTCUT, BlockType.BRANCH);
+                    blockId, width, BlockType.MAIN_ROAD, BlockType.SHORTCUT, BlockType.BRANCH);
 
             if (result != null) {
                 addBlockMap.put(blockId, new Pair<>(result.getX(), result.getY().interaciveObjectId));
@@ -1003,9 +1004,9 @@ public class MarathonGameMapCreator {
     private void twistMap(GameMap gameMap, int maxOffset) {
         Set<Integer> turningSet = new HashSet<>();
         for (Block block: gameMap.occupiedBlockMap.values()) {
-            if (block.type == BlockType.ARTERY || block.type == BlockType.SHORTCUT) {
+            if (block.type == BlockType.MAIN_ROAD || block.type == BlockType.SHORTCUT) {
                 RoadDirection roadDirection = gameMap.getRoadDirection(
-                        block.getBlockId(), BlockType.ARTERY, BlockType.SHORTCUT);
+                        block.getBlockId(), BlockType.MAIN_ROAD, BlockType.SHORTCUT);
                 if (roadDirection == RoadDirection.TURNING || roadDirection == RoadDirection.CROSS ||
                         roadDirection == RoadDirection.VERTICAL_END || roadDirection == RoadDirection.HORIZONTAL_END) {
                     turningSet.add(block.blockId);
@@ -1051,7 +1052,7 @@ public class MarathonGameMapCreator {
             lastOffset = offset;
 
 
-            RoadDirection roadDirection = gameMap.getRoadDirection(block.getBlockId(), BlockType.ARTERY);
+            RoadDirection roadDirection = gameMap.getRoadDirection(block.getBlockId(), BlockType.MAIN_ROAD);
             if (roadDirection == RoadDirection.HORIZONTAL) {
                 if (offset != 0) {
                     Block newBlock = gameMap.addBlock(gameMap.getBlockId(block.position.x, block.position.y + offset),
@@ -1313,7 +1314,7 @@ public class MarathonGameMapCreator {
                 continue;
             }
 
-            Map<Integer, List<Block>> adjacentBlockMap = gameMap.getBlocksAroundInDistances(buildingBlock.blockId, expandSize,
+            Map<Integer, List<Block>> adjacentBlockMap = gameMap.getBlocksInDistances(buildingBlock.blockId, expandSize,
                     BlockType.MOUNTAIN_L1, BlockType.MOUNTAIN_L2, BlockType.MOUNTAIN_L3,
                     BlockType.MOUNTAIN_SLOP, BlockType.MOUNTAIN_ROCK,
                     BlockType.ROAD_EXTENSION,
@@ -1325,7 +1326,7 @@ public class MarathonGameMapCreator {
                     for (Block block: adjacentBlockList) {
                         block.type = BlockType.BUILDING;
                         if (distance == expandSize) {
-                            List<Block> blockList = gameMap.getBlocksAroundInDistance(block.blockId, 1,
+                            List<Block> blockList = gameMap.getBlocksInDistance(block.blockId, 1,
                                     BlockType.MOUNTAIN_L1, BlockType.MOUNTAIN_L2, BlockType.MOUNTAIN_L3);
                             if (blockList.size() > 0) {
                                 block.type = BlockType.MOUNTAIN_SLOP;
