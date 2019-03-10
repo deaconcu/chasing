@@ -26,15 +26,26 @@ public class Animal extends NPC {
         this.targetUser = targetUser;
     }
 
+    /**
+     */
     @Override
-    public void logic(Map<Integer, User> playerList) {
+    public void logic(Game game) {
         if (!getTargetUser().hasBuff(BuffConfig.ANIMAL)) {
             setAlive(false);
         }
 
         if (getTargetUser().getPoint().minDistanceOfAxis(getPoint()) <= 1000 &&
                 getTargetUser().getPoint().distance(getPoint()) <= 100) {
-            getTargetUser().setLife((short)0);
+            //getTargetUser().setLife((short)0);
+        }
+
+        if (getTargetUser().isCrossZone()) {
+            setPath(game.getPath(getPoint(), targetUser.getPoint()));
+        }
+
+        move();
+        if (isMoved()) {
+            game.npcChangedSet.add(this);
         }
     }
 

@@ -35,14 +35,15 @@ public class Enums {
         MOUNTAIN_L3(24),
         RIVER(25),
         RIVER_WITH_BRIDGE(26),
-        FIRE(27),
+        FIRE_FENCE(27),
         FIRE_PUT_OUT(28),
         GATE(27),
         GATE_OPEN(28),
         WILD_ANIMAL(29),
         WILD_FIRE(30),
         FENCE(32),
-        FENCE_OPEN(33);
+        FENCE_OPEN(33),
+        STONE(34);
 
         private int value;
 
@@ -70,7 +71,11 @@ public class Enums {
         FIRE_FENCE(11),   // 火焰
         FIRE_FENCE_PUT_OUT(12),   // 已经熄灭的火焰
         STONES(13), // 石墙
-        STONES_BROKEN(14); // 已破裂的石墙
+        STONES_BROKEN(14), // 已破裂的石墙
+
+        SIGNPOST_1(15),
+        SIGNPOST_2(16);
+
 
         private int value;
 
@@ -191,6 +196,26 @@ public class Enums {
         private byte value;
 
         Direction(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
+    public enum HexagonDirection {
+        FREE((byte)0),
+        RIGHT((byte)1),
+        LEFT((byte)2),
+        UP_LEFT((byte)5),
+        UP_RIGHT((byte)6),
+        DOWN_LEFT((byte)7),
+        DOWN_RIGHT((byte)8);
+
+        private byte value;
+
+        HexagonDirection(byte value) {
             this.value = value;
         }
 

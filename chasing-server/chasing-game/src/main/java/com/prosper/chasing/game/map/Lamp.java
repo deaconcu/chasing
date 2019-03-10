@@ -26,7 +26,7 @@ public class Lamp extends GameObject {
         if (blockId ==  getId()) {
             int a = 1;
         }
-        if (siblingsSize >= 4) throw new RuntimeException("lamp siblings size exceed limit");
+        if (siblingsSize >= 4) throw new RuntimeException("lamp siblings distance exceed limit");
         siblings[siblingsSize ++] = blockId;
     }
 

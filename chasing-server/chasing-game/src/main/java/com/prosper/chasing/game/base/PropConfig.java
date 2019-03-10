@@ -824,8 +824,8 @@ public class PropConfig {
             Map<Integer, List<Block>> blockMap = game.gameMap.getBlocksInDistances(block.blockId, 2,
                     Enums.BlockType.MAIN_ROAD, Enums.BlockType.BRANCH, Enums.BlockType.SHORTCUT);
 
-            for (List<Block> blockList: blockMap.values()) {
-                for (Block aroundBlock: blockList) {
+            for (List<Block> hexagonList: blockMap.values()) {
+                for (Block aroundBlock: hexagonList) {
                     BlockGroup blockGroup = game.gameMap.blockGroupMap.get(aroundBlock.blockGroupId);
                     if (blockGroup != null && blockGroup.getTerrainType() == Enums.TerrainType.RIVER) {
                         blockGroup.setTerrainType(Enums.TerrainType.RIVER_WITH_BRIDGE);

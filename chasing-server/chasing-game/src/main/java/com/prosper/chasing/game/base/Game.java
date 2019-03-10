@@ -26,7 +26,7 @@ import com.prosper.chasing.common.util.JsonUtil;
  * 玩家，道具，追踪者，固定物体
  */
 public abstract class Game {
-    
+
     private Logger log = LoggerFactory.getLogger(getClass());
 
     public static final int FETCH_DISTANCE = 200;
@@ -361,6 +361,8 @@ public abstract class Game {
                             user);
 
                     animal.setTargetUser(user);
+                    animal.setSpeed(500);
+
                     addGameObject(animal);
                     user.addBuff(BuffConfig.ANIMAL, (short)-1, block.blockGroupId);
                 }
@@ -420,7 +422,7 @@ public abstract class Game {
         List<NPC> needRemoveNPCList = null;
         for (NPC npc: npcMap.values()) {
             if (npc.isAlive()) {
-                npc.logic(getNearByPlayer());
+                npc.logic(this);
             } else {
                 if (needRemoveNPCList == null) needRemoveNPCList = new LinkedList<>();
                 needRemoveNPCList.add(npc);
@@ -450,14 +452,6 @@ public abstract class Game {
             user.init();
         }
         customInitUser(userMap);
-    }
-
-    /**
-     * 获得某一个物体周边玩家
-     */
-    private Map<Integer, User> getNearByPlayer() {
-        // TODO
-        return null;
     }
 
     /**
@@ -634,7 +628,7 @@ public abstract class Game {
             }
 
             /*
-            byteBuilder.append((short)dObjectChangedSet.size());
+            byteBuilder.append((short)dObjectChangedSet.distance());
             for(DynamicGameObject dynamicGameObject: dObjectChangedSet) {
                 byteBuilder.append(dynamicGameObject.getSyncAction().getValue());
                 byteBuilder.append(dynamicGameObject.getId());
@@ -674,43 +668,46 @@ public abstract class Game {
             byteBuilder.append((short) npcChangedSet.size());
             for (NPC npc: npcChangedSet) {
                 if (npc != null) {
-                    if (npc instanceof Merchant) {
-                        byteBuilder.append(Constant.NPCType.MERCHANT);
+                    //if (npc.getSyncAction() == Enums.SyncAction.BORN || npc.getSyncAction() == Enums.SyncAction.DEAD
+                    //        || (npc.getSyncAction() == Enums.SyncAction.ALIVE && npc.isMoved())) {
+                        if (npc instanceof Merchant) {
+                            byteBuilder.append(Constant.NPCType.MERCHANT);
 
-                        byteBuilder.append(npc.getSyncAction().getValue());
-                        byteBuilder.append(npc.getId());
-                        byteBuilder.append(npc.getPoint().x);
-                        byteBuilder.append(npc.getPoint().y);
-                        byteBuilder.append(npc.getPoint().z);
-                        byteBuilder.append(npc.getRotateY());
+                            byteBuilder.append(npc.getSyncAction().getValue());
+                            byteBuilder.append(npc.getId());
+                            byteBuilder.append(npc.getPoint().x);
+                            byteBuilder.append(npc.getPoint().y);
+                            byteBuilder.append(npc.getPoint().z);
+                            byteBuilder.append(npc.getRotateY());
 
-                        if (npc.getSyncAction() == Enums.SyncAction.BORN) {
-                            Merchant merchant = (Merchant) npc;
-                            byte[] nameBytes = merchant.getName().getBytes();
-                            byteBuilder.append(nameBytes.length);
-                            byteBuilder.append(nameBytes);
-                            byteBuilder.append(merchant.getPropIds().length);
-                            for (short propId: merchant.getPropIds()) {
-                                byteBuilder.append(propId);
+                            if (npc.getSyncAction() == Enums.SyncAction.BORN) {
+                                Merchant merchant = (Merchant) npc;
+                                byte[] nameBytes = merchant.getName().getBytes();
+                                byteBuilder.append(nameBytes.length);
+                                byteBuilder.append(nameBytes);
+                                byteBuilder.append(merchant.getPropIds().length);
+                                for (short propId: merchant.getPropIds()) {
+                                    byteBuilder.append(propId);
+                                }
+                                npc.setSyncAction(Enums.SyncAction.ALIVE);
                             }
-                            npc.setSyncAction(Enums.SyncAction.ALIVE);
+                        } else if (npc instanceof Animal){
+                            Animal animal = (Animal) npc;
+                            byteBuilder.append(Constant.NPCType.ANIMAL);
+                            byteBuilder.append(npc.getSyncAction().getValue());
+                            byteBuilder.append(animal.getAnimalType().getValue());
+                            byteBuilder.append(animal.getId());
+                            byteBuilder.append(animal.getTargetUser().getId());
+                            byteBuilder.append(animal.getPoint().x);
+                            byteBuilder.append(animal.getPoint().y);
+                            byteBuilder.append(animal.getPoint().z);
+                            byteBuilder.append(animal.getRotateY());
+                            if (npc.getSyncAction() == Enums.SyncAction.BORN) {
+                                npc.setSyncAction(Enums.SyncAction.ALIVE);
+                            }
                         }
-                    } else if (npc instanceof Animal){
-                        Animal animal = (Animal) npc;
-                        byteBuilder.append(Constant.NPCType.ANIMAL);
-                        byteBuilder.append(npc.getSyncAction().getValue());
-                        byteBuilder.append(animal.getAnimalType().getValue());
-                        byteBuilder.append(animal.getId());
-                        byteBuilder.append(animal.getTargetUser().getId());
-                        byteBuilder.append(animal.getPoint().x);
-                        byteBuilder.append(animal.getPoint().y);
-                        byteBuilder.append(animal.getPoint().z);
-                        byteBuilder.append(animal.getRotateY());
-                        if (npc.getSyncAction() == Enums.SyncAction.BORN) {
-                            npc.setSyncAction(Enums.SyncAction.ALIVE);
-                        }
-                    }
-                    npc.setMoved(false);
+                        npc.setMoved(false);
+                    //}
                 }
             }
 
@@ -756,7 +753,7 @@ public abstract class Game {
         }
 
         /*
-        if (dObjectChangedSet.size() > 0) {
+        if (dObjectChangedSet.distance() > 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
@@ -764,7 +761,7 @@ public abstract class Game {
 
         }
 
-        if (stationaryChangedSet.size() > 0) {
+        if (stationaryChangedSet.distance() > 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
@@ -781,7 +778,7 @@ public abstract class Game {
             sign = (short) (sign | 4096);
             byteBuilder.append(getStep());
         }
-        if (envPropChangedList.size() != 0) {
+        if (envPropChangedList.distance() != 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
@@ -789,7 +786,7 @@ public abstract class Game {
 
         }
 
-        if (npcChangedSet.size() > 0) {
+        if (npcChangedSet.distance() > 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
@@ -798,7 +795,7 @@ public abstract class Game {
 
         }
 
-        if (positionChangedSet.size() != 0) {
+        if (positionChangedSet.distance() != 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
@@ -806,7 +803,7 @@ public abstract class Game {
 
         }
 
-        if (buffChangedSet.size() != 0) {
+        if (buffChangedSet.distance() != 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
@@ -899,7 +896,7 @@ public abstract class Game {
         */
 
         /*
-        bb.append(stationaryMap.size());
+        bb.append(stationaryMap.distance());
         for (Stationary interactiveObject: stationaryMap.values()) {
             bb.append(interactiveObject.getId());
             bb.append(interactiveObject.getType());
@@ -962,7 +959,7 @@ public abstract class Game {
         byte sourceState = user.getState();
         byte targetState = UserState.QUITING;
         user.setState(targetState);
-        
+
         // 插入用户待同步队列，如果插入失败，回滚初始状态
         if (!gameManage.addUserForDataDB(user)) {
             user.setState(sourceState);
@@ -970,13 +967,13 @@ public abstract class Game {
             log.info("user is quiting, user: {}", user.getId());
         }
     }
-    
+
     /**
      * 处理位置消息
      */
     public void executePositionMessage(PositionMessage message) {
         User user = getUser(message.getUserId(), true);
-        
+
         // TODO check if could move
         user.setRotateY(message.rotationY);
         user.setPoint(new Point(message.positionX, message.positionY, message.positionZ));
@@ -996,15 +993,17 @@ public abstract class Game {
      * 处理其他对象的位置消息
      */
     public void executeObjectPositionMessage(ObjectPositionMessage message) {
-        NPC npc = npcMap.get(message.objectId);
-        if (npc == null) return;
+        /**
+         NPC npc = npcMap.get(message.objectId);
+         if (npc == null) return;
 
-        // TODO check if could move
-        npc.setRotateY(message.rotationY);
-        npc.setPoint(new Point(message.positionX, message.positionY, message.positionZ));
-        //user.setMoveState(message.moveState);
+         // TODO check if could move
+         npc.setRotateY(message.rotationY);
+         npc.setPoint(new Point(message.positionX, message.positionY, message.positionZ));
+         //user.setMoveState(message.moveState);
 
-        npcChangedSet.add(npc);
+         npcChangedSet.add(npc);
+         */
     }
 
     /**
@@ -1144,11 +1143,11 @@ public abstract class Game {
     private void executeQuitCompleteMessage(QuitCompleteMessage quitCompleteMessage) {
         int userId = quitCompleteMessage.getUserId();
         User user = getUser(userId);
-        
+
         byte targetState = UserState.QUIT;
         user.setState(targetState);
         log.info("user is quited, user: {}", user.getId());
-        
+
         // 判断是否全部用户都已退出游戏，如果是，将游戏状态置为完成
         boolean allQuit = true;
         for (User userInGame: userMap.values()) {
@@ -1157,7 +1156,7 @@ public abstract class Game {
                 break;
             }
         }
-        
+
         if (allQuit) {
             state = GameState.DESTROYING;
             log.info("game is quitting, game: {}", gameInfo.getId());
@@ -1209,7 +1208,7 @@ public abstract class Game {
     public User getUser(int userId) {
         return userMap.get(userId);
     }
-    
+
     /**
      * 加载用户，游戏创建时调用
      */
@@ -1283,16 +1282,16 @@ public abstract class Game {
             }
 
             /** TODO
-            // 新增或者修改被追逐的buff
-            long currentStartTime = 0;
-            if (user.hasBuff(BuffConfig.EXPEL)) {
-                currentStartTime =  (Long)user.getBufferInfo(BuffConfig.EXPEL).get(0);
-            }
+             // 新增或者修改被追逐的buff
+             long currentStartTime = 0;
+             if (user.hasBuff(BuffConfig.EXPEL)) {
+             currentStartTime =  (Long)user.getBufferInfo(BuffConfig.EXPEL).get(0);
+             }
 
-            if (buffStartTime != currentStartTime) {
-                user.removeBuff(BuffConfig.EXPEL);
-                user.addBuff(BuffConfig.EXPEL, 0, buffStartTime);
-            }
+             if (buffStartTime != currentStartTime) {
+             user.removeBuff(BuffConfig.EXPEL);
+             user.addBuff(BuffConfig.EXPEL, 0, buffStartTime);
+             }
              */
 
             for (int i = 0; i < groupChasingCounts.length; i ++) {
@@ -1397,7 +1396,7 @@ public abstract class Game {
             envProp.typeId = propList.removeFirst();
             envProp.setId(nextPropSeqId ++);
 
-            int randomBlockId = gameMap.getRandomMainRoadBlockId();
+            int randomBlockId = gameMap.getRandomRoadBlockId();
             int x = gameMap.getX(randomBlockId);
             int y = gameMap.getY(randomBlockId);
             envProp.setPoint(new Point(x * 1000, 100, y * 1000));
@@ -1420,7 +1419,7 @@ public abstract class Game {
         for (EnvProp prop: propMap.values()) {
             // 如果道具到期，移除道具
             if (prop.vanishTime <= System.currentTimeMillis()) {
-                int randomBlockId = gameMap.getRandomMainRoadBlockId();
+                int randomBlockId = gameMap.getRandomRoadBlockId();
                 int x = gameMap.getX(randomBlockId);
                 int y = gameMap.getY(randomBlockId);
                 prop.setPoint(new Point(x * 1000, 1100, y * 1000));
@@ -1645,7 +1644,7 @@ public abstract class Game {
         //this.navimeshGroup = navimeshGroup;
     }
 
-    protected List<Point> getPath(Point startPoint, Point endPoint) {
+    protected LinkedList<Point> getPath(Point startPoint, Point endPoint) {
         if (startPoint == null || endPoint == null) return null;
         if (startPoint.equals(endPoint)) return null;
 
@@ -1665,6 +1664,7 @@ public abstract class Game {
 
         if (startBlockId == -1 || endBlockId == -1) return null;
         LinkedList<Point> path = getPath(startBlockId, endBlockId);
+        if (path == null) return null;
 
         if (isInStartBlock) path.removeFirst();
         if (!isInEndBlock) path.addLast(endPoint);
@@ -1710,10 +1710,10 @@ public abstract class Game {
                         else aroundBlockG = closeMap.get(smallestFBlockId)[1] + 10;
 
                         if (closeMap.containsKey(aroundBlockId)) {
-                                if (closeMap.get(aroundBlockId)[1] > aroundBlockG) {
-                                    closeMap.put(aroundBlockId, new int[]{
-                                            smallestFBlockId, aroundBlockG, aroundBlockH, aroundBlockG + aroundBlockH});
-                                }
+                            if (closeMap.get(aroundBlockId)[1] > aroundBlockG) {
+                                closeMap.put(aroundBlockId, new int[]{
+                                        smallestFBlockId, aroundBlockG, aroundBlockH, aroundBlockG + aroundBlockH});
+                            }
                         } else {
                             if (aroundBlockId == endBlockId) {
                                 reachEnd = true;
@@ -1750,6 +1750,7 @@ public abstract class Game {
                     0, gameMap.getY(currentBlockId) * 1000 + 500));
             currentBlockId = closeMap.get(currentBlockId)[0];
         }
+        Collections.reverse(pathList);
         return pathList;
     }
 
@@ -1758,20 +1759,28 @@ public abstract class Game {
                 Math.abs(gameMap.getY(blockIdA) - gameMap.getY(blockIdB))) * 10;
     }
 
-    public static void main(String ... args) {
+    public static void main(String ... args) throws InterruptedException {
         Marathon game = new Marathon();
         MarathonGameMapCreator marathonGameMapCreator = new MarathonGameMapCreator();
-        GameMap gameMap = marathonGameMapCreator.generate(20, 20, 49);
+        GameMap gameMap = marathonGameMapCreator.generateV2(20, 20, 49);
         game.setGameMap(gameMap);
 
-        //int start = gameMap.getRandomMainRoadBlockId();
-        //int end =  gameMap.getRandomMainRoadBlockId();
+        //int start = gameMap.getRandomRoadBlockId();
+        //int end =  gameMap.getRandomRoadBlockId();
 
         int start = gameMap.mainRoad.blockList.get(20).blockId;
+        List<Block> aroundBlocks = gameMap.getBlocksInDistance(start, 5, Enums.BlockType.ROAD_EXTENSION);
+        start = aroundBlocks.get(0).blockId;
         int end = gameMap.mainRoad.blockList.get(50).blockId;
+        aroundBlocks = gameMap.getBlocksInDistance(end, 5, Enums.BlockType.ROAD_EXTENSION);
+        end = aroundBlocks.get(0).blockId;
+
+        Point startPoint = new Point(gameMap.getX(start) * 1000, 0, gameMap.getY(start) * 1000);
+        Point endPoint = new Point(gameMap.getX(end) * 1000, 0, gameMap.getY(end) * 1000);
 
         long currentTimestamp = java.lang.System.currentTimeMillis();
-        List<Point> path = game.getPath(start, end);
+        LinkedList<Point> path = game.getPath( startPoint, endPoint);
+
         long cost = System.currentTimeMillis() - currentTimestamp;
         System.out.println("cost:" + cost);
 
@@ -1782,6 +1791,22 @@ public abstract class Game {
         for (Point point : path) {
             System.out.println("[" + point.x + ", " + point.z + "]");
         }
-    }
 
+        Animal animal = new Animal(
+                1,
+                Enums.AnimalType.TIGER,
+                startPoint,
+                0,
+                0,
+                null);
+
+        animal.setPath(path);
+        animal.setSpeed(100);
+        while(true) {
+            Thread.sleep(100);
+            animal.move();
+
+            System.out.println(animal.getPoint() + ", has Path:" + animal.getPath());
+        }
+    }
 }

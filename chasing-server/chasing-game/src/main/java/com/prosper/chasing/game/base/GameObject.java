@@ -51,6 +51,7 @@ public class GameObject {
         this.isAlive = true;
         this.SyncAction = SyncAction.BORN;
         this.createTime = System.currentTimeMillis();
+        this.lastMoveTimestamp = createTime;
     }
 
     public GameObject(int id, Point point, int rotateY) {
@@ -61,21 +62,54 @@ public class GameObject {
     }
 
     public void move() {
-        int distance = (int)(speed * (System.currentTimeMillis() - lastMoveTimestamp) * 1000);
+        if (path == null || path.size() == 0) return;
 
+        long currentTimeMillis = System.currentTimeMillis();
+        int distance = (int)((float)speed * (currentTimeMillis - lastMoveTimestamp) / 1000);
         Point currPoint = point;
         int nextPointDistance = currPoint.distance(path.peek());
         while (nextPointDistance < distance) {
             distance -= nextPointDistance;
             currPoint = path.removeFirst();
-            nextPointDistance = currPoint.distance(path.peek());
+            if (path.size() > 0) {
+                nextPointDistance = currPoint.distance(path.peek());
+            } else {
+                break;
+            }
         }
 
-        if (distance == 0) return;
-        nextPointDistance = currPoint.distance(path.peek());
-        point = currPoint.add(path.peek().x - currPoint.x, 0, path.peek().z - currPoint.z,
-                (double)nextPointDistance / distance);
+        if (path.size() == 0) {
+            setPath(null);
+            point = currPoint;
+        } else {
+            nextPointDistance = currPoint.distance(path.peek());
+            point = currPoint.add(path.peek().x - currPoint.x, 0, path.peek().z - currPoint.z,
+                    (double)distance / nextPointDistance);
+        }
 
+
+        if (path.peek() != null) {
+            double deltaX = path.peek().x - point.x;
+            double deltaY = path.peek().z - point.z;
+
+            int targetRotateY = 0;
+            if (deltaX == 0 && deltaY > 0) targetRotateY = 90000;
+            else if (deltaX == 0 && deltaY < 0) targetRotateY = 270000;
+            else if (deltaX > 0 && deltaY == 0) targetRotateY = 0;
+            else if (deltaX < 0 && deltaY == 0) targetRotateY = 180000;
+
+            double sin = Math.abs(deltaY) / Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            double absTargetRotateY = Math.toDegrees(Math.asin(sin));
+
+            if (deltaX > 0 && deltaY > 0) targetRotateY = (int)absTargetRotateY * 1000;
+            else if (deltaX < 0 && deltaY > 0) targetRotateY = (180 - (int)absTargetRotateY) * 1000;
+            else if (deltaX < 0 && deltaY < 0) targetRotateY = (180 + (int)absTargetRotateY) * 1000;
+            else if (deltaX > 0 && deltaY < 0) targetRotateY = (360 - (int)absTargetRotateY) * 1000;
+
+            if (targetRotateY > rotateY) rotateY += 1000;
+            else rotateY -= 1000;
+        }
+        this.lastMoveTimestamp = System.currentTimeMillis();
         isMoved = true;
     }
 
@@ -89,7 +123,7 @@ public class GameObject {
         isMoved = true;
 
         if (!this.point.sameZone(point)) {
-            isCrossZone = true;
+            setCrossZone(true);
         }
     }
 
@@ -161,5 +195,9 @@ public class GameObject {
 
     public void setPath(LinkedList<Point> path) {
         this.path = path;
+    }
+
+    public void setSpeed(int speed) {
+        this.speed = speed;
     }
 }

@@ -31,7 +31,7 @@ public class TerrainTransferConfigs {
     static {
         addConfig(TerrainType.RIVER, TerrainType.RIVER_WITH_BRIDGE, ResourceType.PROP, PropConfig.WOOD, 5);
         addConfig(TerrainType.GATE, TerrainType.GATE_OPEN, ResourceType.MONEY, 0, 1);
-        addConfig(TerrainType.FIRE, TerrainType.FIRE_PUT_OUT, ResourceType.PROP, PropConfig.RAIN_CLOUD, 1);
+        addConfig(TerrainType.FIRE_FENCE, TerrainType.FIRE_PUT_OUT, ResourceType.PROP, PropConfig.RAIN_CLOUD, 1);
     }
 
     public static void addConfig(

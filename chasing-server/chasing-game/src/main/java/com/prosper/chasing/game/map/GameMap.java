@@ -7,6 +7,7 @@ import com.prosper.chasing.game.base.Point2D;
 import static com.prosper.chasing.game.util.Enums.*;
 
 import com.prosper.chasing.game.util.ByteBuilder;
+import com.prosper.chasing.game.util.Graph;
 import com.prosper.chasing.game.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,9 @@ public class GameMap {
         buildingBlockCount.put(BuildingType.JACKSTRAW, (byte) 4);
     }
 
+    public int startBlockId;
+    public int endBlockId;
+
     public int boundX;
 
     public int boundY;
@@ -50,13 +54,27 @@ public class GameMap {
     /**
      * 主路
      */
-    public Branch mainRoad;
+    public SegmentOld mainRoad;
 
     /**
      * 近路
      */
-    public List<Branch> shortcutList;
+    public List<SegmentOld> shortcutList;
 
+    /**
+     * segment集合
+     */
+    public List<SegmentOld> segmentList;
+
+    /**
+     * 路径集合
+     */
+    Map<Integer, Map<Integer, List<Integer>>> pathMap;
+
+    /**
+     * 交叉点id集合
+     */
+    public Set<Integer> crossBlockIdSet;
     /**
      * 资源地块
      */
@@ -101,6 +119,7 @@ public class GameMap {
         unoccupiedBlockSet = new HashSet<>();
         buildingMap = new HashMap<>();
         lampMap = new HashMap<>();
+        crossBlockIdSet = new HashSet<>();
 
         for (int x = 0; x < boundX; x ++) {
             for (int y = 0; y < boundY; y ++) {
@@ -115,12 +134,12 @@ public class GameMap {
         nextGroupId = 1;
     }
 
-    public void setMainRoad(Branch mainRoad) {
+    public void setMainRoad(SegmentOld mainRoad) {
         this.mainRoad = mainRoad;
         generateSingleRouteInfo();
     }
 
-    public void setShortcutList(List<Branch> shortcutList) {
+    public void setShortcutList(List<SegmentOld> shortcutList) {
         this.shortcutList = shortcutList;
     }
 
@@ -163,11 +182,11 @@ public class GameMap {
 
         /*
         if (terrainType == TerrainType.BUILDING) {
-            //buildingMap.put(blockId, secondTerrainTypeId);
+            //buildingMap.put(hexagonId, secondTerrainTypeId);
         } else if (terrainType == TerrainType.VIEW) {
-            resourceMap.put(blockId, terrainType);
+            resourceMap.put(hexagonId, terrainType);
         } else {
-            resourceMap.put(blockId, terrainType);
+            resourceMap.put(hexagonId, terrainType);
         }
         */
 
@@ -190,6 +209,14 @@ public class GameMap {
         return occupiedBlockMap.get(blockId);
     }
 
+    public Block getStartBlock() {
+        return occupiedBlockMap.get(startBlockId);
+    }
+
+    public Block getEndBlock() {
+        return occupiedBlockMap.get(endBlockId);
+    }
+
     public boolean isArtery(int blockId) {
         if (!isOccupied(blockId) || occupiedBlockMap.get(blockId).distanceAwayFromRoad != 0) return false;
         return true;
@@ -210,10 +237,12 @@ public class GameMap {
         return false;
     }
 
-    public int getRandomMainRoadBlockId() {
+    public int getRandomRoadBlockId() {
         // FOR TEST
-        //return mainRoad.blockList.get(ThreadLocalRandom.current().nextInt(100)).blockId;
-        return mainRoad.blockList.get(ThreadLocalRandom.current().nextInt(mainRoad.blockList.size())).blockId;
+        //return mainRoad.hexagonList.get(ThreadLocalRandom.current().nextInt(100)).hexagonId;
+        //return mainRoad.hexagonList.get(ThreadLocalRandom.current().nextInt(mainRoad.hexagonList.size())).hexagonId;
+        SegmentOld segment = segmentList.get(ThreadLocalRandom.current().nextInt(segmentList.size()));
+        return segment.blockList.get(ThreadLocalRandom.current().nextInt(segment.blockList.size())).blockId;
     }
 
     /**
@@ -223,10 +252,24 @@ public class GameMap {
      */
     public Point getRandomRoadPosition(boolean isMainRoad) {
         if (isMainRoad) {
-            int blockId = getRandomMainRoadBlockId();
+            int blockId = getRandomRoadBlockId();
             return new Point(getX(blockId), getY(blockId), 0);
         }
         return null;
+    }
+
+    /**
+     * 随机获取部分交叉点
+     * @percent 百分制 需要获取的交叉点比例
+     */
+    public List<Integer> getRandomRoadCrossPosition(int percent) {
+        List<Integer> crossPointList = new LinkedList<>();
+        for (int blockId: crossBlockIdSet) {
+            if (ThreadLocalRandom.current().nextInt(100) < percent) {
+                crossPointList.add(blockId);
+            }
+        }
+        return crossPointList;
     }
 
     public Block getBlock(int x, int y) {
@@ -293,15 +336,22 @@ public class GameMap {
 
             if (getTerrainType(block) == TerrainType.ANIMAL) terrainBytes[x][y] = 'A';
             else if (getTerrainType(block) == TerrainType.BLANK) terrainBytes[x][y] = 'B';
+
             else if (getTerrainType(block) == TerrainType.FOG) terrainBytes[x][y] = 'C';
-            else if (getTerrainType(block) == TerrainType.FOREST) terrainBytes[x][y] = 'D';
+            else if (getTerrainType(block) == TerrainType.RAIN) terrainBytes[x][y] = 'G';
+            else if (getTerrainType(block) == TerrainType.SNOW) terrainBytes[x][y] = 'K';
             else if (getTerrainType(block) == TerrainType.DREAM_L1) terrainBytes[x][y] = 'E';
             else if (getTerrainType(block) == TerrainType.DREAM_L2) terrainBytes[x][y] = 'F';
-            else if (getTerrainType(block) == TerrainType.RAIN) terrainBytes[x][y] = 'G';
+
+            else if (getTerrainType(block) == TerrainType.STONE) terrainBytes[x][y] = '.';
+            else if (getTerrainType(block) == TerrainType.GATE) terrainBytes[x][y] = '.';
+            else if (getTerrainType(block) == TerrainType.WATER) terrainBytes[x][y] = '.';
+            else if (getTerrainType(block) == TerrainType.RIVER) terrainBytes[x][y] = '.';
+
+            else if (getTerrainType(block) == TerrainType.FOREST) terrainBytes[x][y] = 'D';
             //else if (block.terrainType == TerrainType.PAVEMENT) terrainBytes[x][y] = 'V';
             else if (getTerrainType(block) == TerrainType.ANIMAL_OSTRICH) terrainBytes[x][y] = 'I';
             else if (getTerrainType(block) == TerrainType.SAND) terrainBytes[x][y] = 'J';
-            else if (getTerrainType(block) == TerrainType.SNOW) terrainBytes[x][y] = 'K';
             else if (getTerrainType(block) == TerrainType.SWAMP) terrainBytes[x][y] = 'L';
             else if (getTerrainType(block) == TerrainType.VEGETABLE) terrainBytes[x][y] = 'N';
             else if (getTerrainType(block) == TerrainType.WATER) terrainBytes[x][y] = 'O';
@@ -437,88 +487,6 @@ public class GameMap {
         else System.out.print(i + ": ");
     }
 
-    public List<Integer> getBorderPoints(int x, int y, int width, int height, boolean partly) {
-        if (width <= 0 || height <= 0) return null;
-
-        if (!partly) {
-            if (!isInBound(x, y)) return null;
-            if (!isInBound(x + width, y)) return null;
-            if (!isInBound(x, y + height)) return null;
-            if (!isInBound(x + width, y + height)) return null;
-        }
-
-        List<Integer> borderPointList = new LinkedList<>();
-        for (int i = 0; i <= width; i ++) {
-            if (isInBound(x + i, y)) borderPointList.add(getBlockId(x + i, y));
-        }
-        for (int i = 1; i <= height; i ++) {
-            if (isInBound(x, y + i)) borderPointList.add(getBlockId(x, y + i));
-        }
-        for (int i = 1; i <= width; i ++) {
-            if (isInBound(x + i, y + height)) borderPointList.add(getBlockId(x + i, y + height));
-        }
-        for (int i = 1; i < height; i ++) {
-            if (isInBound(x + width, y + i)) borderPointList.add(getBlockId(x + width, y + i));
-        }
-        return borderPointList;
-    }
-
-   public void addBranch(int blockIdA, int blockIdB) {
-        int ax = getX(blockIdA);
-        int ay = getY(blockIdA);
-        int bx = getX(blockIdB);
-        int by = getY(blockIdB);
-
-        if (!isInBound(ax, ay)) throw new RuntimeException("block id is not in bound");
-        if (!isInBound(bx, by)) throw new RuntimeException("block id is not in bound");
-
-        if (ax != bx && ay != by) throw new RuntimeException("must in a line");
-
-        if (ax > bx) {
-            for (int i = bx + 1; i < ax; i ++) {
-                int blockId = getBlockId(i, ay);
-                if (isOccupied(blockId)) throw new RuntimeException("is occupied");
-                addBlock(blockId, BlockType.BRANCH, RoadDirection.NONE, ROAD_GROUP_ID, -1, -1);
-            }
-        } else if (ax < bx) {
-            for (int i = ax + 1; i < bx; i ++) {
-                int blockId = getBlockId(i, ay);
-                if (isOccupied(blockId)) throw new RuntimeException("is occupied");
-                addBlock(blockId, BlockType.BRANCH, RoadDirection.NONE, ROAD_GROUP_ID, -1, -1);
-            }
-        } else if (ay > by) {
-            for (int i = by + 1; i < ay; i ++) {
-                int blockId = getBlockId(ax, i);
-                if (isOccupied(blockId)) throw new RuntimeException("is occupied");
-                addBlock(blockId, BlockType.BRANCH, RoadDirection.NONE, ROAD_GROUP_ID, -1, -1);
-            }
-        } else if (ay < by) {
-            for (int i = ay + 1; i < by; i ++) {
-                int blockId = getBlockId(ax, i);
-                if (isOccupied(blockId)) throw new RuntimeException("is occupied");
-                addBlock(blockId, BlockType.BRANCH, RoadDirection.NONE, ROAD_GROUP_ID, -1, -1);
-            }
-        }
-    }
-
-    /**
-     * 判断某一个block在给定距离的周边上是否有临近的给定种类的block
-     * @param distance 给定距离
-     * @param blockTypes 给定block type
-     */
-    public boolean isNear(int blockId, int distance, BlockType... blockTypes) {
-        int x = getX(blockId);
-        int y = getY(blockId);
-
-        List<Integer> borderBlockIdList = getBorderPoints(
-                x - distance, y - distance, 2 * distance, 2 * distance, true);
-        for (int borderBlockId: borderBlockIdList) {
-            Block block = occupiedBlockMap.get(borderBlockId);
-            if (block != null && Util.arrayContains(blockTypes, block.type)) return true;
-        }
-        return false;
-    }
-
     /**
      * 判断当前节点所在线路的方向类型
      * @return
@@ -563,22 +531,6 @@ public class GameMap {
         return RoadDirection.STAND_ALONE;
     }
 
-    public void addBuilding(BuildingType buildingType, int x, int y, Direction direction) {
-        int id = getBlockId(x, y);
-        Building building = new Building(id, buildingType, new Point2D(x, y), direction);
-        buildingMap.put(id, building);
-    }
-
-    public List<Block> getAdjacent(int blockId, int distance, boolean corner, BlockType... blockTypes) {
-        if (distance == 1) return getAdjacentInDistance(blockId, distance, corner, blockTypes);
-
-        List<Block> blockList = new LinkedList<>();
-        for (int i = 1; i <= distance; i ++) {
-            blockList.addAll(getAdjacentInDistance(blockId, distance, corner, blockTypes));
-        }
-        return blockList;
-    }
-
     public List<Block> getAdjacentInDistance(int blockId, int distance, boolean corner, BlockType... blockTypes) {
         int x = getX(blockId);
         int y = getY(blockId);
@@ -611,197 +563,37 @@ public class GameMap {
         return blockList;
     }
 
-    public Map<Block, Direction> getAdjacentWithDirInDistance(int blockId, int distance, BlockType... blockTypes) {
-        int x = getX(blockId);
-        int y = getY(blockId);
-
-        Block upBlock = occupiedBlockMap.get(getBlockId(x, y + distance));
-        Block rightBlock = occupiedBlockMap.get(getBlockId(x + distance, y));
-        Block downBlock = occupiedBlockMap.get(getBlockId(x, y - distance));
-        Block leftBlock = occupiedBlockMap.get(getBlockId(x - distance, y));
-
-        Map<Block, Direction> blockMap = new HashMap<>();
-        if (upBlock != null && Util.arrayContains(blockTypes, upBlock.type)) {
-            blockMap.put(upBlock, Direction.UP);
-        }
-        if (rightBlock != null && Util.arrayContains(blockTypes, rightBlock.type)) {
-            blockMap.put(rightBlock, Direction.RIGHT);
-        }
-        if (downBlock != null && Util.arrayContains(blockTypes, downBlock.type)) {
-            blockMap.put(downBlock, Direction.DOWN);
-        }
-        if (leftBlock != null && Util.arrayContains(blockTypes, leftBlock.type)) {
-            blockMap.put(leftBlock, Direction.LEFT);
-        }
-        return blockMap;
-    }
-
-    /*
-    public boolean isAdjacent(int blockId, int distance, BlockType... blockTypes) {
-        int x = getX(blockId);
-        int y = getY(blockId);
-
-        List<Integer> borderBlockIdList = new LinkedList<>();
-        borderBlockIdList.add(getBlockId(x - distance, y));
-        borderBlockIdList.add(getBlockId(x + distance, y));
-        borderBlockIdList.add(getBlockId(x, y - distance));
-        borderBlockIdList.add(getBlockId(x, y + distance));
-
-        for (int borderBlockId: borderBlockIdList) {
-            Block block = occupiedBlockMap.get(borderBlockId);
-            if (block != null && Util.arrayContains(blockTypes, block.type)) return true;
-        }
-        return false;
-    }
-    */
-
     /**
-     * 获取在某一个block的十字交叉线上指定距离和指定类型的block集合
-     */
-    /*
-    public List<Block> getBlocksInRangeOfCross(int blockId, int range, BlockType... blockTypes) {
-        int x = getX(blockId);
-        int y = getY(blockId);
-
-        List<Integer> blockIdList = new LinkedList<>();
-        for (int i = 1; i <= range; i ++) {
-            if (isInBound(x - i, y)) blockIdList.add(getBlockId(x - i, y));
-            if (isInBound(x + i, y)) blockIdList.add(getBlockId(x + i, y));
-            if (isInBound(x, y - i)) blockIdList.add(getBlockId(x, y - i));
-            if (isInBound(x, y + i)) blockIdList.add(getBlockId(x, y + i));
-        }
-
-        List<Block> blockList = new LinkedList<>();
-        for (int blockIdInRange: blockIdList) {
-            Block block = occupiedBlockMap.get(blockIdInRange);
-            if (block != null && Util.arrayContains(blockTypes, block.type)) {
-                blockList.add(block);
-            }
-        }
-        return blockList;
-    }
-    */
-
-    /**
-     * 获取在指定距离内，给定block与指定类型最近的距离
+     * 获取在给定block周围，指定距离的菱形范围内，离已占用block的最小距离
      * @param blockId 给定的blockId
-     * @param range 给定的距离
+     * @param distance 给定的距离
      */
-    public Pair<Integer, Block> getNearestBlockOfCross(int blockId, int range, BlockType... blockTypes) {
+    public Pair<Integer, Short> getNearestBlockInfo(int blockId, int distance) {
+        Block block = occupiedBlockMap.get(blockId);
+        if (block != null) return new Pair(0, block.blockGroupId);
+
         int x = getX(blockId);
         int y = getY(blockId);
 
-        Block block = occupiedBlockMap.get(blockId);
-        if (block != null && Util.arrayContains(blockTypes, block.type)) return null;
-
-        List<Integer> blockIdList = new LinkedList<>();
-        for (int i = 1; i <= range; i ++) {
-            blockIdList.clear();
-            if (isInBound(x - i, y)) blockIdList.add(getBlockId(x - i, y));
-            if (isInBound(x + i, y)) blockIdList.add(getBlockId(x + i, y));
-            if (isInBound(x, y - i)) blockIdList.add(getBlockId(x, y - i));
-            if (isInBound(x, y + i)) blockIdList.add(getBlockId(x, y + i));
-
-            for (int blockIdInRange: blockIdList) {
-                Block nearBlock = occupiedBlockMap.get(blockIdInRange);
-                if (nearBlock != null && Util.arrayContains(blockTypes, nearBlock.type)) {
-                    return new Pair<>(i, nearBlock);
+        for (int m = 1; m <= distance; m ++) {
+            boolean found = false;
+            short groupId = Short.MAX_VALUE;
+            for (int i = - m; i <= m; i++) {
+                int[] blockIds = new int[] {
+                        getBlockId(x + i, y + (m - Math.abs(i))), getBlockId(x + i, y - (m - Math.abs(i)))};
+                for (int currBlockId: blockIds) {
+                    block = occupiedBlockMap.get(currBlockId);
+                    if (block != null) {
+                        found = true;
+                        if (block.blockGroupId < groupId) groupId = block.blockGroupId;
+                    }
                 }
             }
-        }
-        return null;
-    }
-
-    /**
-     * 获取在某一个block的四个对角线方向, 指定距离和指定类型的block集合
-     */
-    /*
-    public List<Block> getBlocksInRangeOfCorner(int blockId, int range, BlockType... blockTypes) {
-        int x = getX(blockId);
-        int y = getY(blockId);
-
-        List<Integer> blockIdList = new LinkedList<>();
-        if (isInBound(x - range, y + range)) blockIdList.add(getBlockId(x - range, y + range));
-        if (isInBound(x + range, y + range)) blockIdList.add(getBlockId(x + range, y + range));
-        if (isInBound(x + range, y - range)) blockIdList.add(getBlockId(x + range, y - range));
-        if (isInBound(x - range, y - range)) blockIdList.add(getBlockId(x - range, y - range));
-
-        List<Block> blockList = new LinkedList<>();
-        for (int blockIdInRange: blockIdList) {
-            Block block = occupiedBlockMap.get(blockIdInRange);
-            if (block != null && Util.arrayContains(blockTypes, block.type)) {
-                blockList.add(block);
+            if (found) {
+                return new Pair(m, groupId);
             }
         }
-        return blockList;
-    }
-    */
-
-    /**
-     * 获取在某一个block周围, 指定距离和指定类型的block集合
-     */
-    /*
-    public List<Block> getBlocksInRange(int blockId, int range, BlockType... blockTypes) {
-        int x = getX(blockId);
-        int y = getY(blockId);
-
-        List<Integer> blockIdList = new LinkedList<>();
-        for (int i = -range ; i <= range; i ++) {
-            for (int j = -range; j <= range; j ++) {
-                if (i == 0 && j == 0) continue;
-                if (isInBound(x + i, y + i)) blockIdList.add(getBlockId(x + i, y + j));
-            }
-        }
-
-        List<Block> blockList = new LinkedList<>();
-        for (int blockIdInRange: blockIdList) {
-            Block block = occupiedBlockMap.get(blockIdInRange);
-            if (block != null && Util.arrayContains(blockTypes, block.type)) {
-                blockList.add(block);
-            }
-        }
-        return blockList;
-    }
-
-    public BlockType getBlockTypeByDepth(int depth) {
-        if (depth <= -6) return BlockType.SEA_L6;
-        if (depth == -5) return BlockType.SEA_L5;
-        if (depth == -4) return BlockType.SEA_L4;
-        if (depth == -3) return BlockType.SEA_L3;
-        if (depth == -2) return BlockType.SEA_L2;
-        if (depth == -1) return BlockType.SEA_L1;
         return null;
-    }
-
-    public int getNearestBlockDistanceOfAround(int blockId, int distance, BlockType... blockTypes) {
-        if (distance < 1) return -1;
-        for (int i = 1; i <= distance; i ++ ) {
-            if (getBlocksInDistance(blockId, i, blockTypes).size() > 0) return i;
-        }
-        return -1;
-    }
-
-    public List<Block> getNearestBlocksOfAround(int blockId, int distance, BlockType... blockTypes) {
-        if (distance < 1) return null;
-        for (int i = 1; i <= distance; i ++ ) {
-            List<Block> blockList = getBlocksInDistance(blockId, i, blockTypes);
-            if (blockList.size() > 0) return blockList;
-        }
-        return null;
-    }
-    */
-
-    /**
-     * 获取离中心点距离为 distance 的一个正方形区域内的全部block
-     */
-    public List<Block> getBlockListInDistances(int blockId, int distance, BlockType... blockTypes) {
-        if (distance < 1) return null;
-        List<Block> blockList = new LinkedList<>();
-        for (int i = 1; i <= distance; i ++ ) {
-            blockList.addAll(getBlocksInDistance(blockId, i, blockTypes));
-        }
-        blockList.add(occupiedBlockMap.get(blockId));
-        return blockList;
     }
 
     /**
@@ -905,25 +697,10 @@ public class GameMap {
         return blockGroup.getEndBlockId();
     }
 
-    /**
-     * 获取与当前点最临近的道路边缘block
-     */
-    public Point getNearestRoadEdgeBlock(int blockId) {
-        Map<Integer, List<Block>> blockMapAround = getBlocksInDistances(blockId, 3);
-        for (List<Block> blockList: blockMapAround.values()) {
-            for (Block block: blockList) {
-                if (block.distanceAwayFromRoad == 3) {
-                    return new Point(getX(block.blockId), 0, getY(block.blockId));
-                }
-            }
-        }
-        return new Point(getX(blockId), 0, getY(blockId));
-    }
-
     public int getNearestArteryBlockId(int blockId, int distance) {
         for (int d = 1; d <= distance; d ++) {
             List<Block> blockList = getBlocksInDistance(
-                    blockId, distance, BlockType.MAIN_ROAD, BlockType.SHORTCUT);
+                    blockId, d, BlockType.MAIN_ROAD, BlockType.SHORTCUT);
             if (blockList.size() > 0) return blockList.get(0).blockId;
         }
         return -1;
@@ -945,7 +722,7 @@ public class GameMap {
         return occupiedBlockMap.get(blockId).type;
     }
 
-    public Direction getDirection(int blockIdA, int blockIdB) {
+    private Direction getDirection(int blockIdA, int blockIdB) {
         int ax = getX(blockIdA);
         int ay = getY(blockIdA);
 
@@ -966,9 +743,6 @@ public class GameMap {
     }
 
     public void generateMapBytes() {
-        Block startBlock = mainRoad.blockList.get(25);
-        Block endBlock = mainRoad.blockList.get(125);
-
         ByteBuilder byteBuilder = new ByteBuilder();
         for (int i = 1; i <= boundX * boundY; i ++) {
             Block block = occupiedBlockMap.get(i);
@@ -1032,5 +806,144 @@ public class GameMap {
         if (isOccupied(aroundBlockId)) return false;
 
         return true;
+    }
+
+    public int getUnitWidth() {
+        return bridgeWidth + 1;
+    }
+
+    public Block getSingleTerrainBlock(SegmentOld segment) {
+        int blockIndex = (segment.distance() / getUnitWidth() - 1) * getUnitWidth() + (getUnitWidth() / 2) ;
+        return segment.blockList.get(blockIndex);
+    }
+
+    /**
+     * 获取从a点到b点最短路径的方向
+     */
+    public Direction getPointsDirection(int startBlockId, int endBlockId) {
+        if (!isCrossPoint(startBlockId) || !isCrossPoint(endBlockId)) return null;
+
+        List<Integer> path = getPath(startBlockId, endBlockId);
+        if (path == null || path.size() == 0) return null;
+
+        int firstWayPointId = path.get(1);
+        SegmentOld segment = getSegment(startBlockId, firstWayPointId);
+        if (segment == null) return null;
+
+        int nextBlockId;
+        if (startBlockId == segment.head.blockId) {
+            nextBlockId = segment.blockList.get(0).blockId;
+        } else {
+            nextBlockId = segment.blockList.get(segment.blockList.size() - 1).blockId;
+        }
+
+        /*  for test
+        Direction direction = getDirection(startBlockId, nextBlockId);
+        if (direction == Direction.DOWN_LEFT || direction == Direction.DOWN_RIGHT ||
+                direction == Direction.UP_LEFT || direction == Direction.UP_RIGHT) {
+            System.out.println("block id:" + startBlockId + ", x:" + getX(startBlockId) + ", y:" + getY(startBlockId));
+            System.out.println("block id:" + nextBlockId + ", x:" + getX(nextBlockId) + ", y:" + getY(nextBlockId));
+
+            int a =  1;
+        }
+        */
+        return getDirection(startBlockId, nextBlockId);
+    }
+
+    /**
+     * 根据起点和终点获取segment
+     */
+    private SegmentOld getSegment(int startBlockId, int endBlockId) {
+        SegmentOld chosenSegment = null;
+        int size = Integer.MAX_VALUE;
+        for  (SegmentOld segment: segmentList) {
+            if ((segment.head.blockId == startBlockId && segment.tail.blockId == endBlockId) ||
+                    (segment.head.blockId == endBlockId && segment.tail.blockId == startBlockId) ) {
+                if (segment.distance() < size) {
+                    chosenSegment = segment;
+                    size = segment.distance();
+                }
+            }
+        }
+        return chosenSegment;
+    }
+
+    /**
+     * 获取从节点a到节点b的所有crossPoint的list集合
+     */
+    private List<Integer> getPath(int startBlockId, int endBlockId) {
+        Map<Integer, List<Integer>> pointPath = pathMap.get(startBlockId);
+        if (pointPath != null)  return pointPath.get(endBlockId);
+        return null;
+    }
+
+    /**
+     * 判断是否为交叉点
+     */
+    public boolean isCrossPoint(int blockId) {
+        return crossBlockIdSet.contains(blockId);
+    }
+
+    public void countPathInfo() {
+        crossBlockIdSet.clear();
+        for (SegmentOld segment: segmentList) {
+            crossBlockIdSet.add(segment.head.blockId);
+            crossBlockIdSet.add(segment.tail.blockId);
+        }
+
+        int[] blockIds = new int[crossBlockIdSet.size()];
+        int index = 0;
+        for (int crossBlockId: crossBlockIdSet) {
+            blockIds[index ++] = crossBlockId;
+        }
+
+        Graph graph = new Graph(blockIds);
+
+        for (SegmentOld segment : segmentList) {
+            graph.setEdge(segment.head.blockId, segment.tail.blockId, segment.blockList.size() + 1);
+        }
+
+        pathMap = graph.countPath();
+        System.out.println(pathMap);
+        for (SegmentOld segment : segmentList) {
+            int detourDistance = graph.countDetourDistance(segment.head.blockId, segment.tail.blockId);
+            segment.detourDistance = detourDistance;
+        }
+
+        SegmentOld[] segments = new SegmentOld[segmentList.size()];
+        int i = 0;
+        for (SegmentOld segment : segmentList) {
+            int m = i;
+            for (int j = 0; j < i; j ++) {
+                if (segment.blockList.size() >= segments[j].blockList.size()) continue;
+                else {
+                    m = j;
+                    break;
+                }
+            }
+            for (int k = i; k > m; k --) {
+                segments[k] = segments[k - 1];
+            }
+            segments[m] = segment;
+            i ++;
+        }
+
+        for (SegmentOld segment : segments) {
+            System.out.println("segment: " +
+                    "\t" + segment.head.blockId + "[" + segment.head.position.x + "," + segment.head.position.y + "], " +
+                    "\t" + segment.tail.blockId + "[" + segment.tail.position.x + "," + segment.tail.position.y + "], " +
+                    "\tdistance: " + segment.distance() + ", \tdetour distance: " + segment.detourDistance);
+        }
+
+        for (int blockId: crossBlockIdSet) {
+            Direction direction = getPointsDirection(blockId, endBlockId);
+            System.out.println("block id:" + blockId + ", x:" + getX(blockId) + ", y:" + getY(blockId) + ", direction: " + direction);
+        }
+    }
+
+    public Point getRoadSidePoint(int blockId) {
+        int minDistance = Integer.MAX_VALUE;
+        Map<Integer, List<Block>> aroundBlocks = getBlocksInDistances(blockId, expandWidth * 2, BlockType.ROAD_EXTENSION);
+        return null;
     }
 }

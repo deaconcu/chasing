@@ -49,7 +49,7 @@ public class Merchant extends NPC {
     }
 
     @Override
-    void logic(Map<Integer, User> playerList) {
+    void logic(Game game) {
 
     }
 }

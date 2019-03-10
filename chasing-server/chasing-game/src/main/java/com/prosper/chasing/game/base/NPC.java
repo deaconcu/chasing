@@ -11,6 +11,6 @@ public abstract class NPC extends GameObject {
         super(id, point, rotateY);
     }
 
-    abstract void logic(Map<Integer, User> playerList);
+    abstract void logic(Game game);
 
 }

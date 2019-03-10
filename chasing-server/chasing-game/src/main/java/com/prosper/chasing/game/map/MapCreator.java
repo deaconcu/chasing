@@ -23,10 +23,11 @@ public class MapCreator {
     @PostConstruct
     public void createMap() {
         MarathonGameMapCreator marathonGameMapCreator = new MarathonGameMapCreator();
-        GameMap gameMap = marathonGameMapCreator.generate(20, 20, 49);
+        GameMap gameMap = marathonGameMapCreator.generateV2(20, 20, 49);
 
         gameMaps.put("marathon", gameMap);
-        jedis.set("marathon".getBytes(), gameMap.getMapBytes());
+        byte[] mapBytes = gameMap.getMapBytes();
+        jedis.set("marathon".getBytes(), mapBytes);
     }
 
     public GameMap getMap(String name) {

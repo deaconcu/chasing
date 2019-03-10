@@ -1,6 +1,5 @@
 package com.prosper.chasing.game.map;
 
-import com.prosper.chasing.game.base.Point;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Enums.*;
 
@@ -9,18 +8,32 @@ import com.prosper.chasing.game.util.Enums.*;
  */
 public class BlockGroup {
 
+    public static int MIN_SIZE = 4 * 50;
+
     private short id;
     private TerrainType terrainType;
     private int startBlockId;
     private int endBlockId;
-    private int length;
+    private int distance;
+    private int detourDistance;
+    private boolean isSingle;
 
-    public BlockGroup(short id, TerrainType terrainType, int startBlockId, int endBlockId, int length) {
+    public BlockGroup(
+            short id, TerrainType terrainType, int startBlockId,
+            int endBlockId, int distance, int detourDistance) {
+        this(id, terrainType, startBlockId, endBlockId, distance, detourDistance, false);
+    }
+
+    public BlockGroup(
+            short id, TerrainType terrainType, int startBlockId,
+            int endBlockId, int distance, int detourDistance, boolean isSingle) {
         this.id = id;
         this.terrainType = terrainType;
         this.startBlockId = startBlockId;
         this.endBlockId = endBlockId;
-        this.length = length;
+        this.distance = distance;
+        this.detourDistance = detourDistance;
+        this.isSingle = isSingle;
     }
 
     @Override
@@ -68,7 +81,15 @@ public class BlockGroup {
         this.endBlockId = endBlockId;
     }
 
-    public int getLength() {
-        return length;
+    public int getDistance() {
+        return distance;
+    }
+
+    public boolean isSingle() {
+        return isSingle;
+    }
+
+    public int getDetourDistance() {
+        return detourDistance;
     }
 }

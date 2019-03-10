@@ -957,9 +957,9 @@ public class User extends GameObject {
             byteBuilder.append(focusUser.getId());
             byteBuilder.append(focusUser.getStrength());
             /*
-            if (focusUser.buffChangedSet.size() > 0)  {
+            if (focusUser.buffChangedSet.distance() > 0)  {
                 byteBuilder.append((byte)1);
-                byteBuilder.append((byte)focusUser.buffList.size());
+                byteBuilder.append((byte)focusUser.buffList.distance());
                 for (Buff buff: focusUser.buffList) {
                     byteBuilder.append(buff.id);
                     byteBuilder.append(buff.typeId);

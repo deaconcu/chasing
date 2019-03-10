@@ -20,7 +20,10 @@ public class GameMapCreator {
     // 未生成的空白块
     protected Set<Integer> unusedBlockSet;
     // 短路径列表
-    public LinkedList<Branch> shortcutList;
+    public LinkedList<SegmentOld> shortcutList;
+
+    Set<Block> vertexSet = new HashSet<>();
+    Set<SegmentOld> segmentSet = new HashSet<>();
 
     public int start;
 
@@ -58,8 +61,6 @@ public class GameMapCreator {
         }
     }
 
-
-
     public GameMapCreator(int boundX, int boundY) {
         this.boundX = boundX;
         this.boundY = boundY;
@@ -92,7 +93,7 @@ public class GameMapCreator {
             int nextBlockId = getRandomUnusedSibling(blockId);
             while (nextBlockId == -1 && pathBlockIdList.size() > 0) {
                 blockId = pathBlockIdList.get(ThreadLocalRandom.current().nextInt(pathBlockIdList.size()));
-                //System.out.println("get block id from nodes, x:" + getX(blockId) + ", y:" + getY(blockId));
+                //System.out.println("get block id from nodes, x:" + getX(hexagonId) + ", y:" + getY(hexagonId));
 
                 nextBlockId = getRandomUnusedSibling(blockId);
                 //System.out.println("get next block id, x:" + getX(nextBlockId) + ", y:" + getY(nextBlockId));
@@ -129,10 +130,10 @@ public class GameMapCreator {
 
             for (TreeNode childNode: currentNode.children) {
                 treeNodeList.add(childNode);
-                //System.out.println("add child node: " + getX(childNode.blockId) + ", " + getY(childNode.blockId));
+                //System.out.println("add child node: " + getX(childNode.hexagonId) + ", " + getY(childNode.hexagonId));
             }
             currentNode = treeNodeList.pollFirst();
-            //System.out.println("current node: " + getX(currentNode.blockId) + ", " + getY(currentNode.blockId));
+            //System.out.println("current node: " + getX(currentNode.hexagonId) + ", " + getY(currentNode.hexagonId));
         }
 
         currentNode = endNode;
@@ -172,6 +173,146 @@ public class GameMapCreator {
         bridgeSet.addAll(gameMapCreator.bridgeSet);
 
         generateShortcut();
+    }
+
+    public void mergeV2(GameMapCreator gameMapCreator) {
+        Set<Block> removeBlockSet = new HashSet<>();
+        for (Block block: gameMapCreator.usedBlockMap.values()) {
+            if (usedBlockMap.containsKey(block.blockId)) {
+                removeBlockSet.add(block);
+            }
+        }
+
+        for (Block block: removeBlockSet) {
+            gameMapCreator.removeBlock(block, true);
+        }
+
+        for (Block block: gameMapCreator.usedBlockMap.values()) {
+            addBlock(block, BlockType.MAIN_ROAD);
+        }
+        bridgeSet.addAll(gameMapCreator.bridgeSet);
+
+        printTerrainBlocks(3);
+
+        //generateShortcut();
+    }
+
+    public void computerEdgeInfo() {
+        // get vertex set
+        vertexSet.clear();
+        segmentSet.clear();
+
+        vertexSet.add(usedBlockMap.get(start));
+        vertexSet.add(usedBlockMap.get(end));
+
+        for (Block block: usedBlockMap.values()) {
+            int aroundBlockCount = 0;
+            for (int i = 0; i <= 3; i ++) {
+                int aroundBlockId = getRoadBlockIdAround(block.blockId, i);
+                if (aroundBlockId != -1) {
+                    aroundBlockCount ++;
+                }
+            }
+            if (aroundBlockCount > 2) {
+                vertexSet.add(block);
+            }
+        }
+
+        int[] blockIds = new int[vertexSet.size()];
+        int index = 0;
+        for (Block block: vertexSet) {
+            blockIds[index++] = block.blockId;
+        }
+
+        //Graph graph = new Graph(blockIds);
+
+        System.out.println("vertex set count: " + vertexSet.size());
+        for (Block block: vertexSet) {
+            System.out.println("vertex - " + block.blockId + ": [" + block.position.x + "," + block.position.y + "]");
+        }
+
+
+        // get edge set
+        for (Block block: vertexSet) {
+            for (int i = 0; i <= 3; i ++) {
+                int currentBlockId = getRoadBlockIdAround(block.blockId, i);
+                if (currentBlockId != -1) {
+                    if (vertexSet.contains(usedBlockMap.get(currentBlockId))) {
+                        if (block.blockId < usedBlockMap.get(currentBlockId).blockId)  {
+                            segmentSet.add(new SegmentOld(block, usedBlockMap.get(currentBlockId)));
+                        }
+                    } else {
+                        List<Block> blockList = new LinkedList<>();
+                        blockList.add(usedBlockMap.get(currentBlockId));
+
+                        boolean reachEnd = false;
+                        while (!reachEnd) {
+                            for (int j = 0; j <= 3; j ++) {
+                                int aroundBlockId = getRoadBlockIdAround(currentBlockId, j);
+                                if (aroundBlockId == -1 || blockList.contains(usedBlockMap.get(aroundBlockId))
+                                        || aroundBlockId == block.blockId) continue;
+                                else if (vertexSet.contains(usedBlockMap.get(aroundBlockId))) {
+                                    if (block.blockId < usedBlockMap.get(aroundBlockId).blockId) {
+                                        SegmentOld segment = new SegmentOld(block, usedBlockMap.get(aroundBlockId));
+                                        segment.blockList =  blockList;
+                                        segmentSet.add(segment);
+
+                                        /*
+                                        hexagonList.get(0).previous = block;
+                                        block.next = hexagonList.get(0);
+                                        hexagonList.get(hexagonList.size() - 1).next = usedBlockMap.get(aroundBlockId);
+                                        usedBlockMap.get(aroundBlockId).previous = hexagonList.get(hexagonList.size() - 1);
+                                        */
+                                    }
+                                    reachEnd = true;
+                                } else {
+                                    blockList.add(usedBlockMap.get(aroundBlockId));
+                                    currentBlockId = aroundBlockId;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /*
+        for (SegmentOld segment : branchSet) {
+            graph.setEdge(segment.head.hexagonId, segment.tail.hexagonId, segment.hexagonList.size() + 1);
+        }
+
+        Map<Integer, Map<Integer, List<Integer>>> pathMap = graph.countPath();
+        for (SegmentOld segment : branchSet) {
+            int detourDistance = graph.countDetourDistance(segment.head.hexagonId, segment.tail.hexagonId);
+            segment.detourDistance = detourDistance;
+        }
+        */
+
+        // 按branch长度排序后打印, 用来调试，可以注释
+        SegmentOld[] segments = new SegmentOld[segmentSet.size()];
+        int i = 0;
+        for (SegmentOld segment : segmentSet) {
+            int m = i;
+            for (int j = 0; j < i; j ++) {
+                if (segment.blockList.size() >= segments[j].blockList.size()) continue;
+                else {
+                    m = j;
+                    break;
+                }
+            }
+            for (int k = i; k > m; k --) {
+                segments[k] = segments[k - 1];
+            }
+            segments[m] = segment;
+            i ++;
+        }
+
+        for (SegmentOld segment : segments) {
+            System.out.println("segment: " +
+                    "\t" + segment.head.blockId + "[" + segment.head.position.x + "," + segment.head.position.y + "], " +
+                    "\t" + segment.tail.blockId + "[" + segment.tail.position.x + "," + segment.tail.position.y + "], " +
+                    "\tdistance: " + segment.distance() + ", \tdetour distance: " + segment.detourDistance);
+        }
     }
 
     protected Block[] getRoadSibling(int blockId) {
@@ -263,14 +404,47 @@ public class GameMapCreator {
         return null;
     }
 
+    private Block getBlockAround(int blockId, int direction) {
+        Block aroundBlock = null;
+        if (direction == RIGHT && isInBound(getX(blockId) + 1, getY(blockId))) {
+            if (isBridgeExist(blockId, RIGHT))
+                aroundBlock = usedBlockMap.get(getBlockId(getX(blockId) + 1, getY(blockId)));
+        } else if (direction == DOWN  && isInBound(getX(blockId), getY(blockId) - 1)) {
+            if (isBridgeExist(blockId, DOWN))
+                aroundBlock = usedBlockMap.get(getBlockId(getX(blockId), getY(blockId) - 1));
+        } else if (direction == LEFT  && isInBound(getX(blockId) - 1, getY(blockId))) {
+            if (isBridgeExist(blockId, LEFT))
+                aroundBlock = usedBlockMap.get(getBlockId(getX(blockId) - 1, getY(blockId)));
+        } else if (direction == UP  && isInBound(getX(blockId), getY(blockId) + 1)) {
+            if (isBridgeExist(blockId, UP))
+                aroundBlock = usedBlockMap.get(getBlockId(getX(blockId), getY(blockId) + 1));
+        }
+        if (aroundBlock != null) {
+            return aroundBlock;
+        }
+        return null;
+    }
+
     private int getRoadBlockIdAround(int blockId, int direction) {
         Block block = getRoadBlockAround(blockId, direction);
         if (block == null) return -1;
         return block.blockId;
     }
 
+    private int getBlockIdAround(int blockId, int direction) {
+        Block block = getBlockAround(blockId, direction);
+        if (block == null) return -1;
+        return block.blockId;
+    }
+
     protected void addBranch(Block block) {
         block.type = BlockType.BRANCH;
+        usedBlockMap.put(block.blockId, block);
+        unusedBlockSet.remove(block.blockId);
+    }
+
+    protected void addBlock(Block block, BlockType type) {
+        block.type = type;
         usedBlockMap.put(block.blockId, block);
         unusedBlockSet.remove(block.blockId);
     }
@@ -306,17 +480,19 @@ public class GameMapCreator {
         }
 
         //System.out.println("add block to map, block: [x:" +
-        // getX(blockId) + ", y:" + getY(blockId) + ", type: " + type + "]");
+        // getX(hexagonId) + ", y:" + getY(hexagonId) + ", type: " + type + "]");
     }
 
     protected void removeBlock(Block block, boolean partlyBridge) {
         if (block == null) return;
 
-        if (block.next != null) {
-            block.next.previous = null;
-        }
-        if (block.previous != null) {
-            block.previous.next = null;
+        if (!partlyBridge) {
+            if (block.next != null) {
+                block.next.previous = null;
+            }
+            if (block.previous != null) {
+                block.previous.next = null;
+            }
         }
 
         if (partlyBridge) {
@@ -344,7 +520,7 @@ public class GameMapCreator {
     }
 
     public void generateShortcut() {
-        List<Branch> branchList = new LinkedList<>();
+        List<SegmentOld> segmentList = new LinkedList<>();
         Set<Block> branchBlocks = new HashSet<>();
         for (Block block: usedBlockMap.values()) {
             if (block.type == BlockType.BRANCH) {
@@ -360,162 +536,162 @@ public class GameMapCreator {
                 previous = block.previous;
             }
 
-            Branch branch = new Branch(getBranchHeadTail(block, true));
+            SegmentOld segment = new SegmentOld(getBranchHeadTail(block, true));
             while(block != null && block.type == BlockType.BRANCH) {
-                branch.addBlock(block);
+                segment.addBlock(block);
                 branchBlocks.remove(block);
                 previous = block;
                 block = block.next;
             }
-            branch.tail = getBranchHeadTail(previous, false);
-            if (branch.head == branch.tail || branch.head == null || branch.head.type != BlockType.MAIN_ROAD ||
-                    branch.tail == null || branch.tail.type != BlockType.MAIN_ROAD) {
-                for (Block branchBlock: branch.blockList) {
+            segment.tail = getBranchHeadTail(previous, false);
+            if (segment.head == segment.tail || segment.head == null || segment.head.type != BlockType.MAIN_ROAD ||
+                    segment.tail == null || segment.tail.type != BlockType.MAIN_ROAD) {
+                for (Block branchBlock: segment.blockList) {
                     removeBlock(branchBlock, false);
                 }
             } else {
-                if (branch.head.distanceToFinish < branch.tail.distanceToFinish) {
-                    branch.reverse();
+                if (segment.head.distanceToFinish < segment.tail.distanceToFinish) {
+                    segment.reverse();
                 }
-                branchList.add(branch);
+                segmentList.add(segment);
             }
         }
 
-        Collections.sort(branchList);
-        for(Branch branch: branchList) {
-            System.out.println(branch);
+        Collections.sort(segmentList);
+        for(SegmentOld segment : segmentList) {
+            System.out.println(segment);
         }
 
-        List<Branch> removeBranchList = new LinkedList<>();
-        List<Branch> addBranchList = new LinkedList<>();
-        for (Branch branch: branchList) {
+        List<SegmentOld> removeSegmentList = new LinkedList<>();
+        List<SegmentOld> addSegmentList = new LinkedList<>();
+        for (SegmentOld segment : segmentList) {
             // 之前的交互可能让后面的分支无效, 需要删除无效的分支
-            if (branch.head.type == BlockType.BRANCH || branch.tail.type == BlockType.BRANCH) {
-                for (Block block: branch.blockList) {
+            if (segment.head.type == BlockType.BRANCH || segment.tail.type == BlockType.BRANCH) {
+                for (Block block: segment.blockList) {
                     removeBlock(block, false);
                 }
-                removeBranchList.add(branch);
+                removeSegmentList.add(segment);
                 continue;
             }
-            if (branch.size() > branch.getOriginDistance()) {
-                Branch newBranch = exchangeBranchToRoad(branch);
-                if (newBranch != null) {
-                    addBranchList.add(newBranch);
-                    removeBranchList.add(branch);
+            if (segment.distance() > segment.getOriginDistance()) {
+                SegmentOld newSegment = exchangeBranchToRoad(segment);
+                if (newSegment != null) {
+                    addSegmentList.add(newSegment);
+                    removeSegmentList.add(segment);
                 }
             }
         }
 
-        for (Branch branch: branchList) {
+        for (SegmentOld segment : segmentList) {
             // 之前的交互可能让后面的分支无效, 需要删除无效的分支
-            if (branch.head.type == BlockType.BRANCH || branch.tail.type == BlockType.BRANCH) {
-                for (Block block: branch.blockList) {
+            if (segment.head.type == BlockType.BRANCH || segment.tail.type == BlockType.BRANCH) {
+                for (Block block: segment.blockList) {
                     removeBlock(block, false);
                 }
-                if (!removeBranchList.contains(branch)) {
-                    removeBranchList.add(branch);
-                }
-                continue;
-            }
-        }
-
-        branchList.removeAll(removeBranchList);
-        branchList.addAll(addBranchList);
-
-        removeBranchList = new LinkedList<>();
-        for (Branch branch: branchList) {
-            if (branch.getShort() < 10) {
-                if (branch.blockList.size() == 0) {
-                    if (getX(branch.head.blockId) + 1 == getX(branch.tail.blockId)) {
-                        bridgeSet.remove(getBridgeId(branch.head.blockId, RIGHT));
-                    }
-                    if (getX(branch.head.blockId) - 1 == getX(branch.tail.blockId)) {
-                        bridgeSet.remove(getBridgeId(branch.head.blockId, LEFT));
-                    }
-                    if (getY(branch.head.blockId) + 1 == getY(branch.tail.blockId)) {
-                        bridgeSet.remove(getBridgeId(branch.head.blockId, UP));
-                    }
-                    if (getY(branch.head.blockId) - 1 == getY(branch.tail.blockId)) {
-                        bridgeSet.remove(getBridgeId(branch.head.blockId, DOWN));
-                    }
-                }
-                for (Block block: branch.blockList) {
-                    removeBlock(block, false);
-                }
-                if (!removeBranchList.contains(branch)) {
-                    removeBranchList.add(branch);
-                }
-                addBranchList.remove(branch);
-            }
-        }
-        branchList.removeAll(removeBranchList);
-
-        removeBranchList = new LinkedList<>();
-        for (Branch branch: shortcutList) {
-            // 之前的交互可能让后面的分支无效, 需要删除无效的分支
-            if (branch.head.type != BlockType.MAIN_ROAD || branch.tail.type != BlockType.MAIN_ROAD) {
-                for (Block block: branch.blockList) {
-                    removeBlock(block, false);
-                }
-                if (!removeBranchList.contains(branch)) {
-                    removeBranchList.add(branch);
+                if (!removeSegmentList.contains(segment)) {
+                    removeSegmentList.add(segment);
                 }
                 continue;
             }
         }
-        shortcutList.removeAll(removeBranchList);
 
-        for(Branch branch: branchList) {
-            for(Block block: branch.blockList) {
+        segmentList.removeAll(removeSegmentList);
+        segmentList.addAll(addSegmentList);
+
+        removeSegmentList = new LinkedList<>();
+        for (SegmentOld segment : segmentList) {
+            if (segment.getShort() < 10) {
+                if (segment.blockList.size() == 0) {
+                    if (getX(segment.head.blockId) + 1 == getX(segment.tail.blockId)) {
+                        bridgeSet.remove(getBridgeId(segment.head.blockId, RIGHT));
+                    }
+                    if (getX(segment.head.blockId) - 1 == getX(segment.tail.blockId)) {
+                        bridgeSet.remove(getBridgeId(segment.head.blockId, LEFT));
+                    }
+                    if (getY(segment.head.blockId) + 1 == getY(segment.tail.blockId)) {
+                        bridgeSet.remove(getBridgeId(segment.head.blockId, UP));
+                    }
+                    if (getY(segment.head.blockId) - 1 == getY(segment.tail.blockId)) {
+                        bridgeSet.remove(getBridgeId(segment.head.blockId, DOWN));
+                    }
+                }
+                for (Block block: segment.blockList) {
+                    removeBlock(block, false);
+                }
+                if (!removeSegmentList.contains(segment)) {
+                    removeSegmentList.add(segment);
+                }
+                addSegmentList.remove(segment);
+            }
+        }
+        segmentList.removeAll(removeSegmentList);
+
+        removeSegmentList = new LinkedList<>();
+        for (SegmentOld segment : shortcutList) {
+            // 之前的交互可能让后面的分支无效, 需要删除无效的分支
+            if (segment.head.type != BlockType.MAIN_ROAD || segment.tail.type != BlockType.MAIN_ROAD) {
+                for (Block block: segment.blockList) {
+                    removeBlock(block, false);
+                }
+                if (!removeSegmentList.contains(segment)) {
+                    removeSegmentList.add(segment);
+                }
+                continue;
+            }
+        }
+        shortcutList.removeAll(removeSegmentList);
+
+        for(SegmentOld segment : segmentList) {
+            for(Block block: segment.blockList) {
                 block.type = BlockType.SHORTCUT;
             }
-            System.out.println(branch);
-            shortcutList.add(branch);
+            System.out.println(segment);
+            shortcutList.add(segment);
         }
         Collections.sort(shortcutList);
     }
 
-    private Branch exchangeBranchToRoad(Branch branch) {
-        if (branch == null || branch.head == null || branch.tail == null || branch.blockList == null) return null;
-        if (branch.size() <= branch.getOriginDistance()) {
+    private SegmentOld exchangeBranchToRoad(SegmentOld segment) {
+        if (segment == null || segment.head == null || segment.tail == null || segment.blockList == null) return null;
+        if (segment.distance() <= segment.getOriginDistance()) {
             return null;
         }
 
-        Block branchHead = branch.head.next;
+        Block branchHead = segment.head.next;
 
-        // create new branch with origin head and tail
-        Branch trueBranch = new Branch(branch.head);
-        trueBranch.tail = branch.tail;
+        // create new segment with origin head and tail
+        SegmentOld trueSegment = new SegmentOld(segment.head);
+        trueSegment.tail = segment.tail;
 
         Block currentBlock = branchHead;
-        Block previousBlock = branch.head;
-        while (currentBlock != branch.tail) {
+        Block previousBlock = segment.head;
+        while (currentBlock != segment.tail) {
             currentBlock.type = BlockType.BRANCH;
-            trueBranch.addBlock(currentBlock);
+            trueSegment.addBlock(currentBlock);
             previousBlock = currentBlock;
             currentBlock = currentBlock.next;
         }
 
-        // disconnect new branch to road
+        // disconnect new segment to road
         branchHead.previous = null;
         previousBlock.next = null;
 
         // connect new road to main road
-        trueBranch.head.next = branch.blockList.get(0);
-        branch.blockList.get(0).previous = trueBranch.head;
-        trueBranch.tail.previous = branch.blockList.get(branch.blockList.size() - 1);
-        branch.blockList.get(branch.blockList.size() - 1).next = trueBranch.tail;
+        trueSegment.head.next = segment.blockList.get(0);
+        segment.blockList.get(0).previous = trueSegment.head;
+        trueSegment.tail.previous = segment.blockList.get(segment.blockList.size() - 1);
+        segment.blockList.get(segment.blockList.size() - 1).next = trueSegment.tail;
 
         // recount distance and set new road block
-        currentBlock = trueBranch.tail.previous;
+        currentBlock = trueSegment.tail.previous;
         while(currentBlock != null) {
             currentBlock.distanceToFinish = currentBlock.next.distanceToFinish + 1;
             if (currentBlock.type != BlockType.MAIN_ROAD) currentBlock.type = BlockType.MAIN_ROAD;
             currentBlock = currentBlock.previous;
         }
 
-        System.out.println("branch exchanged to road, road length: " + usedBlockMap.get(start).distanceToFinish);
-        return trueBranch;
+        System.out.println("segment exchanged to road, road length: " + usedBlockMap.get(start).distanceToFinish);
+        return trueSegment;
     }
 
     private Block getBranchHeadTail(Block block, boolean getHead) {
@@ -678,7 +854,7 @@ public class GameMapCreator {
 
     public GameMap expand(int bridgeWidth) {
         GameMap gameMap = new GameMap(boundX * (bridgeWidth + 1), boundY * (bridgeWidth + 1), bridgeWidth);
-        Branch mainRoad = new Branch(null);
+        SegmentOld mainRoad = new SegmentOld(null);
 
         Block currentBlock = usedBlockMap.get(start);
         Block next = currentBlock.next;
@@ -715,8 +891,8 @@ public class GameMapCreator {
             if (next != null) next = next.next;
         }
 
-        List<Branch> newShortcutList = new LinkedList<>();
-        for (Branch shortcut: this.shortcutList) {
+        List<SegmentOld> newShortcutList = new LinkedList<>();
+        for (SegmentOld shortcut: this.shortcutList) {
             int newHeadBlockId = getBlockId(
                     shortcut.head.position.x * (bridgeWidth + 1),
                     shortcut.head.position.y * (bridgeWidth + 1), bridgeWidth);
@@ -725,7 +901,7 @@ public class GameMapCreator {
                     shortcut.tail.position.y * (bridgeWidth + 1), bridgeWidth);
             Block newHeadBlock = gameMap.addBlock(newHeadBlockId, BlockType.MAIN_ROAD);
             Block newTailBlock = gameMap.addBlock(newTailBlockId, BlockType.MAIN_ROAD);
-            Branch expandedShortcut = new Branch(newHeadBlock, newTailBlock);
+            SegmentOld expandedShortcut = new SegmentOld(newHeadBlock, newTailBlock);
 
             if (shortcut.blockList.size() == 0) {
                 Block[] sequence = new Block[bridgeWidth];
@@ -737,7 +913,7 @@ public class GameMapCreator {
                 }
                 setSequence(sequence);
             } else {
-                //currentBlock = shortcut.blockList.get(0);
+                //currentBlock = shortcut.hexagonList.get(0);
                 //next = currentBlock.next;
                 currentBlock = shortcut.head;
                 next = shortcut.blockList.get(0);
@@ -799,10 +975,94 @@ public class GameMapCreator {
         return gameMap;
     }
 
+    public GameMap expandWithBorderV2(int bridgeWidth) {
+        GameMap gameMap = new GameMap(
+                boundX * (bridgeWidth + 1) + bridgeWidth, boundY * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
+
+        int startBlockId = getBlockIdWithBorder(getX(start) * (bridgeWidth + 1) + bridgeWidth,
+                getY(start) * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
+        int endBlockId = getBlockIdWithBorder(getX(end) * (bridgeWidth + 1) + bridgeWidth,
+                getY(end) * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
+
+        gameMap.startBlockId = startBlockId;
+        gameMap.endBlockId = endBlockId;
+
+        List<SegmentOld> newSegmentList = new LinkedList<>();
+        for (SegmentOld segment: this.segmentSet) {
+            int newHeadBlockId = getBlockIdWithBorder(
+                    segment.head.position.x * (bridgeWidth + 1) + bridgeWidth,
+                    segment.head.position.y * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
+            int newTailBlockId = getBlockIdWithBorder(
+                    segment.tail.position.x * (bridgeWidth + 1) + bridgeWidth,
+                    segment.tail.position.y * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
+            Block newHeadBlock = gameMap.addBlock(newHeadBlockId, BlockType.MAIN_ROAD, 0, 0);
+            Block newTailBlock = gameMap.addBlock(newTailBlockId, BlockType.MAIN_ROAD, 0, 0);
+            SegmentOld expandedSegment= new SegmentOld(newHeadBlock, newTailBlock);
+
+            if (segment.blockList.size() == 0) {
+                Block[] sequence = new Block[bridgeWidth];
+                for (int i = 1; i <= bridgeWidth; i ++) {
+                    int bridgeBlockId = getBridgeBlockIdWithBorder(newHeadBlock, newTailBlock, i, bridgeWidth);
+                    Block bridge = gameMap.addBlock(
+                            bridgeBlockId, BlockType.MAIN_ROAD, 0, Math.min(i, bridgeWidth + 1 - i));
+                    if (bridge != null) expandedSegment.blockList.add(bridge);
+                    sequence[i - 1] = bridge;
+                }
+                setSequence(sequence);
+            } else {
+                Block currentBlock = segment.head;
+                int index = 0;
+                Block next = segment.blockList.get(index++);
+                Block[] sequence = new Block[(bridgeWidth + 1) * segment.blockList.size() + bridgeWidth];
+                int seguenceIndex = 0;
+
+                while (true) {
+                    int newCurrentBlockId = getBlockIdWithBorder(
+                            currentBlock.position.x * (bridgeWidth + 1) + bridgeWidth,
+                            currentBlock.position.y * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
+                    int newNextBlockId = getBlockIdWithBorder(
+                            next.position.x * (bridgeWidth + 1) + bridgeWidth,
+                            next.position.y * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
+                    Block newCurrentBlock = gameMap.addBlock(newCurrentBlockId, BlockType.MAIN_ROAD, 0, 0);
+                    Block newNextBlock = gameMap.addBlock(newNextBlockId, BlockType.MAIN_ROAD, 0, 0);
+
+                    for (int i = 1; i <= bridgeWidth; i++) {
+                        int bridgeBlockId = getBridgeBlockIdWithBorder(newCurrentBlock, newNextBlock, i, bridgeWidth);
+                        Block bridge = gameMap.addBlock(
+                                bridgeBlockId, BlockType.MAIN_ROAD, 0, Math.min(i, bridgeWidth + 1 - i));
+                        if (bridge != null) {
+                            expandedSegment.blockList.add(bridge);
+                            sequence[seguenceIndex++] = bridge;
+                        }
+                    }
+                    if (next == segment.tail) break;
+
+                    expandedSegment.blockList.add(newNextBlock);
+                    sequence[seguenceIndex++] = newNextBlock;
+
+                    currentBlock = next;
+                    if (index == segment.blockList.size()) {
+                        next = segment.tail;
+                    } else {
+                        next = segment.blockList.get(index++);
+                    }
+                }
+                setSequence(sequence);
+                expandedSegment.blockList.get(0).previous = expandedSegment.head;
+                expandedSegment.blockList.get(expandedSegment.blockList.size() - 1).next = expandedSegment.tail;
+                expandedSegment.detourDistance = (bridgeWidth + 1) * segment.detourDistance;
+            }
+            newSegmentList.add(expandedSegment);
+        }
+        gameMap.segmentList = newSegmentList;
+        gameMap.printMap();
+        return gameMap;
+    }
+
     public GameMap expandWithBorder(int bridgeWidth) {
         GameMap gameMap = new GameMap(
                 boundX * (bridgeWidth + 1) + bridgeWidth, boundY * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
-        Branch mainRoad = new Branch(null);
+        SegmentOld mainRoad = new SegmentOld(null);
 
         Block currentBlock = usedBlockMap.get(start);
         Block next = currentBlock.next;
@@ -841,8 +1101,8 @@ public class GameMapCreator {
             if (next != null) next = next.next;
         }
 
-        List<Branch> newShortcutList = new LinkedList<>();
-        for (Branch shortcut: this.shortcutList) {
+        List<SegmentOld> newShortcutList = new LinkedList<>();
+        for (SegmentOld shortcut: this.shortcutList) {
             int newHeadBlockId = getBlockIdWithBorder(
                     shortcut.head.position.x * (bridgeWidth + 1) + bridgeWidth,
                     shortcut.head.position.y * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
@@ -851,7 +1111,7 @@ public class GameMapCreator {
                     shortcut.tail.position.y * (bridgeWidth + 1) + bridgeWidth, bridgeWidth);
             Block newHeadBlock = gameMap.addBlock(newHeadBlockId, BlockType.MAIN_ROAD, 0, 0);
             Block newTailBlock = gameMap.addBlock(newTailBlockId, BlockType.MAIN_ROAD, 0, 0);
-            Branch expandedShortcut = new Branch(newHeadBlock, newTailBlock);
+            SegmentOld expandedShortcut = new SegmentOld(newHeadBlock, newTailBlock);
 
             if (shortcut.blockList.size() == 0) {
                 Block[] sequence = new Block[bridgeWidth];
@@ -864,7 +1124,7 @@ public class GameMapCreator {
                 }
                 setSequence(sequence);
             } else {
-                //currentBlock = shortcut.blockList.get(0);
+                //currentBlock = shortcut.hexagonList.get(0);
                 //next = currentBlock.next;
                 currentBlock = shortcut.head;
                 next = shortcut.blockList.get(0);
@@ -1010,8 +1270,8 @@ public class GameMapCreator {
             System.out.println();
         }
 
-        for (Branch branch: shortcutList) {
-            System.out.println(branch);
+        for (SegmentOld segment : shortcutList) {
+            System.out.println(segment);
         }
 
         System.out.println("main road length: " + usedBlockMap.get(start).distanceToFinish);

@@ -1,7 +1,8 @@
 package com.prosper.chasing.game.map;
 
+import com.prosper.chasing.game.base.Point2D;
+
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -10,74 +11,71 @@ import java.util.List;
  */
 public class Branch implements Comparable<Branch> {
 
-    public List<Block> blockList;
-    public Block head;
-    public Block tail;
+    public List<Hexagon> hexagonList;
+    public Hexagon head;
+    public Hexagon tail;
+    public int detourDistance;
+    //public boolean repeated;
 
-    public Branch(Block head) {
-        blockList = new ArrayList<>();
+    public Branch(Hexagon head) {
+        hexagonList = new ArrayList<>();
         this.head = head;
         tail = null;
     }
 
-    public Branch(Block head, Block tail) {
+    public Branch(Hexagon head, Hexagon tail) {
         this(head);
         this.tail = tail;
     }
 
-    public int size() {
-        return blockList.size();
+    public int distance() {
+        return hexagonList.size() + 1;
     }
 
-    public void addBlock(Block block) {
-        blockList.add(block);
+    public int getExtraDistance() {
+        return detourDistance - distance();
     }
 
-    public int getOriginDistance() {
-        return head.distanceToFinish - tail.distanceToFinish;
+    public  int getExtraDistanceRate() {
+        return getExtraDistance() * 100 / distance();
     }
 
-    public int getShort() {
-        return getOriginDistance() - size();
+    public void add(Hexagon hexagon) {
+        hexagonList.add(hexagon);
     }
 
-    public void reverse() {
-        Block lastBlock = null;
-        for (Block block: blockList) {
-            if (block.next == null) {
-                lastBlock = block;
-            }
+    public Point2D getCenterPoint() {
+        int distance = distance();
+        if (distance == 1) return new Point2D(
+                Math.round(head.coordinateX() + tail.coordinateX()) / 2,
+                Math.round(head.coordinateY() + tail.coordinateY()) / 2);
+        else if (distance % 2 == 0) {
+            Hexagon hexagon = hexagonList.get(hexagonList.size() / 2);
+            return new Point2D(
+                    Math.round(hexagon.coordinateX()), Math.round(hexagon.coordinateY()));
+        } else {
+            Hexagon hexagon1 = hexagonList.get((hexagonList.size() - 1) / 2);
+            Hexagon hexagon2 = hexagonList.get(hexagonList.size() / 2);
+            return new Point2D(
+                    Math.round(hexagon1.coordinateX() + hexagon2.coordinateX()) / 2,
+                    Math.round(hexagon1.coordinateY() + hexagon2.coordinateY()) / 2);
+                    //(hexagon1.getX() + hexagon2.getX()) / 2, (hexagon1.getY() + hexagon2.getY()) / 2);
         }
-
-        ArrayList<Block> blockList = new ArrayList<>();
-        Block currentBlock = lastBlock;
-        Block previousBlock = null;
-        Block nextBlock;
-        while(currentBlock != null) {
-            blockList.add(currentBlock);
-            nextBlock = currentBlock.previous;
-            currentBlock.previous = previousBlock;
-            currentBlock.next = nextBlock;
-
-            previousBlock = currentBlock;
-            currentBlock = nextBlock;
-        }
-
-        this.blockList = blockList;
-
-        Block temp = head;
-        head = tail;
-        tail = temp;
     }
 
     @Override
     public int compareTo(Branch branch) {
-        return new Integer(Math.abs(branch.getShort())).compareTo(Math.abs(this.getShort()));
+        //return new Integer(Math.abs(segment.getShort())).compareTo(Math.abs(this.getShort()));
+        // TODO
+        return -1;
     }
 
     @Override
     public String toString() {
-        int shortLength = getOriginDistance() - size();
-        return "distance: " + size() + ", original distance: " + getOriginDistance() + ", short: " + shortLength;
+        return head.getId()+ "[" + head.getX() + "," + head.getY() + "], "
+                + "\t" + tail.getId()+ "[" + tail.getX() + "," + tail.getY() + "], "
+                + "\tdistance: " + distance() + ", \tdetour distance: " + detourDistance;
     }
+
+
 }
