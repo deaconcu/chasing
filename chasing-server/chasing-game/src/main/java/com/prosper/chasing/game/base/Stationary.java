@@ -27,12 +27,12 @@ public class Stationary extends GameObject {
      */
     private short lifeTime;
 
-    public Stationary(Enums.StationaryType type, Point point, int rotateY) {
-        this(type, point, rotateY, (short)-1);
+    public Stationary(Enums.StationaryType type, Point3 point3, int rotateY) {
+        this(type, point3, rotateY, (short)-1);
     }
 
-    public Stationary(Enums.StationaryType type, Point point, int rotateY, short lifeTime) {
-        super(nextId ++, point, rotateY);
+    public Stationary(Enums.StationaryType type, Point3 point3, int rotateY, short lifeTime) {
+        super(nextId ++, point3, rotateY);
         this.type = type;
         this.lifeTime = lifeTime;
     }

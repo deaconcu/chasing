@@ -1,7 +1,7 @@
 package com.prosper.chasing.game.backup;
 
 import com.prosper.chasing.game.base.GameObject;
-import com.prosper.chasing.game.base.Point;
+import com.prosper.chasing.game.base.Point3;
 
 /**
  * 可以运动的对象基类
@@ -38,12 +38,12 @@ public class Movable extends GameObject {
 
         long timestamp = java.lang.System.currentTimeMillis();
         long timeGap = timestamp - lastMoveTimestamp;
-        long distance = target.getPoint().distance(getPoint());
+        long distance = target.getPoint3().distance(getPoint3());
 
         if (distance <= timeGap * speed) {
-            setPoint(target.getPoint());
+            setPoint3(target.getPoint3());
         } else {
-            Point vector = target.getPoint().subtraction(getPoint()).normalized();
+            Point3 vector = target.getPoint3().subtraction(getPoint3()).normalized();
             move(vector, (int)(speed * timeGap / 1000));
         }
         lastMoveTimestamp = timestamp;

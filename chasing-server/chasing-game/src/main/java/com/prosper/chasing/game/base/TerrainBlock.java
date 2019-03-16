@@ -13,10 +13,10 @@ public class TerrainBlock extends GameObject {
     byte typeId;
 
     // 位置
-    Point point;
+    Point3 point3;
 
     @Override
-    public Point getPoint() {
-        return point;
+    public Point3 getPoint3() {
+        return point3;
     }
 }

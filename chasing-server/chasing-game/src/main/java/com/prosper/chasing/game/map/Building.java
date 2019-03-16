@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.map;
 
-import com.prosper.chasing.game.base.Point2D;
+import com.prosper.chasing.game.base.Point2;
 import com.prosper.chasing.game.util.ByteBuilder;
 
 import static com.prosper.chasing.game.util.Enums.*;
@@ -14,18 +14,18 @@ public class Building {
 
     public BuildingType buildingType;
 
-    public Point2D point2D;
+    public Point2 point2;
 
     public Direction direction;
 
-    public Building(int id, BuildingType buildingType, Point2D point2D) {
-        this(id, buildingType, point2D, Direction.FREE);
+    public Building(int id, BuildingType buildingType, Point2 point2) {
+        this(id, buildingType, point2, Direction.FREE);
     }
 
-    public Building(int id, BuildingType buildingType, Point2D point2D, Direction direction) {
+    public Building(int id, BuildingType buildingType, Point2 point2, Direction direction) {
         this.id = id;
         this.buildingType = buildingType;
-        this.point2D = point2D;
+        this.point2 = point2;
         this.direction = direction;
     }
 
@@ -33,8 +33,8 @@ public class Building {
         ByteBuilder bb = new ByteBuilder();
         bb.append(id);
         bb.append(buildingType.getValue());
-        bb.append(point2D.x);
-        bb.append(point2D.y);
+        bb.append(point2.x);
+        bb.append(point2.y);
         bb.append(direction.getValue());
         return bb.getBytes();
     }

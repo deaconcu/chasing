@@ -37,7 +37,7 @@ public abstract class MovableObject extends GameObject {
     protected boolean movable;
 
     // 移动路径
-    protected Deque<Point> path;
+    protected Deque<Point3> path;
 
     // 当前位置
     protected Position position;
@@ -80,12 +80,12 @@ public abstract class MovableObject extends GameObject {
         return isPositionChanged;
     }
 
-    public void setPath(Deque<Point> path) {
+    public void setPath(Deque<Point3> path) {
         this.path = path;
     }
 
-    public Point getPositionPoint() {
-        return position.point;
+    public Point3 getPositionPoint() {
+        return position.point3;
     }
 
     /**
@@ -152,7 +152,7 @@ public abstract class MovableObject extends GameObject {
     private float getDistanceLevel() {
         int minDistance = DISTANCE_CHASING + 1;
         for (User user: chasingUserSet) {
-            int distance = user.getPoint().distance(position.point);
+            int distance = user.getPoint3().distance(position.point3);
             if (distance < minDistance) {
                 minDistance = distance;
             }
@@ -180,7 +180,7 @@ public abstract class MovableObject extends GameObject {
     public boolean isInChasingArea() {
         int minDistance = DISTANCE_CHASING + 1;
         for (User user: chasingUserSet) {
-            int distance = user.getPoint().distance(position.point);
+            int distance = user.getPoint3().distance(position.point3);
             if (distance < minDistance) {
                 minDistance = distance;
             }
@@ -201,23 +201,23 @@ public abstract class MovableObject extends GameObject {
         long distance = time * speed;
         if (distance != 0) {
             while (true) {
-                Point nextPoint = path.peek();
-                if (nextPoint == null) break;
-                long pointDistance = nextPoint.distance(position.point);
+                Point3 nextPoint3 = path.peek();
+                if (nextPoint3 == null) break;
+                long pointDistance = nextPoint3.distance(position.point3);
                 if (pointDistance < distance) {
                     distance = distance - pointDistance;
-                    position.point = path.pollFirst();
+                    position.point3 = path.pollFirst();
                 } else if (pointDistance == distance) {
-                    position.point = path.pollFirst();
+                    position.point3 = path.pollFirst();
                     setPositionChanged(true);
                     break;
                 } else {
                     double ratio = (double) distance / pointDistance;
-                    Point vector = new Point(
-                            nextPoint.x - position.point.x,
-                            nextPoint.y - position.point.y,
-                            nextPoint.z - position.point.z);
-                    position.point = position.point.add(vector, ratio);
+                    Point3 vector = new Point3(
+                            nextPoint3.x - position.point3.x,
+                            nextPoint3.y - position.point3.y,
+                            nextPoint3.z - position.point3.z);
+                    position.point3 = position.point3.add(vector, ratio);
                     setPositionChanged(true);
                     break;
                 }

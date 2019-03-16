@@ -1,7 +1,8 @@
 package com.prosper.chasing.game.map;
 
-import com.prosper.chasing.game.base.Point2D;
+import com.prosper.chasing.game.base.*;
 import com.prosper.chasing.game.util.ByteBuilder;
+import com.prosper.chasing.game.util.Enums;
 import com.prosper.chasing.game.util.Enums.HexagonDirection;
 import com.prosper.chasing.game.util.Graph;
 
@@ -28,10 +29,17 @@ public class MapSkeleton {
     public int bound;
 
     public Set<Hexagon> vertexSet = new HashSet<>();
+    public Map<Hexagon, RoadPoint[]> branchCrossPoint;
     public Set<Branch> branchSet = new HashSet<>();
     public Map<Integer, Integer> distancesToEnd = new HashMap<>();
     public Map<Integer, Map<Integer, List<Integer>>> pathMap;
     public Map<Integer, Segment> segmentMap = new HashMap<>();
+    public Map<Integer, Lamp> lampMap = new HashMap<>();
+    public Map<Short, SpecialSection> specialSectionMap = new HashMap<>();
+    public Map<Point2, Short> pointMap = new HashMap<>();
+    public Map<Integer, View> viewMap = new HashMap<>();
+
+    private short nextGroupId;
 
     public static class TreeNode {
         int hexagonId;
@@ -234,16 +242,192 @@ public class MapSkeleton {
         }
 
         doSegment();
+        doLamp();
+    }
+
+    /**
+     * 生成地形
+     * TODO 需要处理blockGroup过长的问题, 在某些地形上是跑不完的
+     * TODO 可能不同的地形在extra distance rate上并不是完全错开的，而是有重叠和随机的
+     * TODO 可能不需要这么多的地形，1/2应该就足够, 可以开放一些近路用来保证不确定性
+     */
+    public void generateTerrain() {
+        Enums.TerrainType[] singleTerrainTypes = new Enums.TerrainType[] {
+                Enums.TerrainType.FIRE_FENCE,
+                Enums.TerrainType.GATE,
+                Enums.TerrainType.RIVER,
+                Enums.TerrainType.STONE
+        };
+
+        for (Branch branch: branchSet) {
+            System.out.println("distance:" + branch.distance() + " edr:" + branch.getExtraDistanceRate());
+            if (branch.distance() < SpecialSection.MIN_SIZE && branch.getExtraDistanceRate() > 50) {
+                Hexagon[] hexagons = branch.getCenterHexagons();
+                Segment segment = getSegment(hexagons[0], hexagons[1]);
+                RoadPoint roadPoint = segment.getMiddleRoadSection().getMiddleRPoint();
+
+                short specialSectionId = getNextSpecialSectionId();
+                int sIndex = ThreadLocalRandom.current().nextInt(singleTerrainTypes.length);
+                specialSectionMap.put(specialSectionId, new SpecialSection(
+                        specialSectionId, singleTerrainTypes[sIndex], new RoadPoint[]{roadPoint}));
+            } else if (branch.distance() >= SpecialSection.MIN_SIZE && branch.getExtraDistanceRate() > 20) {
+                short specialSectionId = getNextSpecialSectionId();
+                RoadPoint[] roadPoints = getAllRoadPoint(branch);
+                Enums.TerrainType tType = null;
+
+                if (branch.getExtraDistanceRate() > 200) tType = Enums.TerrainType.DREAM_L2;
+                else if (branch.getExtraDistanceRate() > 150) tType = Enums.TerrainType.DREAM_L1;
+                else if (branch.getExtraDistanceRate() > 100) tType = Enums.TerrainType.SNOW;
+                else if (branch.getExtraDistanceRate() > 60) tType = Enums.TerrainType.RAIN;
+                else if (branch.getExtraDistanceRate() > 20) tType = Enums.TerrainType.FOG;
+
+                if (tType != null) {
+                    specialSectionMap.put(specialSectionId, new SpecialSection(specialSectionId, tType, roadPoints));
+                    for (int i = 5; i < roadPoints.length - 5; i ++) {
+                        expandRoadPoints(roadPoints[i], specialSectionId);
+                        if (roadPoints[i].isQuarter()) {
+                            Enums.ViewType sType = getViewType(tType);
+                            View view = new View(sType, roadPoints[i].getPoint().toPoint3(),
+                                    (int)Math.toDegrees(roadPoints[i].getDeflection()) * 1000);
+                            viewMap.put(view.getId(), view);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void doSegment() {
         for (Hexagon hexagon: occupiedMap.values()) {
             for (Hexagon sibling: getRoadSibling(hexagon)) {
                 if (hexagon.getId() > sibling.getId()) continue;
+                // TODO 可能有溢出问题
                 int id = hexagon.getId() * 10000 + sibling.getId();
                 segmentMap.put(id, new Segment(hexagon, sibling));
             }
         }
+
+        Map<Hexagon, List<Segment>> forkMap = new HashMap<>();
+        for (Segment segment1: segmentMap.values()) {
+            for (Segment segment2: segmentMap.values()) {
+                if (!vertexSet.contains(segment1.getH1())) {
+                    if (segment1.getH1().getId() == segment2.getH2().getId()) {
+                        double deflection = (segment1.getFirstRoadSection().getStart().getDeflection() +
+                                segment2.getLastRoadSection().getEnd().getDeflection()) / 2;
+                        segment1.getFirstRoadSection().resetP1Deflection(deflection);
+                        segment2.getLastRoadSection().resetP2Deflection(deflection);
+                    }
+                    if (segment1.getH1().getId() == segment2.getH1().getId()) {
+                        double deflection = (segment1.getFirstRoadSection().getStart().getDeflection() +
+                                segment2.getFirstRoadSection().getStart().getDeflection()) / 2;
+                        segment1.getFirstRoadSection().resetP1Deflection(deflection + Math.PI);
+                        segment2.getFirstRoadSection().resetP1Deflection(deflection);
+                    }
+                }
+                if (!vertexSet.contains(segment1.getH2())) {
+                    if (segment1.getH2().getId() == segment2.getH1().getId()) {
+                        double deflection = (segment1.getLastRoadSection().getEnd().getDeflection() +
+                                segment2.getFirstRoadSection().getStart().getDeflection()) / 2;
+                        segment1.getLastRoadSection().resetP2Deflection(deflection);
+                        segment2.getFirstRoadSection().resetP1Deflection(deflection);
+                    }
+                    if (segment1.getH2().getId() == segment2.getH2().getId()) {
+                        double deflection = (segment1.getLastRoadSection().getEnd().getDeflection() +
+                                segment2.getLastRoadSection().getEnd().getDeflection()) / 2;
+                        segment1.getLastRoadSection().resetP2Deflection(deflection + Math.PI);
+                        segment2.getLastRoadSection().resetP2Deflection(deflection);
+                    }
+                }
+            }
+
+            if (!forkMap.containsKey(segment1.getH1()))
+                forkMap.put(segment1.getH1(), new LinkedList<>());
+            if (!forkMap.containsKey(segment1.getH2()))
+                forkMap.put(segment1.getH2(), new LinkedList<>());
+
+            forkMap.get(segment1.getH1()).add(segment1);
+            forkMap.get(segment1.getH2()).add(segment1);
+        }
+
+        for (Hexagon hexagon: vertexSet) {
+            List<Segment> segmentList = forkMap.get(hexagon);
+            if (segmentList.size() != 3) continue;
+
+            double[] roadDeflections = new double[3];
+            int index = 0;
+            for (Segment segment: segmentList) {
+                if (hexagon.getId() == segment.getH1().getId())
+                    roadDeflections[index ++] = segment.getFirstRoadSection().getStart().getDeflection();
+                else {
+                    double value = segment.getLastRoadSection().getEnd().getDeflection() + Math.PI;
+                    roadDeflections[index ++] = value > 2 * Math.PI ? (value - 2 * Math.PI) : value;
+                }
+            }
+
+            double[] deflection = new double[3];
+            for (int i = 0; i < 3; i ++) {
+                int j = (i + 1) > 2 ? 0 : i + 1;
+                if (Math.abs(roadDeflections[i] - roadDeflections[j]) > Math.PI)
+                    deflection[i] = (roadDeflections[i] + roadDeflections[j]) / 2 + Math.PI + Math.PI / 2;
+                else
+                    deflection[i] = (roadDeflections[i] + roadDeflections[j]) / 2 + Math.PI / 2;
+            }
+
+            RoadPoint[] roadPoints = new RoadPoint[3];
+            for (int i = 0; i < 3; i ++) {
+                roadPoints[i] = new RoadPoint(Point2.getEdge(hexagon.coordinatePoint(),
+                        deflection[i], RoadSection.ROAD_WIDTH * 3 / 2)[1], deflection[i]);
+            }
+            branchCrossPoint.put(hexagon, roadPoints);
+
+            for (Segment segment: segmentList) {
+                if (hexagon.getId() == segment.getH1().getId()) segment.getFirstRoadSection().setEdgeOfStart(roadPoints);
+                else segment.getLastRoadSection().setEdgeOfEnd(roadPoints);
+            }
+        }
+    }
+
+    private void doLamp() {
+        int id = 1;
+        Map<String, Lamp> pointPressMap = new HashMap<>();
+        for (Segment segment : segmentMap.values()) {
+            String pointPress = pointPress(segment.getH1().coordinatePoint());
+
+            int headLampId, tailLampId;
+            if (!pointPressMap.containsKey(pointPress)) {
+                headLampId = id ++;
+                Lamp lamp = new Lamp(headLampId, new Point3(
+                        segment.getH1().coordinateX(), 0, segment.getH1().coordinateY()), 0);
+                lampMap.put(headLampId, lamp);
+                pointPressMap.put(pointPress, lamp);
+            } else {
+                headLampId = pointPressMap.get(pointPress).getId();
+            }
+            pointPress = pointPress(segment.getH2().coordinatePoint());
+            if (!pointPressMap.containsKey(pointPress)) {
+                tailLampId = id ++;
+                Lamp lamp = new Lamp(tailLampId, new Point3(
+                        segment.getH2().coordinateX(), 0, segment.getH2().coordinateY()), 0);
+                lampMap.put(tailLampId, lamp);
+                pointPressMap.put(pointPress, lamp);
+            } else {
+                tailLampId = pointPressMap.get(pointPress).getId();
+            }
+
+            int prevId = headLampId;
+            for (Point2 point: segment.getLampPoints()) {
+                int lampId = id ++;
+                lampMap.put(lampId, new Lamp(lampId, new Point3(point.x, 0, point.y), 0));
+                if (prevId != 0) {
+                    lampMap.get(prevId).addSiblings(lampId);
+                    lampMap.get(lampId).addSiblings(prevId);
+                }
+                prevId = lampId;
+            }
+            lampMap.get(prevId).addSiblings(tailLampId);
+            lampMap.get(tailLampId).addSiblings(prevId);
+        }
+        System.out.println("generated lamp: " + lampMap.size());
     }
 
     protected void addBlock(Hexagon hexagon, Hexagon fromHexagon) {
@@ -380,6 +564,43 @@ public class MapSkeleton {
         }
     }
 
+    private RoadPoint[] getAllRoadPoint(Branch branch) {
+        List<RoadPoint> roadPointList = new LinkedList<>();
+        Hexagon h1, h2;
+        for (int i = 0; i < branch.distance(); i ++) {
+            if (i == 0) h1 = branch.head;
+            else h1 = branch.hexagonList.get(i - 1);
+            if (i == branch.distance() - 1) h2 = branch.tail;
+            else h2 = branch.hexagonList.get(i);
+
+            Segment segment = getSegment(h1, h2);
+            List<RoadPoint> roadPoints = segment.getAllRoadPoint();
+            if (h1 == segment.getH1()) {
+                roadPointList.addAll(roadPoints);
+            } else {
+                Collections.reverse(roadPoints);
+                roadPointList.addAll(roadPoints);
+            }
+        }
+        return roadPointList.toArray(new RoadPoint[]{});
+    }
+
+    private void expandRoadPoints(RoadPoint roadPoint, short specialSectionId) {
+        int x = roadPoint.getPoint().x;
+        int y = roadPoint.getPoint().y;
+        int offset = RoadSection.ROAD_WIDTH;
+        for (int i = x - offset; i <= x + offset; i += 1000) {
+            for (int j = y - offset; j <= y + offset; j += 1000) {
+                pointMap.put(new Point2(i, j), specialSectionId);
+            }
+        }
+    }
+
+    private Integer getPointId(int i, int j) {
+        // TODO 暂时设定地图宽度不超过40000
+        return i * 40000 + j;
+    }
+
     private void addBranch(Branch branch) {
         if (branch.head == branch.tail) {
             removeBranch(branch);
@@ -487,6 +708,45 @@ public class MapSkeleton {
         return roadSiblingList;
     }
 
+    public int getSegmentId(Hexagon h1, Hexagon h2) {
+        if (h1.getId() <= h2.getId()) return h1.getId() * 10000 + h2.getId();
+        else return h2.getId() * 10000 + h1.getId();
+    }
+
+    public Segment getSegment(Hexagon h1, Hexagon h2) {
+        return segmentMap.get(getSegmentId(h1, h2));
+    }
+
+    public int getLightSectionSize(Branch branch) {
+        int size = 0;
+        Hexagon previous;
+        Hexagon curr = branch.head;
+
+        for (Hexagon hexagon: branch.hexagonList) {
+            previous = curr;
+            curr = hexagon;
+
+            Segment segment = getSegment(previous, curr);
+            size += segment.lampSize() + 1;
+        }
+        return size;
+    }
+
+    public void getLightSection(Branch branch, int index) {
+        Segment segment;
+        int size = 0;
+        Hexagon previous;
+        Hexagon curr = branch.head;
+        for (Hexagon hexagon: branch.hexagonList) {
+            previous = curr;
+            curr = hexagon;
+
+            Segment currSegment = getSegment(previous, curr);
+            size += currSegment.lampSize() + 1;
+            if (size >= index) segment = currSegment;
+        }
+    }
+
     /**
      * 返回一个随机的空白点
      * @return
@@ -512,6 +772,11 @@ public class MapSkeleton {
                 freeMap.put(id, new Hexagon(id, width, height));
             }
         }
+    }
+
+    private String pointPress(Point2 point) {
+        return Integer.toString(point.x) + "-" + Integer.toString(point.y);
+
     }
 
     public int getHexagonId(int width, int height) {
@@ -600,6 +865,22 @@ public class MapSkeleton {
         return null;
     }
 
+    public short getNextSpecialSectionId() {
+        if (nextGroupId == Short.MAX_VALUE) {
+            throw new RuntimeException("invalid group id");
+        }
+        return nextGroupId ++;
+    }
+
+    public Enums.ViewType getViewType(Enums.TerrainType terrainType) {
+        if (terrainType == Enums.TerrainType.FOG) return Enums.ViewType.FOG;
+        if (terrainType == Enums.TerrainType.SNOW) return Enums.ViewType.SNOW;
+        if (terrainType == Enums.TerrainType.RAIN) return Enums.ViewType.RAIN;
+        if (terrainType == Enums.TerrainType.DREAM_L1) return Enums.ViewType.DREAM_L1;
+        if (terrainType == Enums.TerrainType.DREAM_L2) return Enums.ViewType.DREAM_L2;
+        return null;
+    }
+
     public MapSkeleton expand() {
         MapSkeleton expandedMap = new MapSkeleton(bound * 2);
         for (Hexagon hexagon: occupiedMap.values()) {
@@ -646,6 +927,41 @@ public class MapSkeleton {
         return expandedMap;
     }
 
+    public SpecialSection getSpecialSection(int x, int z) {
+        int pointId = getPointId(x, z);
+        short specialSectionId = pointMap.get(pointId);
+        return specialSectionMap.get(specialSectionId);
+    }
+
+    public RoadPoint getRandomPoint(Enums.RoadPointType type) {
+        int index = ThreadLocalRandom.current().nextInt(segmentMap.size());
+        Segment chosen = null;
+        for (Segment segment: segmentMap.values()) {
+            if ((-- index) == 0) chosen = segment;
+        }
+
+        // TODO if position is taken by others
+        return chosen.getRandomRoadPoint(type);
+    }
+
+    public Point2 getStart() {
+        return occupiedMap.get(start).coordinatePoint();
+    }
+
+    public Point2 getEnd() {
+        return occupiedMap.get(end).coordinatePoint();
+    }
+
+    public List<RoadPoint[]> randomBranchCrossList(float percent) {
+        List<RoadPoint[]> allRoadPoints = new LinkedList<>();
+        for (RoadPoint[] roadPoints: branchCrossPoint.values()) {
+            allRoadPoints.add(roadPoints);
+        }
+
+        Collections.shuffle(allRoadPoints);
+        return allRoadPoints.subList(0, (int)(allRoadPoints.size() * percent));
+    }
+
     public byte[] toBytes() {
         Map<Integer, int[]> segmentIndexIdMap = new HashMap<>();
 
@@ -657,8 +973,8 @@ public class MapSkeleton {
         System.out.println("current index: " + currentIndex);
 
         for (Segment segment: segmentMap.values()) {
-            segmentIndexIdMap.put(segment.getId(), new int[segment.getPoints().length]);
-            for (int i = 0; i < segment.getPoints().length; i ++) {
+            segmentIndexIdMap.put(segment.getId(), new int[segment.getWayPoints().length]);
+            for (int i = 0; i < segment.getWayPoints().length; i ++) {
                 segmentIndexIdMap.get(segment.getId())[i] = currentIndex ++;
             }
         }
@@ -668,8 +984,8 @@ public class MapSkeleton {
         byteBuilder.append(occupiedMap.size());
         for (Hexagon hexagon: occupiedMap.values()) {
             byteBuilder.append((short) hexagon.getId());
-            byteBuilder.append((int)(hexagon.coordinateX() * 1000));
-            byteBuilder.append((int)(hexagon.coordinateY() * 1000));
+            byteBuilder.append(hexagon.coordinateX());
+            byteBuilder.append(hexagon.coordinateY());
             byteBuilder.append((byte) hexagon.bridgeCount());
             for (HexagonDirection direction: hexagon.getRoadDirection()) {
                 //byteBuilder.append((short)getHexagonIdByDirection(hexagon, direction));
@@ -685,18 +1001,18 @@ public class MapSkeleton {
         byteBuilder.append(segmentMap.size());
         for (Segment segment: segmentMap.values()) {
             //byteBuilder.append(segment.getId());
-            byteBuilder.append(segment.getPoints().length);
+            byteBuilder.append(segment.getWayPoints().length);
 
             int[] ids = segmentIndexIdMap.get(segment.getId());
-            for (int i = 0; i < segment.getPoints().length; i ++) {
+            for (int i = 0; i < segment.getWayPoints().length; i ++) {
                 byteBuilder.append((short)ids[i]);
-                byteBuilder.append(segment.getPoints()[i].x);
-                byteBuilder.append(segment.getPoints()[i].y);
+                byteBuilder.append(segment.getWayPoints()[i].x);
+                byteBuilder.append(segment.getWayPoints()[i].y);
                 byteBuilder.append((byte) 2);
                 if (i == 0) {
                     byteBuilder.append((short)segment.getH1().getId());
                     byteBuilder.append((short)ids[i + 1]);
-                } else if (i == segment.getPoints().length - 1) {
+                } else if (i == segment.getWayPoints().length - 1) {
                     byteBuilder.append((short)ids[i - 1]);
                     byteBuilder.append((short)segment.getH2().getId());
                 } else {
@@ -704,6 +1020,20 @@ public class MapSkeleton {
                     byteBuilder.append((short)ids[i + 1]);
                 }
             }
+        }
+
+        byteBuilder.append(lampMap.size());
+        for (Lamp lamp: lampMap.values()) {
+            lamp.getBytes(byteBuilder);
+        }
+
+        byteBuilder.append(viewMap.size());
+        for (View view: viewMap.values()) {
+            byteBuilder.append(view.getId());
+            byteBuilder.append(view.getType().getValue());
+            byteBuilder.append(view.getPoint3().x);
+            byteBuilder.append(view.getPoint3().z);
+            byteBuilder.append(view.getRotateY());
         }
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();

@@ -2,8 +2,6 @@ package com.prosper.chasing.game.base;
 
 import com.prosper.chasing.game.util.Enums;
 
-import java.util.Map;
-
 /**
  * 动物有主动追逐玩家的特性
  * Created by deacon on 2018/9/7.
@@ -19,8 +17,8 @@ public class Animal extends NPC {
      */
     private User targetUser;
 
-    public Animal(int id, Enums.AnimalType  animalType, Point point, int rotateY, int blockGroupId, User targetUser) {
-        super(id, point, rotateY);
+    public Animal(int id, Enums.AnimalType  animalType, Point3 point3, int rotateY, int blockGroupId, User targetUser) {
+        super(id, point3, rotateY);
         this.animalType = animalType;
         this.blockGroupId = blockGroupId;
         this.targetUser = targetUser;
@@ -34,13 +32,13 @@ public class Animal extends NPC {
             setAlive(false);
         }
 
-        if (getTargetUser().getPoint().minDistanceOfAxis(getPoint()) <= 1000 &&
-                getTargetUser().getPoint().distance(getPoint()) <= 100) {
+        if (getTargetUser().getPoint3().minDistanceOfAxis(getPoint3()) <= 1000 &&
+                getTargetUser().getPoint3().distance(getPoint3()) <= 100) {
             //getTargetUser().setLife((short)0);
         }
 
         if (getTargetUser().isCrossZone()) {
-            setPath(game.getPath(getPoint(), targetUser.getPoint()));
+            setPath(game.getPath(getPoint3(), targetUser.getPoint3()));
         }
 
         move();

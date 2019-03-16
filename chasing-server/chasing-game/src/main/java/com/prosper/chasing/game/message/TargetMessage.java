@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.message;
 
-import com.prosper.chasing.game.base.Point;
+import com.prosper.chasing.game.base.Point3;
 import java.nio.ByteBuffer;
 import static com.prosper.chasing.game.util.Constant.TargetType.*;
 
@@ -13,7 +13,7 @@ public class TargetMessage extends UserMessage {
     private int id;
 
     // 道具使用位置
-    private Point point;
+    private Point3 point3;
 
     public TargetMessage(UserMessage message) {
         super(message);
@@ -22,7 +22,7 @@ public class TargetMessage extends UserMessage {
         if (type != TYPE_POSITION) {
             this.id = content.getInt();
         } else {
-            this.point = new Point(content.getInt(), content.getInt(), content.getInt());
+            this.point3 = new Point3(content.getInt(), content.getInt(), content.getInt());
         }
     }
 
@@ -34,8 +34,8 @@ public class TargetMessage extends UserMessage {
         return id;
     }
 
-    public Point getPoint() {
-        return point;
+    public Point3 getPoint3() {
+        return point3;
     }
 
 }

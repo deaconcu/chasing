@@ -1,8 +1,8 @@
 package com.prosper.chasing.game.map;
 
 import com.prosper.chasing.common.util.Pair;
-import com.prosper.chasing.game.base.Point;
-import com.prosper.chasing.game.base.Point2D;
+import com.prosper.chasing.game.base.Point3;
+import com.prosper.chasing.game.base.Point2;
 
 import static com.prosper.chasing.game.util.Enums.*;
 
@@ -190,7 +190,7 @@ public class GameMap {
         }
         */
 
-        Block block = new Block(new Point2D(getX(blockId), getY(blockId)), blockId, type, roadDirection);
+        Block block = new Block(new Point2(getX(blockId), getY(blockId)), blockId, type, roadDirection);
         block.blockGroupId = groupId;
         block.distanceAwayFromRoad = distanceAwayFromRoad;
         block.distanceAwayFromRoadCrossPoint = distanceAwayFromRoadCrossPoint;
@@ -250,10 +250,10 @@ public class GameMap {
      * @param isMainRoad 该位置是否在主路上
      * @return
      */
-    public Point getRandomRoadPosition(boolean isMainRoad) {
+    public Point3 getRandomRoadPosition(boolean isMainRoad) {
         if (isMainRoad) {
             int blockId = getRandomRoadBlockId();
-            return new Point(getX(blockId), getY(blockId), 0);
+            return new Point3(getX(blockId), getY(blockId), 0);
         }
         return null;
     }
@@ -281,8 +281,8 @@ public class GameMap {
         return boundX * y + x + 1;
     }
 
-    public int getBlockId(Point point) {
-        return getBlockId(point.x, point.z);
+    public int getBlockId(Point3 point3) {
+        return getBlockId(point3.x, point3.z);
     }
 
     public int getX(int id) {
@@ -293,8 +293,8 @@ public class GameMap {
         return (id - 1) / boundX;
     }
 
-    public Point getPoint(int blockId) {
-        return new Point(getX(blockId), 0, getY(blockId));
+    public Point3 getPoint(int blockId) {
+        return new Point3(getX(blockId), 0, getY(blockId));
     }
 
     public boolean isInBound(int x, int y) {
@@ -368,8 +368,8 @@ public class GameMap {
         }
 
         for (Building building: buildingMap.values()) {
-            int x = building.point2D.x;
-            int y = building.point2D.y;
+            int x = building.point2.x;
+            int y = building.point2.y;
 
             if (building.direction == Direction.UP) terrainBytes[x][y] = '>';
             if (building.direction == Direction.RIGHT) terrainBytes[x][y] = 'v';
@@ -641,7 +641,7 @@ public class GameMap {
         return blockList;
     }
 
-    public List<Block> getBlocksInDistance(Point position, int distance, BlockType... blockTypes) {
+    public List<Block> getBlocksInDistance(Point3 position, int distance, BlockType... blockTypes) {
         return getBlocksInDistance(getBlockId(position.x, position.z), distance, blockTypes);
     }
 
@@ -689,9 +689,9 @@ public class GameMap {
     /**
      * 获取与给定点临近的block group的起点或者终点
      */
-    public int getNearestEndPoint(Point point, BlockGroup blockGroup) {
-        int distance1 = point.distance(getX(blockGroup.getStartBlockId()) * 1000, 0, getY(blockGroup.getStartBlockId()) * 1000);
-        int distance2 = point.distance(getX(blockGroup.getEndBlockId()) * 1000, 0, getY(blockGroup.getEndBlockId()) * 1000);
+    public int getNearestEndPoint(Point3 point3, BlockGroup blockGroup) {
+        int distance1 = point3.distance(getX(blockGroup.getStartBlockId()) * 1000, 0, getY(blockGroup.getStartBlockId()) * 1000);
+        int distance2 = point3.distance(getX(blockGroup.getEndBlockId()) * 1000, 0, getY(blockGroup.getEndBlockId()) * 1000);
 
         if (distance1 < distance2) return blockGroup.getStartBlockId();
         return blockGroup.getEndBlockId();
@@ -941,7 +941,7 @@ public class GameMap {
         }
     }
 
-    public Point getRoadSidePoint(int blockId) {
+    public Point3 getRoadSidePoint(int blockId) {
         int minDistance = Integer.MAX_VALUE;
         Map<Integer, List<Block>> aroundBlocks = getBlocksInDistances(blockId, expandWidth * 2, BlockType.ROAD_EXTENSION);
         return null;

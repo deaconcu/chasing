@@ -18,8 +18,8 @@ public class DynamicGameObject extends GameObject {
      */
     private short lifeTime;
 
-    public DynamicGameObject(Enums.StationaryType type, int id, Point point, int rotateY, short lifeTime) {
-        super(id, point, rotateY);
+    public DynamicGameObject(Enums.StationaryType type, int id, Point3 point3, int rotateY, short lifeTime) {
+        super(id, point3, rotateY);
         this.type = type;
         this.lifeTime = lifeTime;
     }

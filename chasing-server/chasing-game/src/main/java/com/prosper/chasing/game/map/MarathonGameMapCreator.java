@@ -1,7 +1,7 @@
 package com.prosper.chasing.game.map;
 
 import com.prosper.chasing.common.util.Pair;
-import com.prosper.chasing.game.base.Point;
+import com.prosper.chasing.game.base.Point3;
 import com.prosper.chasing.game.util.Util;
 
 import static com.prosper.chasing.game.util.Enums.*;
@@ -1432,14 +1432,14 @@ public class MarathonGameMapCreator {
                 gameMap.lampMap.put(
                         segment.head.blockId,
                         new Lamp(segment.head.blockId,
-                                new Point(segment.head.position.x, segment.head.position.y, 0), 0));
+                                new Point3(segment.head.position.x, segment.head.position.y, 0), 0));
             }
 
             if (!gameMap.lampMap.containsKey(segment.tail.blockId)) {
                 gameMap.lampMap.put(
                         segment.tail.blockId,
                         new Lamp(segment.tail.blockId,
-                                new Point(segment.tail.position.x, segment.tail.position.y, 0), 0));
+                                new Point3(segment.tail.position.x, segment.tail.position.y, 0), 0));
             }
 
             prevId = segment.head.blockId;
@@ -1447,7 +1447,7 @@ public class MarathonGameMapCreator {
                 if (block.distanceAwayFromRoadCrossPoint != 0 && block.distanceAwayFromRoadCrossPoint != 25) continue;
                 gameMap.lampMap.put(
                         block.blockId,
-                        new Lamp(block.blockId, new Point(block.position.x, block.position.y, 0), 0));
+                        new Lamp(block.blockId, new Point3(block.position.x, block.position.y, 0), 0));
                 if (prevId != 0) {
                     gameMap.lampMap.get(prevId).addSiblings(block.blockId);
                     gameMap.lampMap.get(block.blockId).addSiblings(prevId);
@@ -1468,7 +1468,7 @@ public class MarathonGameMapCreator {
             if (block.distanceAwayFromRoadCrossPoint != 0 && block.distanceAwayFromRoadCrossPoint != 25) continue;
             gameMap.lampMap.put(
                     block.blockId,
-                    new Lamp(block.blockId, new Point(block.position.x, block.position.y, 0), 0));
+                    new Lamp(block.blockId, new Point3(block.position.x, block.position.y, 0), 0));
             if (prevId != 0) {
                 gameMap.lampMap.get(prevId).addSiblings(block.blockId);
                 gameMap.lampMap.get(block.blockId).addSiblings(prevId);
@@ -1482,7 +1482,7 @@ public class MarathonGameMapCreator {
                 if (block.distanceAwayFromRoadCrossPoint != 0 && block.distanceAwayFromRoadCrossPoint != 25) continue;
                 gameMap.lampMap.put(
                         block.blockId,
-                        new Lamp(block.blockId, new Point(block.position.x, block.position.y, 0), 0));
+                        new Lamp(block.blockId, new Point3(block.position.x, block.position.y, 0), 0));
                 gameMap.lampMap.get(prevId).addSiblings(block.blockId);
                 gameMap.lampMap.get(block.blockId).addSiblings(prevId);
                 prevId = block.blockId;
@@ -1567,7 +1567,7 @@ public class MarathonGameMapCreator {
 
         for (Building building: gameMap.buildingMap.values()) {
             Block buildingBlock = gameMap.occupiedBlockMap.get(
-                    gameMap.getHexagonId(building.point2D.x, building.point2D.y));
+                    gameMap.getHexagonId(building.point2.x, building.point2.y));
             if (buildingBlock == null) continue;
             buildingBlock.type = BlockType.BUILDING;
             int size = buildingSizeConfigMap.get(building.buildingType);

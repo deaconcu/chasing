@@ -60,7 +60,7 @@ public class Enums {
         LAMP(1),
         BRIDGE(2),
         FLAG(3),
-        SNOW(4),
+        SNOW_OLD(4),
         FIRE(5),
         STORE(6),
 
@@ -76,10 +76,27 @@ public class Enums {
         SIGNPOST_1(15),
         SIGNPOST_2(16);
 
-
         private int value;
 
         StationaryType(int value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return (byte)value;
+        }
+    }
+
+    public enum ViewType {
+        FOG(6),
+        RAIN(7),
+        SNOW(8),
+        DREAM_L1(9),
+        DREAM_L2(10);
+
+        private int value;
+
+        ViewType(int value) {
             this.value = value;
         }
 
@@ -260,6 +277,11 @@ public class Enums {
         public byte getValue() {
             return value;
         }
+    }
+
+    public enum RoadPointType {
+        CENTER,
+        WAYSIDE
     }
 
 }

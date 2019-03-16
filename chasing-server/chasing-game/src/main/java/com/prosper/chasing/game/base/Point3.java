@@ -3,15 +3,15 @@ package com.prosper.chasing.game.base;
 /**
  * 地图上的位置, 类型为int，为实际位置(float) * 1000
  */
-public class Point {
+public class Point3 {
     public int x;
     public int y;
     public int z;
 
-    public Point () {
+    public Point3() {
     }
 
-    public Point(int x, int y, int z) {
+    public Point3(int x, int y, int z) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -19,26 +19,34 @@ public class Point {
 
     /**
      * 移动
-     * @param point 移动方向
+     * @param point3 移动方向
      * @param ratio 移动比例
      * @return 移动后的位置
      */
-    public Point add(Point point, double ratio) {
-        return add(point.x, point.y, point.z, ratio);
+    public Point3 add(Point3 point3, double ratio) {
+        return add(point3.x, point3.y, point3.z, ratio);
     }
 
     /**
-     * @see this.add(Point point, double ratio)
+     * @see this.add( Point3 point, double ratio)
      */
-    public Point add(int x, int y, int z, double ratio) {
-        return new Point(this.x + (int) (x * ratio), this.y + (int) (y * ratio), this.z + (int) (z * ratio));
+    public Point3 add(int x, int y, int z, double ratio) {
+        return new Point3(this.x + (int) (x * ratio), this.y + (int) (y * ratio), this.z + (int) (z * ratio));
+    }
+
+    public float getXInFloat() {
+        return (float)x / 1000;
+    }
+
+    public float getZInFloat() {
+        return (float)z / 1000;
     }
 
     /**
      * 计算两点的距离
      */
-    public int distance (Point point) {
-        return distance(point.x, point.y, point.z);
+    public int distance (Point3 point3) {
+        return distance(point3.x, point3.y, point3.z);
     }
 
     public int distance(int pointX, int pointY, int pointZ) {
@@ -47,20 +55,20 @@ public class Point {
 
     /**
      * 计算在x,y坐标轴上的最小距离
-     * @param point
+     * @param point3
      * @return
      */
-    public int minDistanceOfAxis(Point point) {
-        int distanceX = point.x - x;
-        int distanceY = point.y - y;
+    public int minDistanceOfAxis(Point3 point3) {
+        int distanceX = point3.x - x;
+        int distanceY = point3.y - y;
         return distanceX <= distanceY ? distanceX : distanceY;
     }
 
     /**
      * 计算两点的向量
      */
-    public Point subtraction (Point point) {
-        return new Point(point.x - x, point.y - y, point.z - z);
+    public Point3 subtraction (Point3 point3) {
+        return new Point3(point3.x - x, point3.y - y, point3.z - z);
     }
 
     /**
@@ -73,9 +81,9 @@ public class Point {
     /**
      * 获得单位向量
      */
-    public Point normalized(){
+    public Point3 normalized(){
         int length = length();
-        return new Point(x / length, y / length, z / length);
+        return new Point3(x / length, y / length, z / length);
     }
 
     /**
@@ -89,8 +97,8 @@ public class Point {
     /**
      * 是否在同一分区
      */
-    public boolean sameZone(Point point) {
-        if (point.x / 1000 == x && point.y / 1000 == y && point.z / 1000 == z) {
+    public boolean sameZone(Point3 point3) {
+        if (point3.x / 1000 == x && point3.y / 1000 == y && point3.z / 1000 == z) {
             return true;
         }
         return false;
@@ -98,12 +106,12 @@ public class Point {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Point)) {
+        if (!(o instanceof Point3)) {
             return false;
         }
 
-        Point point = (Point) o;
-        if (x == point.x && y == point.y && z == point.z) {
+        Point3 point3 = (Point3) o;
+        if (x == point3.x && y == point3.y && z == point3.z) {
             return true;
         }
         return false;

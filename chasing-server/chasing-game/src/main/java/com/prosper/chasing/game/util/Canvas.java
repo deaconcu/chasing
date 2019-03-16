@@ -1,10 +1,9 @@
 package com.prosper.chasing.game.util;
 
-import com.prosper.chasing.game.base.Point2D;
-import com.prosper.chasing.game.map.Hexagon;
-import com.prosper.chasing.game.map.MapSkeleton;
-import com.prosper.chasing.game.map.Branch;
-import com.prosper.chasing.game.map.Segment;
+import com.prosper.chasing.game.base.Point2;
+import com.prosper.chasing.game.base.RoadPoint;
+import com.prosper.chasing.game.base.View;
+import com.prosper.chasing.game.map.*;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -39,6 +38,7 @@ public class Canvas  extends JPanel {
         graph2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         graph2.setStroke(new BasicStroke(8));
 
+
         for (Hexagon hexagon: mapSkeleton.occupiedMap.values()) {
             java.util.List<Hexagon> roadSiblingList = mapSkeleton.getRoadSibling(hexagon);
             paintEdge(graph2, hexagon, roadSiblingList);
@@ -52,23 +52,100 @@ public class Canvas  extends JPanel {
             }
         }
 
-        for (Branch segment: mapSkeleton.branchSet) {
+        for (Branch branch: mapSkeleton.branchSet) {
+            paintBranch(graph2, branch);
+        }
+
+        for (Point2 point: mapSkeleton.pointMap.keySet()) {
+            g.setColor(Color.blue);
+            //fillCenteredCircle(graph2, 1000, 1000, 100);
+            fillCenteredCircle(graph2, point.getXInFloat(), point.getYInFloat(), 1);
+        }
+
+        for (Segment segment: mapSkeleton.segmentMap.values()) {
             paintSegment(graph2, segment);
+        }
+
+        for (Segment segment: mapSkeleton.segmentMap.values()) {
+            for (RoadSection roadSection: segment.getRoadSections()) {
+                paintRoadSection(graph2, roadSection);
+            }
+        }
+
+        for (Lamp lamp: mapSkeleton.lampMap.values()) {
+            paintLamp(graph2, lamp);
+        }
+
+        for (Hexagon hexagon: mapSkeleton.occupiedMap.values()) {
+            if (!mapSkeleton.vertexSet.contains(hexagon)) {
+                //paintNormal(graph2, hexagon);
+            }
+        }
+
+        for (View view: mapSkeleton.viewMap.values()) {
+            paintView(graph2, view);
         }
     }
 
-    private void paintSegment(Graphics2D g, Branch segment) {
+    private void paintBranch(Graphics2D g, Branch branch) {
         g.setColor(Color.white);
 
-        Point2D point = segment.getCenterPoint();
-        fillCenteredCircle(g, point.x, point.y, 45);
+        Point2 point = branch.getCenterPoint();
+        fillCenteredCircle(g, point.getXInFloat(), point.getYInFloat(), 45);
 
-        String text1 = Integer.toString(segment.distance());
-        String text2 = Integer.toString(segment.detourDistance);
+        String text1 = Integer.toString(branch.distance());
+        String text2 = Integer.toString(branch.detourDistance);
 
         g.setColor(Color.darkGray);
-        drawCenteredString(g, text1, new Rectangle(point.x, point.y - 10, 0, 2), 22);
-        drawCenteredString(g, text2, new Rectangle(point.x, point.y + 10, 0, 2), 22);
+        drawCenteredString(g, text1, new Rectangle(
+                (int)point.getXInFloat(), (int)(point.getYInFloat() - 10), 0, 2), 22);
+        drawCenteredString(g, text2, new Rectangle(
+                (int)point.getXInFloat(), (int)point.getYInFloat() + 10, 0, 2), 22);
+    }
+
+    private void paintSegment(Graphics2D g, Segment segment) {
+        g.setColor(Color.green);
+        for (Point2 point: segment.getWayPoints()) {
+            //fillCenteredCircle(g, point.getXInFloat(), point.getYInFloat(), 10);
+        }
+        for (Point2 point: segment.getTerrainPoints()) {
+            //fillCenteredCircle(g, point.getXInFloat(), point.getYInFloat(), 1);
+        }
+    }
+
+    private void paintLamp(Graphics2D g, Lamp lamp) {
+        g.setColor(Color.red);
+        fillCenteredCircle(g, lamp.getPoint3().getXInFloat(), lamp.getPoint3().getZInFloat(), 2);
+    }
+
+    private void paintView(Graphics2D g, View view) {
+        g.setColor(Color.ORANGE);
+        fillCenteredCircle(g, view.getPoint3().getXInFloat(), view.getPoint3().getZInFloat(), 4);
+    }
+
+    private void paintRoadSection(Graphics2D g, RoadSection roadSection) {
+        g.setColor(Color.green);
+        fillCenteredCircle(g, roadSection.getStart().getPoint().getXInFloat(),
+                roadSection.getStart().getPoint().getYInFloat(), 1);
+        fillCenteredCircle(g, roadSection.getEnd().getPoint().getXInFloat(),
+                roadSection.getEnd().getPoint().getYInFloat(), 1);
+
+        for (int i = 0; i < roadSection.getBetween().length; i ++) {
+            fillCenteredCircle(g, roadSection.getBetween()[i].getPoint().getXInFloat(),
+                    roadSection.getBetween()[i].getPoint().getYInFloat(), 1);
+        }
+
+        for (RoadPoint roadPoint: roadSection.getEdgeOfStart()) {
+            fillCenteredCircle(g, roadPoint.getPoint().getXInFloat(), roadPoint.getPoint().getYInFloat(), 1);
+        }
+        for (RoadPoint roadPoint: roadSection.getEdgeOfEnd()) {
+            fillCenteredCircle(g, roadPoint.getPoint().getXInFloat(), roadPoint.getPoint().getYInFloat(), 1);
+        }
+        for (int i = 0; i < roadSection.getEdgeOfBetween().length; i ++) {
+            for (RoadPoint roadPoint : roadSection.getEdgeOfBetween()[i]) {
+                fillCenteredCircle(g, roadPoint.getPoint().getXInFloat(), roadPoint.getPoint().getYInFloat(), 1);
+            }
+        }
     }
 
     private void paintEdge(Graphics2D g, Hexagon hexagon, java.util.List<Hexagon> roadSibling) {
@@ -78,16 +155,16 @@ public class Canvas  extends JPanel {
             if (sibling == null || hexagon.getId() > sibling.getId()) continue;
             int segmentId = Segment.getId(hexagon, sibling);
             Segment segment = mapSkeleton.segmentMap.get(segmentId);
-            for (int i = 0; i <= segment.getPoints().length; i ++) {
+            for (int i = 0; i <= segment.getWayPoints().length; i ++) {
                 if (i == 0) {
-                    g.drawLine(Math.round(hexagon.coordinateX()), Math.round(hexagon.coordinateY()),
-                            Math.round(segment.getPoints()[i].x / 1000), Math.round(segment.getPoints()[i].y / 1000));
-                } else if (i == segment.getPoints().length) {
-                    g.drawLine(Math.round(segment.getPoints()[i - 1].x / 1000), Math.round(segment.getPoints()[i - 1].y / 1000),
-                            Math.round(sibling.coordinateX()), Math.round(sibling.coordinateY()));
+                    g.drawLine(Math.round(hexagon.coordinateXInFloat()), Math.round(hexagon.coordinateYInFloat()),
+                            Math.round(segment.getWayPoints()[i].x / 1000), Math.round(segment.getWayPoints()[i].y / 1000));
+                } else if (i == segment.getWayPoints().length) {
+                    g.drawLine(Math.round(segment.getWayPoints()[i - 1].x / 1000), Math.round(segment.getWayPoints()[i - 1].y / 1000),
+                            Math.round(sibling.coordinateXInFloat()), Math.round(sibling.coordinateYInFloat()));
                 } else {
-                    g.drawLine(Math.round(segment.getPoints()[i - 1].x / 1000), Math.round(segment.getPoints()[i - 1].y / 1000),
-                            Math.round(segment.getPoints()[i].x / 1000), Math.round(segment.getPoints()[i].y / 1000));
+                    g.drawLine(Math.round(segment.getWayPoints()[i - 1].x / 1000), Math.round(segment.getWayPoints()[i - 1].y / 1000),
+                            Math.round(segment.getWayPoints()[i].x / 1000), Math.round(segment.getWayPoints()[i].y / 1000));
                 }
             }
         }
@@ -95,33 +172,36 @@ public class Canvas  extends JPanel {
 
     private void paintVertex(Graphics2D g, Hexagon hexagon) {
         g.setColor(Color.WHITE);
-        g.fillOval(Math.round(hexagon.coordinateX()) - 50, Math.round(hexagon.coordinateY() - 50), 100, 100);
+        g.fillOval(Math.round(hexagon.coordinateXInFloat()) - 50, Math.round(hexagon.coordinateYInFloat() - 50), 100, 100);
         g.setColor(Color.BLACK);
-        g.drawOval(Math.round(hexagon.coordinateX()) - 50, Math.round(hexagon.coordinateY()) - 50, 100, 100);
+        g.drawOval(Math.round(hexagon.coordinateXInFloat()) - 50, Math.round(hexagon.coordinateYInFloat()) - 50, 100, 100);
 
         String text1 = Integer.toString(hexagon.getId());
         String text2 = Integer.toString(mapSkeleton.getDistanceToEnd(hexagon.getId()));
 
         g.setColor(Color.darkGray);
         drawCenteredString(g, text1, new Rectangle(
-                Math.round(hexagon.coordinateX()), Math.round(hexagon.coordinateY() - 18), 0, 2), 30);
+                Math.round(hexagon.coordinateXInFloat()), Math.round(hexagon.coordinateYInFloat() - 18), 0, 2), 30);
         drawCenteredString(g, text2, new Rectangle(
-                Math.round(hexagon.coordinateX()), Math.round(hexagon.coordinateY() + 18), 0, 2), 30);
+                Math.round(hexagon.coordinateXInFloat()), Math.round(hexagon.coordinateYInFloat() + 18), 0, 2), 30);
 
         Enums.HexagonDirection direction = mapSkeleton.getRoadDirectionToEnd(hexagon.getId());
         int degree2 = Util.getDegree(direction);
 
         g.setColor(Color.orange);
-        fillCenteredCircle(g, Math.round(hexagon.coordinateX() + 50 * (float)Math.cos(Math.toRadians(degree2))),
-                Math.round(hexagon.coordinateY() + 50 * (float) Math.sin(Math.toRadians(degree2))), 12);
+        fillCenteredCircle(g, Math.round(hexagon.coordinateXInFloat() + 50 * (float)Math.cos(Math.toRadians(degree2))),
+                Math.round(hexagon.coordinateYInFloat() + 50 * (float) Math.sin(Math.toRadians(degree2))), 12);
     }
 
     private void paintNormal(Graphics2D g, Hexagon hexagon) {
-        g.setColor(Color.darkGray);
-        g.fillRect(Math.round(hexagon.coordinateX()) - squareW / 2, Math.round(hexagon.coordinateY() - squareH / 2),
-                squareW,squareH);
+        g.setColor(Color.black);
+        String text = Integer.toString(hexagon.getId());
+        drawCenteredString(g, text, new Rectangle(
+                Math.round(hexagon.coordinateXInFloat()) + 5, Math.round(hexagon.coordinateYInFloat() + 5), 0, 2), 12);
+        //g.fillRect(Math.round(hexagon.coordinateXInFloat()) - squareW / 2, Math.round(hexagon.coordinateYInFloat() - squareH / 2),
+                //squareW,squareH);
         //g.setColor(Color.BLACK);
-        //g.drawRect(Math.round(hexagon.coordinateX()),Math.round(hexagon.coordinateY()),squareW,squareH);
+        //g.drawRect(Math.round(hexagon.coordinateXInFloat()),Math.round(hexagon.coordinateYInFloat()),squareW,squareH);
     }
 
     public void drawCenteredString(Graphics g, String text, Rectangle rect, int size) {
@@ -138,16 +218,17 @@ public class Canvas  extends JPanel {
         g.drawString(text, x, y);
     }
 
-    public void fillCenteredCircle(Graphics2D g, int x, int y, int r) {
-        x = x-(r/2);
-        y = y-(r/2);
-        g.fillOval(x,y,r,r);
+    public void fillCenteredCircle(Graphics2D g, float x, float y, float r) {
+        int positionX = (int)(x-(r/2));
+        int positionY = (int)(y-(r/2));
+        //g.fillOval(x,y,r,r);
+        g.fillOval(positionX, positionY, (int)r, (int)r);
     }
 
     public void fillCenteredRect(Graphics2D g, int x, int y, int r) {
-        x = x-(r/2);
-        y = y-(r/2);
-        g.fillRect(x,y,r,r);
+        int positionX = (int)(x-(r/2));
+        int positionY = (int)(y-(r/2));
+        g.fillRect(positionX, positionY, (int)r, (int)r);
     }
 
     public static void main(String[] args) {
@@ -170,6 +251,7 @@ public class Canvas  extends JPanel {
                 .merge(new MapSkeleton(30, 100));
 
         mapSkeleton.optimize();
+        mapSkeleton.generateTerrain();
         mapSkeleton.toBytes();
         //mapSkeleton = mapSkeleton.expand();
         Canvas canvas = new Canvas(mapSkeleton);

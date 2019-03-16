@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.map;
 
-import com.prosper.chasing.game.base.Point2D;
+import com.prosper.chasing.game.base.Point2;
 
 import static com.prosper.chasing.game.util.Enums.*;
 
@@ -9,7 +9,7 @@ import static com.prosper.chasing.game.util.Enums.*;
  */
 public class Block {
 
-    public Point2D position;
+    public Point2 position;
 
     public int blockId;
 
@@ -36,7 +36,7 @@ public class Block {
     // 道路在当前block处的方向
     public RoadDirection roadDirection;
 
-    public Block(Point2D position, int blockId, BlockType type) {
+    public Block(Point2 position, int blockId, BlockType type) {
         this.position = position;
         this.blockId = blockId;
         this.type = type;
@@ -44,7 +44,7 @@ public class Block {
         this.roadDirection = RoadDirection.NONE;
     }
 
-    public Block(Point2D position, int blockId, BlockType type, RoadDirection roadDirection) {
+    public Block(Point2 position, int blockId, BlockType type, RoadDirection roadDirection) {
         this(position, blockId, type);
         //this.terrainType = terrainType;
         this.roadDirection = roadDirection;

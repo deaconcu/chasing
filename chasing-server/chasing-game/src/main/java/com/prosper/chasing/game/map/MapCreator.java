@@ -15,22 +15,32 @@ import java.util.Map;
 @Component
 public class MapCreator {
 
-    private Map<String, GameMap> gameMaps = new HashMap<>();
+    private Map<String, MapSkeleton> gameMaps = new HashMap<>();
 
     @Autowired
     private Jedis jedis;
 
     @PostConstruct
     public void createMap() {
-        MarathonGameMapCreator marathonGameMapCreator = new MarathonGameMapCreator();
-        GameMap gameMap = marathonGameMapCreator.generateV2(20, 20, 49);
+        MapSkeleton mapSkeleton = new MapSkeleton(30, 100)
+                .merge(new MapSkeleton(30, 100))
+                .merge(new MapSkeleton(30, 100))
+                .merge(new MapSkeleton(30, 100))
+                .merge(new MapSkeleton(30, 100));
 
-        gameMaps.put("marathon", gameMap);
-        byte[] mapBytes = gameMap.getMapBytes();
+        mapSkeleton.optimize();
+        mapSkeleton.generateTerrain();
+        mapSkeleton.toBytes();
+
+        //MarathonGameMapCreator marathonGameMapCreator = new MarathonGameMapCreator();
+        //GameMap gameMap = marathonGameMapCreator.generateV2(20, 20, 49);
+
+        gameMaps.put("marathon", mapSkeleton);
+        byte[] mapBytes = mapSkeleton.toBytes();
         jedis.set("marathon".getBytes(), mapBytes);
     }
 
-    public GameMap getMap(String name) {
+    public MapSkeleton getMap(String name) {
         return gameMaps.get(name);
     }
 

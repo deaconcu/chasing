@@ -6,6 +6,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.navmesh.NavMeshGroup;
 import com.prosper.chasing.game.util.Constant;
+import com.prosper.chasing.game.util.Enums;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -344,7 +345,7 @@ public class PropConfig {
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
             // TODO
-            user.setPoint(user.getInitPosition());
+            user.setPoint3(user.getInitPosition());
             return true;
         }
     }
@@ -364,8 +365,8 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            Point point = game.gameMap.getRandomRoadPosition(true);
-            toUser.resetPoint(new Point(point.x * 1000, point.z * 1000, point.y * 1000));
+            RoadPoint roadPoint = game.gameMap.getRandomPoint(Enums.RoadPointType.CENTER);
+            toUser.resetPoint(new Point3(roadPoint.getPoint().x, 0, roadPoint.getPoint().y * 1000));
             return true;
         }
     }
@@ -633,8 +634,8 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser, Game game) {
-            Point point = game.gameMap.getRandomRoadPosition(true);
-            toUser.setPoint(point);
+            RoadPoint roadPoint = game.gameMap.getRandomPoint(Enums.RoadPointType.CENTER);
+            toUser.setPoint3(roadPoint.getPoint().toPoint3());
             return true;
         }
     }
@@ -820,7 +821,7 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            Block block = game.gameMap.getBlock(user.getPoint().x, user.getPoint().y);
+            Block block = game.gameMap.getBlock(user.getPoint3().x, user.getPoint3().y);
             Map<Integer, List<Block>> blockMap = game.gameMap.getBlocksInDistances(block.blockId, 2,
                     Enums.BlockType.MAIN_ROAD, Enums.BlockType.BRANCH, Enums.BlockType.SHORTCUT);
 

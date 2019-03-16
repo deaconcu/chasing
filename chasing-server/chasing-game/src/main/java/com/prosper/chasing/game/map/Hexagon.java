@@ -1,11 +1,11 @@
 package com.prosper.chasing.game.map;
 
+import com.prosper.chasing.game.base.Point2;
 import com.prosper.chasing.game.util.Enums.HexagonDirection;
 
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -43,11 +43,23 @@ public class Hexagon {
         this.bridges = new boolean[]{false, false, false, false, false, false};
     }
 
-    public float coordinateX() {
+    public Point2 coordinatePoint() {
+        return new Point2(coordinateX(), coordinateY());
+    }
+
+    public int coordinateX() {
+        return (int)(((x + (y + 1) * 0.5f - (y + 1) / 2) * (INNER_RADIUS * 2f) + randomX) * 1000);
+    }
+
+    public int coordinateY() {
+        return (int)((y * (OUTER_RADIUS * 1.5f) + randomY) * 1000);
+    }
+
+    public float coordinateXInFloat() {
         return (x + (y + 1) * 0.5f - (y + 1) / 2) * (INNER_RADIUS * 2f) + randomX;
     }
 
-    public float coordinateY() {
+    public float coordinateYInFloat() {
         return y * (OUTER_RADIUS * 1.5f) + randomY;
     }
 

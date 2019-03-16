@@ -18,6 +18,7 @@ import com.prosper.chasing.game.util.Constant.UserState;
 import com.prosper.chasing.common.util.CommonConstant.GameState;
 import com.prosper.chasing.common.util.JsonUtil;
 
+import static com.sun.tools.doclets.formats.html.markup.HtmlStyle.block;
 
 /**
  * 游戏主要逻辑对象
@@ -89,7 +90,8 @@ public abstract class Game {
     // 一些外部依赖
     //protected NavMeshGroup navimeshGroup;
 
-    protected GameMap gameMap;
+    //protected GameMap gameMap;
+    protected MapSkeleton gameMap;
 
     private Random random = new Random();
 
@@ -202,7 +204,7 @@ public abstract class Game {
                         new DynamicGameObject(
                                 Enums.StationaryType.LAMP,
                                 id,
-                                new Point(block.position.x * 1000, 0, block.position.y * 1000),
+                                new Point3(block.position.x * 1000, 0, block.position.y * 1000),
                                 ThreadLocalRandom.current().nextInt(360),
                                 Short.MAX_VALUE));
             }
@@ -320,42 +322,41 @@ public abstract class Game {
             user.countEnergy();
             user.countSpeedRate();
 
-            Block block = gameMap.getBlock(user.getPoint().x / 1000, user.getPoint().z / 1000);
-            if (block == null || !gameMap.isOccupied(block.blockId)) continue;
+            SpecialSection specialSection = gameMap.getSpecialSection(user.getPoint3().x, user.getPoint3().z);
 
-            if (gameMap.getTerrainType(block) == Enums.TerrainType.FOG) {
+            if (specialSection.getTerrainType() == Enums.TerrainType.FOG) {
                 if (!user.isCrossZone()) continue;
-                user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_1_TERRAIN, (short)-1, block.blockGroupId);
-            } else if (gameMap.getTerrainType(block) == Enums.TerrainType.RAIN) {
+                user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_1_TERRAIN, (short)-1, specialSection.getId());
+            } else if (specialSection.getTerrainType() == Enums.TerrainType.RAIN) {
                 if (!user.isCrossZone()) continue;
-                user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_2_TERRAIN, (short)-1, block.blockGroupId);
-            } else if (gameMap.getTerrainType(block) == Enums.TerrainType.SNOW) {
+                user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_2_TERRAIN, (short)-1, specialSection.getId());
+            } else if (specialSection.getTerrainType() == Enums.TerrainType.SNOW) {
                 if (!user.isCrossZone()) continue;
-                user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_3_TERRAIN, (short)-1, block.blockGroupId);
-            } else if (gameMap.getTerrainType(block) == Enums.TerrainType.DREAM_L1) {
+                user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_3_TERRAIN, (short)-1, specialSection.getId());
+            } else if (specialSection.getTerrainType() == Enums.TerrainType.DREAM_L1) {
                 if (!user.isCrossZone()) continue;
-                if (user.addBuff(BuffConfig.SLEEPY_LEVEL_1, (short)-1, block.blockGroupId)) {
-                    user.setDreamTargetObject(user.getPoint());
+                if (user.addBuff(BuffConfig.SLEEPY_LEVEL_1, (short)-1, specialSection.getId())) {
+                    user.setDreamTargetObject(user.getPoint3());
                 }
-            } else if (gameMap.getTerrainType(block) == Enums.TerrainType.DREAM_L2) {
+            } else if (specialSection.getTerrainType() == Enums.TerrainType.DREAM_L2) {
                 if (!user.isCrossZone()) continue;
-                if (user.addBuff(BuffConfig.SLEEPY_LEVEL_2, (short)-1, block.blockGroupId)) {
-                    user.setDreamTargetObject(user.getPoint());
+                if (user.addBuff(BuffConfig.SLEEPY_LEVEL_2, (short)-1, specialSection.getId())) {
+                    user.setDreamTargetObject(user.getPoint3());
                 }
-            } else if (gameMap.getTerrainType(block) == Enums.TerrainType.ANIMAL_OSTRICH) {
+            } else if (specialSection.getTerrainType() == Enums.TerrainType.ANIMAL_OSTRICH) {
+                /*
                 if (!user.isCrossZone()) continue;
                 if (!user.hasBuff(BuffConfig.ANIMAL)) {
-                    BlockGroup blockGroup = gameMap.getBlockGroup(block.blockGroupId);
-                    int blockId = gameMap.getNearestEndPoint(user.getPoint(), blockGroup);
+                    int blockId = gameMap.getNearestEndPoint(user.getPoint3(), blockGroup);
 
                     List<Integer> blockList = gameMap.getUnoccupiedBlocksInDistance(blockId, 8);
                     int chosenBlockId = blockList.get(ThreadLocalRandom.current().nextInt(blockList.size()));
-                    Point point = gameMap.getPoint(chosenBlockId);
+                    Point3 point3 = gameMap.getPoint(chosenBlockId);
 
                     Animal animal = new Animal(
                             getNextNpcId(),
                             Enums.AnimalType.TIGER,
-                            new Point(point.x * 1000, 0, point.z * 1000),
+                            new Point3(point3.x * 1000, 0, point3.z * 1000),
                             0,
                             blockGroup.getId(),
                             user);
@@ -364,18 +365,22 @@ public abstract class Game {
                     animal.setSpeed(500);
 
                     addGameObject(animal);
-                    user.addBuff(BuffConfig.ANIMAL, (short)-1, block.blockGroupId);
+                    user.addBuff(BuffConfig.ANIMAL, (short)-1, specialSection.getId());
                 }
-            } else if (gameMap.getTerrainType(block) == Enums.TerrainType.WIND) {
+                */
+            } else if (specialSection.getTerrainType() == Enums.TerrainType.WIND) {
+                /*
                 if (!user.isCrossZone()) continue;
                 BlockGroup blockGroup = gameMap.getBlockGroup(block.blockGroupId);
-                user.addBuff(BuffConfig.WIND, (short)30, block.blockGroupId, gameMap.getPoint(blockGroup.getStartBlockId()));
-            } else if (gameMap.getTerrainType(block) == Enums.TerrainType.WILD_FIRE) {
+                user.addBuff(BuffConfig.WIND, (short)30, block.blockGroupId,
+                    gameMap.getPoint(blockGroup.getStartBlockId()));
+                */
+            } else if (specialSection.getTerrainType() == Enums.TerrainType.WILD_FIRE) {
                 if  (ThreadLocalRandom.current().nextInt(10000) < 3) {
                     user.setGhost(true);
                     Stationary fire = new Stationary(
                             Enums.StationaryType.FIRE,
-                            new Point(user.getPoint().x, 0, user.getPoint().z),
+                            new Point3(user.getPoint3().x, 0, user.getPoint3().z),
                             0,
                             (short)3);
                     addGameObject(fire);
@@ -622,9 +627,9 @@ public abstract class Game {
             sign = (short) (sign | 4096);
             byteBuilder.append((short)terrainChangedSet.size());
             for (int specialRoadId: terrainChangedSet) {
-                BlockGroup blockGroup = gameMap.blockGroupMap.get(specialRoadId);
-                byteBuilder.append(blockGroup.getId());
-                byteBuilder.append(blockGroup.getTerrainType().getValue());
+                SpecialSection specialSection = gameMap.specialSectionMap.get(specialRoadId);
+                byteBuilder.append(specialSection.getId());
+                byteBuilder.append(specialSection.getTerrainType().getValue());
             }
 
             /*
@@ -633,9 +638,9 @@ public abstract class Game {
                 byteBuilder.append(dynamicGameObject.getSyncAction().getValue());
                 byteBuilder.append(dynamicGameObject.getId());
                 byteBuilder.append(dynamicGameObject.getTypeId().getValue());
-                byteBuilder.append(dynamicGameObject.getPoint().x);
-                byteBuilder.append(dynamicGameObject.getPoint().y);
-                byteBuilder.append(dynamicGameObject.getPoint().z);
+                byteBuilder.append(dynamicGameObject.getPoint3().x);
+                byteBuilder.append(dynamicGameObject.getPoint3().y);
+                byteBuilder.append(dynamicGameObject.getPoint3().z);
                 byteBuilder.append(dynamicGameObject.getRotateY());
             }
             */
@@ -644,9 +649,9 @@ public abstract class Game {
             for(Stationary stationary : stationaryChangedSet) {
                 byteBuilder.append(stationary.getId());
                 byteBuilder.append(stationary.getType().getValue());
-                byteBuilder.append(stationary.getPoint().x);
-                byteBuilder.append(stationary.getPoint().y);
-                byteBuilder.append(stationary.getPoint().z);
+                byteBuilder.append(stationary.getPoint3().x);
+                byteBuilder.append(stationary.getPoint3().y);
+                byteBuilder.append(stationary.getPoint3().z);
                 byteBuilder.append(stationary.getRotateY());
                 byteBuilder.append(stationary.getRemainSec());
             }
@@ -656,9 +661,9 @@ public abstract class Game {
                 byteBuilder.append(envProp.getSyncAction().getValue());
                 byteBuilder.append(envProp.typeId);
                 byteBuilder.append(envProp.getId());
-                byteBuilder.append(envProp.getPoint().x);
-                byteBuilder.append(envProp.getPoint().y);
-                byteBuilder.append(envProp.getPoint().z);
+                byteBuilder.append(envProp.getPoint3().x);
+                byteBuilder.append(envProp.getPoint3().y);
+                byteBuilder.append(envProp.getPoint3().z);
                 byteBuilder.append(envProp.getRemainSecond());
 
                 if (envProp.getSyncAction() == Enums.SyncAction.BORN)
@@ -675,9 +680,9 @@ public abstract class Game {
 
                             byteBuilder.append(npc.getSyncAction().getValue());
                             byteBuilder.append(npc.getId());
-                            byteBuilder.append(npc.getPoint().x);
-                            byteBuilder.append(npc.getPoint().y);
-                            byteBuilder.append(npc.getPoint().z);
+                            byteBuilder.append(npc.getPoint3().x);
+                            byteBuilder.append(npc.getPoint3().y);
+                            byteBuilder.append(npc.getPoint3().z);
                             byteBuilder.append(npc.getRotateY());
 
                             if (npc.getSyncAction() == Enums.SyncAction.BORN) {
@@ -698,9 +703,9 @@ public abstract class Game {
                             byteBuilder.append(animal.getAnimalType().getValue());
                             byteBuilder.append(animal.getId());
                             byteBuilder.append(animal.getTargetUser().getId());
-                            byteBuilder.append(animal.getPoint().x);
-                            byteBuilder.append(animal.getPoint().y);
-                            byteBuilder.append(animal.getPoint().z);
+                            byteBuilder.append(animal.getPoint3().x);
+                            byteBuilder.append(animal.getPoint3().y);
+                            byteBuilder.append(animal.getPoint3().z);
                             byteBuilder.append(animal.getRotateY());
                             if (npc.getSyncAction() == Enums.SyncAction.BORN) {
                                 npc.setSyncAction(Enums.SyncAction.ALIVE);
@@ -716,9 +721,9 @@ public abstract class Game {
                 User user = userMap.get(userId);
                 byteBuilder.append(userId);
                 byteBuilder.append(user.moveState);
-                byteBuilder.append(user.getPoint().x);
-                byteBuilder.append(user.getPoint().y);
-                byteBuilder.append(user.getPoint().z);
+                byteBuilder.append(user.getPoint3().x);
+                byteBuilder.append(user.getPoint3().y);
+                byteBuilder.append(user.getPoint3().z);
                 byteBuilder.append(user.getRotateY());
 
                 // TODO 临时放一下，需要移出去
@@ -828,7 +833,7 @@ public abstract class Game {
      * @param gameInfo
      * @param userList
      */
-    public void init(GameManage gameManage, GameMap gameMap, GameInfo gameInfo, List<? extends User> userList) {
+    public void init(GameManage gameManage, MapSkeleton gameMap, GameInfo gameInfo, List<? extends User> userList) {
         setGameManage(gameManage);
         setGameMap(gameMap);
         setGameInfo(gameInfo);
@@ -900,9 +905,9 @@ public abstract class Game {
         for (Stationary interactiveObject: stationaryMap.values()) {
             bb.append(interactiveObject.getId());
             bb.append(interactiveObject.getType());
-            bb.append(interactiveObject.getPoint().x);
-            bb.append(interactiveObject.getPoint().y);
-            bb.append(interactiveObject.getPoint().z);
+            bb.append(interactiveObject.getPoint3().x);
+            bb.append(interactiveObject.getPoint3().y);
+            bb.append(interactiveObject.getPoint3().z);
             bb.append(interactiveObject.getRotateY());
         }
         */
@@ -976,7 +981,7 @@ public abstract class Game {
 
         // TODO check if could move
         user.setRotateY(message.rotationY);
-        user.setPoint(new Point(message.positionX, message.positionY, message.positionZ));
+        user.setPoint3(new Point3(message.positionX, message.positionY, message.positionZ));
         user.setMoveState(message.moveState);
         user.addSteps(message.steps);
         user.setSpeed(message.speed);
@@ -999,7 +1004,7 @@ public abstract class Game {
 
          // TODO check if could move
          npc.setRotateY(message.rotationY);
-         npc.setPoint(new Point(message.positionX, message.positionY, message.positionZ));
+         npc.setPoint3(new Point3(message.positionX, message.positionY, message.positionZ));
          //user.setMoveState(message.moveState);
 
          npcChangedSet.add(npc);
@@ -1092,7 +1097,7 @@ public abstract class Game {
         if (blockGroup == null) return;
 
         BlockGroup blockGroupAround = null;
-        List<Block> blocksAround = gameMap.getBlocksInDistance(user.getPoint(), 1);
+        List<Block> blocksAround = gameMap.getBlocksInDistance(user.getPoint3(), 1);
         for (Block block:  blocksAround) {
             if (block.blockGroupId == message.interactiveObjectId) {
                 blockGroupAround = gameMap.blockGroupMap.get(block.blockGroupId);
@@ -1120,7 +1125,7 @@ public abstract class Game {
      */
     public void executeTargetMessage(TargetMessage message) {
         User user = getUser(message.getUserId(), true);
-        user.setTarget(message.getType(), message.getId(), message.getPoint());
+        user.setTarget(message.getType(), message.getId(), message.getPoint3());
     }
 
     /**
@@ -1252,7 +1257,7 @@ public abstract class Game {
                 // 只计算不同group的玩家
 
                 if (user.getGroupId() == chasingInfo.chasingUser.getGroupId()) continue;
-                if (user.getPoint().distance(chasingInfo.chasingUser.getPoint()) < 10) {
+                if (user.getPoint3().distance(chasingInfo.chasingUser.getPoint3()) < 10) {
                     if (chasingInfo.startTime == 0) chasingInfo.startTime = System.currentTimeMillis();
                 } else {
                     if (chasingInfo.startTime != 0) chasingInfo.startTime = 0;
@@ -1307,11 +1312,11 @@ public abstract class Game {
      */
     private List<User> getAroundUserList(User fromUser) {
         List<User> aroundUserList = null;
-        Point position = fromUser.getPoint();
+        Point3 position = fromUser.getPoint3();
         for (User user: userMap.values()) {
             if (user.getId() == fromUser.getId()) continue;
-            if ((user.getPoint().x - position.x) < 10 && (user.getPoint().y - position.y < 10)) {
-                if (user.getPoint().distance(position) < 10) {
+            if ((user.getPoint3().x - position.x) < 10 && (user.getPoint3().y - position.y < 10)) {
+                if (user.getPoint3().distance(position) < 10) {
                     if (aroundUserList == null) {
                         aroundUserList = new LinkedList<>();
                     }
@@ -1365,7 +1370,7 @@ public abstract class Game {
             // 设置路径
             if (prop.isPathEmpty()) {
                 prop.setPath(navimeshGroup.getPath(
-                        gameInfo.getMetagameCode(), prop.position.point,
+                        gameInfo.getMetagameCode(), prop.position.point3,
                         navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode())));
             }
 
@@ -1396,17 +1401,15 @@ public abstract class Game {
             envProp.typeId = propList.removeFirst();
             envProp.setId(nextPropSeqId ++);
 
-            int randomBlockId = gameMap.getRandomRoadBlockId();
-            int x = gameMap.getX(randomBlockId);
-            int y = gameMap.getY(randomBlockId);
-            envProp.setPoint(new Point(x * 1000, 100, y * 1000));
+            RoadPoint roadPoint = gameMap.getRandomPoint(Enums.RoadPointType.CENTER);
+            envProp.setPoint3(new Point3(roadPoint.getPoint().x, 100, roadPoint.getPoint().y));
             envProp.createTime = System.currentTimeMillis();
             envProp.vanishTime = envProp.createTime +
                     getGamePropConfigMap().getPropConfig(envProp.typeId).duration * 1000;
             propMap.put(envProp.getId(), envProp);
             getEnvPropChangedList().add(envProp);
             log.info("created prop: {}:{}-{}:{}:{}", gameInfo.getId(), envProp.getId(),
-                    envProp.getPoint().x, envProp.getPoint().y, envProp.getPoint().z);
+                    envProp.getPoint3().x, envProp.getPoint3().y, envProp.getPoint3().z);
 
             count --;
         }
@@ -1419,10 +1422,9 @@ public abstract class Game {
         for (EnvProp prop: propMap.values()) {
             // 如果道具到期，移除道具
             if (prop.vanishTime <= System.currentTimeMillis()) {
-                int randomBlockId = gameMap.getRandomRoadBlockId();
-                int x = gameMap.getX(randomBlockId);
-                int y = gameMap.getY(randomBlockId);
-                prop.setPoint(new Point(x * 1000, 1100, y * 1000));
+                RoadPoint roadPoint = gameMap.getRandomPoint(Enums.RoadPointType.CENTER);
+                // TODO 忘记了什么意思
+                prop.setPoint3(new Point3(roadPoint.getPoint().x, 1100, roadPoint.getPoint().y));
                 prop.createTime = System.currentTimeMillis();
                 prop.vanishTime = prop.createTime +
                         getGamePropConfigMap().getPropConfig(prop.typeId).duration * 1000;
@@ -1510,7 +1512,7 @@ public abstract class Game {
             /*
             if (npcOld.movable && npcOld.isPathEmpty()) {
                 npcOld.setPath(navimeshGroup.getPath(
-                        gameInfo.getMetagameCode(), npcOld.position.point,
+                        gameInfo.getMetagameCode(), npcOld.position.point3,
                         navimeshGroup.getRandomPositionPoint(gameInfo.getMetagameCode())));
             }
             npcOld.move();
@@ -1621,11 +1623,11 @@ public abstract class Game {
         this.step = step;
     }
 
-    public GameMap getGameMap() {
+    public MapSkeleton getGameMap() {
         return gameMap;
     }
 
-    public void setGameMap(GameMap gameMap) {
+    public void setGameMap(MapSkeleton gameMap) {
         this.gameMap = gameMap;
     }
 
@@ -1644,12 +1646,13 @@ public abstract class Game {
         //this.navimeshGroup = navimeshGroup;
     }
 
-    protected LinkedList<Point> getPath(Point startPoint, Point endPoint) {
-        if (startPoint == null || endPoint == null) return null;
-        if (startPoint.equals(endPoint)) return null;
+    protected LinkedList<Point3> getPath(Point3 startPoint3, Point3 endPoint3) {
+        /*
+        if (startPoint3 == null || endPoint3 == null) return null;
+        if (startPoint3.equals(endPoint3)) return null;
 
-        int startBlockId =  gameMap.getBlockId(startPoint.x / 1000, startPoint.z / 1000);
-        int endBlockId = gameMap.getBlockId(endPoint.x / 1000, endPoint.z / 1000);
+        int startBlockId =  gameMap.getBlockId(startPoint3.x / 1000, startPoint3.z / 1000);
+        int endBlockId = gameMap.getBlockId(endPoint3.x / 1000, endPoint3.z / 1000);
 
         boolean isInStartBlock = true;
         if (!gameMap.isArtery(startBlockId)) {
@@ -1663,15 +1666,18 @@ public abstract class Game {
         }
 
         if (startBlockId == -1 || endBlockId == -1) return null;
-        LinkedList<Point> path = getPath(startBlockId, endBlockId);
+        LinkedList<Point3> path = getPath(startBlockId, endBlockId);
         if (path == null) return null;
 
         if (isInStartBlock) path.removeFirst();
-        if (!isInEndBlock) path.addLast(endPoint);
+        if (!isInEndBlock) path.addLast(endPoint3);
         return path;
+        */
+        return null;
     }
 
-    protected LinkedList<Point> getPath(int startBlockId, int endBlockId) {
+    protected LinkedList<Point3> getPath(int startBlockId, int endBlockId) {
+        /*
         if (startBlockId == endBlockId) return null;
         if (!gameMap.isArtery(startBlockId) || !gameMap.isArtery(endBlockId)) return null;
 
@@ -1732,34 +1738,29 @@ public abstract class Game {
 
         if (!reachEnd) return null;
 
-        /*
-        List<Integer> pathList = new LinkedList<>();
+        LinkedList<Point3> pathList = new LinkedList<>();
         int currentBlockId = endBlockId;
         while (closeMap.containsKey(currentBlockId)) {
-            pathList.add(currentBlockId);
-            currentBlockId = closeMap.get(currentBlockId)[0];
-        }
-        Collections.reverse(pathList);
-        return pathList;
-        */
-
-        LinkedList<Point> pathList = new LinkedList<>();
-        int currentBlockId = endBlockId;
-        while (closeMap.containsKey(currentBlockId)) {
-            pathList.add(new Point(gameMap.getX(currentBlockId) * 1000 + 500,
+            pathList.add(new Point3(gameMap.getX(currentBlockId) * 1000 + 500,
                     0, gameMap.getY(currentBlockId) * 1000 + 500));
             currentBlockId = closeMap.get(currentBlockId)[0];
         }
         Collections.reverse(pathList);
         return pathList;
+        */
+        return null;
     }
 
     private int getPathH(int blockIdA, int blockIdB) {
+        /*
         return (Math.abs(gameMap.getX(blockIdA) - gameMap.getX(blockIdB)) +
                 Math.abs(gameMap.getY(blockIdA) - gameMap.getY(blockIdB))) * 10;
+                */
+        return -1;
     }
 
     public static void main(String ... args) throws InterruptedException {
+        /*
         Marathon game = new Marathon();
         MarathonGameMapCreator marathonGameMapCreator = new MarathonGameMapCreator();
         GameMap gameMap = marathonGameMapCreator.generateV2(20, 20, 49);
@@ -1775,11 +1776,11 @@ public abstract class Game {
         aroundBlocks = gameMap.getBlocksInDistance(end, 5, Enums.BlockType.ROAD_EXTENSION);
         end = aroundBlocks.get(0).blockId;
 
-        Point startPoint = new Point(gameMap.getX(start) * 1000, 0, gameMap.getY(start) * 1000);
-        Point endPoint = new Point(gameMap.getX(end) * 1000, 0, gameMap.getY(end) * 1000);
+        Point3 startPoint3 = new Point3(gameMap.getX(start) * 1000, 0, gameMap.getY(start) * 1000);
+        Point3 endPoint3 = new Point3(gameMap.getX(end) * 1000, 0, gameMap.getY(end) * 1000);
 
         long currentTimestamp = java.lang.System.currentTimeMillis();
-        LinkedList<Point> path = game.getPath( startPoint, endPoint);
+        LinkedList<Point3> path = game.getPath(startPoint3, endPoint3);
 
         long cost = System.currentTimeMillis() - currentTimestamp;
         System.out.println("cost:" + cost);
@@ -1788,14 +1789,14 @@ public abstract class Game {
         System.out.println("end: [" + gameMap.getX(end) + ", " + gameMap.getY(end) + "]");
         System.out.println("length: " + path.size());
 
-        for (Point point : path) {
-            System.out.println("[" + point.x + ", " + point.z + "]");
+        for (Point3 point3 : path) {
+            System.out.println("[" + point3.x + ", " + point3.z + "]");
         }
 
         Animal animal = new Animal(
                 1,
                 Enums.AnimalType.TIGER,
-                startPoint,
+                startPoint3,
                 0,
                 0,
                 null);
@@ -1806,7 +1807,8 @@ public abstract class Game {
             Thread.sleep(100);
             animal.move();
 
-            System.out.println(animal.getPoint() + ", has Path:" + animal.getPath());
+            System.out.println(animal.getPoint3() + ", has Path:" + animal.getPath());
         }
+        */
     }
 }

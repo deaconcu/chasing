@@ -168,7 +168,7 @@ public class User extends GameObject {
     //private int targetId;
 
     // 目标位置
-    //private Point targetPoint;
+    //private Point3 targetPoint;
 
     int nextBuffId = 0;
 
@@ -245,10 +245,10 @@ public class User extends GameObject {
 
     /**
      * 重新设定位置 ，需要客户端同步
-     * @param point
+     * @param point3
      */
-    public void resetPoint(Point point) {
-        setPoint(point);
+    public void resetPoint(Point3 point3) {
+        setPoint3(point3);
         positionReseted = true;
     }
 
@@ -272,7 +272,7 @@ public class User extends GameObject {
     }
 
     public byte getTargetType() {
-        if (targetObject instanceof Point) return Constant.TargetType.TYPE_POSITION;
+        if (targetObject instanceof Point3) return Constant.TargetType.TYPE_POSITION;
         else if (targetObject instanceof EnvProp) return Constant.TargetType.TYPE_PROP;
         else if (targetObject instanceof User) return Constant.TargetType.TYPE_USER;
         else if (targetObject instanceof Stationary) return Constant.TargetType.TYPE_STATIONARY;
@@ -283,13 +283,13 @@ public class User extends GameObject {
      * 设置目标对象
      * @return 修改成功返回true，否则返回false
      */
-    public boolean setTarget(byte type, int id, Point point) {
+    public boolean setTarget(byte type, int id, Point3 point3) {
         if (type == Constant.TargetType.TYPE_POSITION)  {
-            if (targetObject != null && targetObject.equals(point)) {
+            if (targetObject != null && targetObject.equals(point3)) {
                 return false;
             }
             // 设置当前目标
-            targetObject = point;
+            targetObject = point3;
         } else {
             // 如果target和当前目标一致，不做处理
             Object intendTargetObject = getTargetObject(type, id);
@@ -410,7 +410,7 @@ public class User extends GameObject {
             MovableObject movableObject = (MovableObject) target;
             if (movableObject.movable) {
                 if (progress == null) progress = new Progress();
-                int distance = position.point.distance(movableObject.position.point);
+                int distance = position.point3.distance(movableObject.position.point3);
                 if (distance > DISTANCE_CHASING) {
                     progress.percent = 0;
                     progress.startTime = System.currentTimeMillis();
@@ -434,7 +434,7 @@ public class User extends GameObject {
                     }
                 }
             } else {
-                int distance = position.point.distance(movableObject.position.point);
+                int distance = position.point3.distance(movableObject.position.point3);
                 if (distance < DISTANCE_CATCHING_STATIC) {
                     movableObject.catched(this);
                 }
@@ -978,19 +978,19 @@ public class User extends GameObject {
 
             byte targetType = getTargetType();
             byteBuilder.append(targetType);
-            if (targetObject instanceof Point) {
-                byteBuilder.append(((Point) targetObject).x);
-                byteBuilder.append(((Point) targetObject).y);
-                byteBuilder.append(((Point) targetObject).z);
+            if (targetObject instanceof Point3) {
+                byteBuilder.append(((Point3) targetObject).x);
+                byteBuilder.append(((Point3) targetObject).y);
+                byteBuilder.append(((Point3) targetObject).z);
             } else if (targetObject != null){
                 byteBuilder.append(((GameObject) targetObject).getId());
             }
 
-            if (dreamTargetObject instanceof Point) {
+            if (dreamTargetObject instanceof Point3) {
                 byteBuilder.append((byte) 1);
-                byteBuilder.append(((Point) dreamTargetObject).x);
-                byteBuilder.append(((Point) dreamTargetObject).y);
-                byteBuilder.append(((Point) dreamTargetObject).z);
+                byteBuilder.append(((Point3) dreamTargetObject).x);
+                byteBuilder.append(((Point3) dreamTargetObject).y);
+                byteBuilder.append(((Point3) dreamTargetObject).z);
             } else {
                 byteBuilder.append((byte) 0);
             }
@@ -1037,9 +1037,9 @@ public class User extends GameObject {
             }
             sign = (short) (sign | 128);
             byteBuilder.append(moveState);
-            byteBuilder.append(getPoint().x);
-            byteBuilder.append(getPoint().y);
-            byteBuilder.append(getPoint().z);
+            byteBuilder.append(getPoint3().x);
+            byteBuilder.append(getPoint3().y);
+            byteBuilder.append(getPoint3().z);
             byteBuilder.append(getRotateY());
             if (positionReseted) {
                 byteBuilder.append((byte)1);

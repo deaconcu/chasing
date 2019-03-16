@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.message;
 
-import com.prosper.chasing.game.base.Point;
+import com.prosper.chasing.game.base.Point3;
 
 import java.nio.ByteBuffer;
 
@@ -21,7 +21,7 @@ public class SkillMessage extends UserMessage {
     private int toNPCSeqId;
 
     // 道具使用位置
-    private Point point;
+    private Point3 point3;
 
     private short skillId;
 
@@ -35,7 +35,7 @@ public class SkillMessage extends UserMessage {
         } else if (type == TYPE_NPC) {
             this.toNPCSeqId = content.getInt();
         } else if (type == TYPE_POSITION) {
-            this.point = new Point(content.getInt(), content.getInt(), content.getInt());
+            this.point3 = new Point3(content.getInt(), content.getInt(), content.getInt());
         }
     }
 
@@ -71,11 +71,11 @@ public class SkillMessage extends UserMessage {
         this.skillId = skillId;
     }
 
-    public Point getPoint() {
-        return point;
+    public Point3 getPoint3() {
+        return point3;
     }
 
-    public void setPoint(Point point) {
-        this.point = point;
+    public void setPoint3(Point3 point3) {
+        this.point3 = point3;
     }
 }

@@ -1,5 +1,7 @@
 package com.prosper.chasing.game.map;
 
+import com.prosper.chasing.game.base.Point2;
+import com.prosper.chasing.game.base.Point3;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Enums.*;
 
@@ -12,46 +14,56 @@ public class BlockGroup {
 
     private short id;
     private TerrainType terrainType;
-    private int startBlockId;
-    private int endBlockId;
+    private Point3[] endPoints;
     private int distance;
     private int detourDistance;
     private boolean isSingle;
+    private Point2 singlePoint;
 
     public BlockGroup(
-            short id, TerrainType terrainType, int startBlockId,
-            int endBlockId, int distance, int detourDistance) {
-        this(id, terrainType, startBlockId, endBlockId, distance, detourDistance, false);
+            short id, TerrainType terrainType, Point3[] endPoints, int distance, int detourDistance) {
+        this(id, terrainType, endPoints, distance, detourDistance, false, null);
     }
 
     public BlockGroup(
-            short id, TerrainType terrainType, int startBlockId,
-            int endBlockId, int distance, int detourDistance, boolean isSingle) {
+            short id, TerrainType terrainType, int startBlockId, int endBlockId, int distance,
+            int detourDistance) {
+        this(id, terrainType, null, distance, detourDistance, false, null);
+    }
+
+    public BlockGroup(short id, TerrainType terrainType, Point3[] endPoints,
+            int distance, int detourDistance, boolean isSingle, Point2 singlePoint) {
         this.id = id;
         this.terrainType = terrainType;
-        this.startBlockId = startBlockId;
-        this.endBlockId = endBlockId;
+        this.endPoints = endPoints;
         this.distance = distance;
         this.detourDistance = detourDistance;
         this.isSingle = isSingle;
+        this.singlePoint = singlePoint;
+    }
+
+    public BlockGroup(short id, TerrainType terrainType, int startBlockId, int endBlockId,
+                      int distance, int detourDistance, boolean isSingle) {
+        this.id = id;
+        this.terrainType = terrainType;
+        this.endPoints = endPoints;
+        this.distance = distance;
+        this.detourDistance = detourDistance;
+        this.isSingle = isSingle;
+        this.singlePoint = singlePoint;
     }
 
     @Override
     public String toString() {
-        return "[id:" + id + ", terrainType:" +  terrainType +
-                ", start block:" + startBlockId + ", end block:" + endBlockId + "]";
+        return "[id:" + id + ", terrainType:" +  terrainType;
     }
 
     public byte[] getBytes() {
         ByteBuilder byteBuilder  = new ByteBuilder();
         byteBuilder.append(id);
         byteBuilder.append(terrainType.getValue());
-        byteBuilder.append(startBlockId);
-        byteBuilder.append(endBlockId);
-
         return byteBuilder.getBytes();
     }
-
 
     public TerrainType getTerrainType() {
         return terrainType;
@@ -65,20 +77,20 @@ public class BlockGroup {
         return id;
     }
 
-    public int getStartBlockId() {
-        return startBlockId;
+    public Point2 getSinglePoint() {
+        return singlePoint;
     }
 
-    public void setStartBlockId(int startBlockId) {
-        this.startBlockId = startBlockId;
+    public Point3[] getEndPoints() {
+        return endPoints;
+    }
+
+    public int getStartBlockId() {
+        return 0;
     }
 
     public int getEndBlockId() {
-        return endBlockId;
-    }
-
-    public void setEndBlockId(int endBlockId) {
-        this.endBlockId = endBlockId;
+        return 0;
     }
 
     public int getDistance() {

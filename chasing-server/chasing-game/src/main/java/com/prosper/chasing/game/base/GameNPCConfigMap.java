@@ -9,7 +9,7 @@ public class GameNPCConfigMap {
 
     public static class GameNPCConfig {
         Position initPosition;
-        List<Point> path;
+        List<Point3> path;
     }
 
 }

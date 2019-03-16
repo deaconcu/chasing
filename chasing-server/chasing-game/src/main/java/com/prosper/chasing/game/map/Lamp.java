@@ -1,7 +1,7 @@
 package com.prosper.chasing.game.map;
 
 import com.prosper.chasing.game.base.GameObject;
-import com.prosper.chasing.game.base.Point;
+import com.prosper.chasing.game.base.Point3;
 import com.prosper.chasing.game.util.ByteBuilder;
 
 /**
@@ -15,25 +15,22 @@ public class Lamp extends GameObject {
     // 周围灯的数量
     private byte siblingsSize;
 
-    public Lamp(int id, Point point, int rotateY) {
-        super(id, point, rotateY);
+    public Lamp(int id, Point3 point3, int rotateY) {
+        super(id, point3, rotateY);
 
-        this.siblings = new int[4];
+        this.siblings = new int[3];
         siblingsSize = 0;
     }
 
     public void addSiblings(int blockId) {
-        if (blockId ==  getId()) {
-            int a = 1;
-        }
-        if (siblingsSize >= 4) throw new RuntimeException("lamp siblings distance exceed limit");
+        if (siblingsSize > 3) throw new RuntimeException("lamp siblings distance exceed limit");
         siblings[siblingsSize ++] = blockId;
     }
 
     public void getBytes(ByteBuilder byteBuilder) {
         byteBuilder.append(getId());
-        byteBuilder.append(getPoint().x);
-        byteBuilder.append(getPoint().y);
+        byteBuilder.append(getPoint3().x);
+        byteBuilder.append(getPoint3().z);
         byteBuilder.append(getRotateY());
         byteBuilder.append(siblingsSize);
         for (int i = 0; i < siblingsSize; i ++) {

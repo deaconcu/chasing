@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.map;
 
-import com.prosper.chasing.game.base.Point2D;
+import com.prosper.chasing.game.base.Point2;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,22 +44,30 @@ public class Branch implements Comparable<Branch> {
         hexagonList.add(hexagon);
     }
 
-    public Point2D getCenterPoint() {
+    public Point2 getCenterPoint() {
         int distance = distance();
-        if (distance == 1) return new Point2D(
-                Math.round(head.coordinateX() + tail.coordinateX()) / 2,
-                Math.round(head.coordinateY() + tail.coordinateY()) / 2);
+        if (distance == 1) return new Point2(
+                (head.coordinateX() + tail.coordinateX()) / 2,
+                (head.coordinateY() + tail.coordinateY()) / 2);
         else if (distance % 2 == 0) {
             Hexagon hexagon = hexagonList.get(hexagonList.size() / 2);
-            return new Point2D(
-                    Math.round(hexagon.coordinateX()), Math.round(hexagon.coordinateY()));
+            return new Point2((hexagon.coordinateX()), Math.round(hexagon.coordinateY()));
         } else {
             Hexagon hexagon1 = hexagonList.get((hexagonList.size() - 1) / 2);
             Hexagon hexagon2 = hexagonList.get(hexagonList.size() / 2);
-            return new Point2D(
-                    Math.round(hexagon1.coordinateX() + hexagon2.coordinateX()) / 2,
-                    Math.round(hexagon1.coordinateY() + hexagon2.coordinateY()) / 2);
-                    //(hexagon1.getX() + hexagon2.getX()) / 2, (hexagon1.getY() + hexagon2.getY()) / 2);
+            return new Point2(
+                    (hexagon1.coordinateX() + hexagon2.coordinateX()) / 2,
+                    (hexagon1.coordinateY() + hexagon2.coordinateY()) / 2);
+        }
+    }
+
+    public Hexagon[] getCenterHexagons() {
+        if (distance() == 1) return new Hexagon[] {head, tail};
+        else if (distance() == 2) return new Hexagon[] {head, hexagonList.get(0)};
+        else {
+            Hexagon hexagon1 = hexagonList.get(hexagonList.size() / 2 - 1);
+            Hexagon hexagon2 = hexagonList.get(hexagonList.size() / 2);
+            return new Hexagon[] {hexagon1, hexagon2};
         }
     }
 

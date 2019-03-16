@@ -18,7 +18,7 @@ public class GameObject {
     private int id;
 
     // 当前位置
-    private Point point;
+    private Point3 point3;
 
     // 朝向
     private int rotateY;
@@ -40,7 +40,7 @@ public class GameObject {
     // 比如出生的时候客户端需要创建，死亡的时候客户端需要销毁，其他时间客户端只需要同步数据
     private SyncAction SyncAction;
 
-    private LinkedList<Point> path;
+    private LinkedList<Point3> path;
 
     private long lastMoveTimestamp;
 
@@ -54,10 +54,10 @@ public class GameObject {
         this.lastMoveTimestamp = createTime;
     }
 
-    public GameObject(int id, Point point, int rotateY) {
+    public GameObject(int id, Point3 point3, int rotateY) {
         this();
         this.id = id;
-        this.point = point;
+        this.point3 = point3;
         this.rotateY = rotateY;
     }
 
@@ -66,13 +66,13 @@ public class GameObject {
 
         long currentTimeMillis = System.currentTimeMillis();
         int distance = (int)((float)speed * (currentTimeMillis - lastMoveTimestamp) / 1000);
-        Point currPoint = point;
-        int nextPointDistance = currPoint.distance(path.peek());
+        Point3 currPoint3 = point3;
+        int nextPointDistance = currPoint3.distance(path.peek());
         while (nextPointDistance < distance) {
             distance -= nextPointDistance;
-            currPoint = path.removeFirst();
+            currPoint3 = path.removeFirst();
             if (path.size() > 0) {
-                nextPointDistance = currPoint.distance(path.peek());
+                nextPointDistance = currPoint3.distance(path.peek());
             } else {
                 break;
             }
@@ -80,17 +80,17 @@ public class GameObject {
 
         if (path.size() == 0) {
             setPath(null);
-            point = currPoint;
+            point3 = currPoint3;
         } else {
-            nextPointDistance = currPoint.distance(path.peek());
-            point = currPoint.add(path.peek().x - currPoint.x, 0, path.peek().z - currPoint.z,
+            nextPointDistance = currPoint3.distance(path.peek());
+            point3 = currPoint3.add(path.peek().x - currPoint3.x, 0, path.peek().z - currPoint3.z,
                     (double)distance / nextPointDistance);
         }
 
 
         if (path.peek() != null) {
-            double deltaX = path.peek().x - point.x;
-            double deltaY = path.peek().z - point.z;
+            double deltaX = path.peek().x - point3.x;
+            double deltaY = path.peek().z - point3.z;
 
             int targetRotateY = 0;
             if (deltaX == 0 && deltaY > 0) targetRotateY = 90000;
@@ -113,16 +113,16 @@ public class GameObject {
         isMoved = true;
     }
 
-    public Point getPoint() {
-        return point;
+    public Point3 getPoint3() {
+        return point3;
     }
 
-    public void setPoint(Point point) {
-        if (point.equals(this.point)) return;
-        this.point = point;
+    public void setPoint3(Point3 point3) {
+        if (point3.equals(this.point3)) return;
+        this.point3 = point3;
         isMoved = true;
 
-        if (!this.point.sameZone(point)) {
+        if (!this.point3.sameZone(point3)) {
             setCrossZone(true);
         }
     }
@@ -136,11 +136,11 @@ public class GameObject {
         setMoved(true);
     }
 
-    public void move(Point vector, int speed) {
+    public void move(Point3 vector, int speed) {
         if (vector.isZero()) return;
-        this.point.x += vector.x * speed;
-        this.point.y += vector.y * speed;
-        this.point.z += vector.z * speed;
+        this.point3.x += vector.x * speed;
+        this.point3.y += vector.y * speed;
+        this.point3.z += vector.z * speed;
         isMoved = true;
     }
 
@@ -189,11 +189,11 @@ public class GameObject {
         isCrossZone = crossZone;
     }
 
-    public LinkedList<Point> getPath() {
+    public LinkedList<Point3> getPath() {
         return path;
     }
 
-    public void setPath(LinkedList<Point> path) {
+    public void setPath(LinkedList<Point3> path) {
         this.path = path;
     }
 

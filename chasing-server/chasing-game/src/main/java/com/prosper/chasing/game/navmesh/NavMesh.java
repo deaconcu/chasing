@@ -1,7 +1,7 @@
 package com.prosper.chasing.game.navmesh;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.prosper.chasing.game.base.Point;
+import com.prosper.chasing.game.base.Point3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,11 +33,11 @@ public class NavMesh {
     }
 
     private static class Triangle {
-        public Point a;
-        public Point b;
-        public Point c;
+        public Point3 a;
+        public Point3 b;
+        public Point3 c;
 
-        public Point center;
+        public Point3 center;
 
         Triangle ab;
         Triangle ac;
@@ -47,9 +47,9 @@ public class NavMesh {
         int distanceAC;
         int distanceBC;
 
-        Point vectorAB;
-        Point vectorBC;
-        Point vectorAC;
+        Point3 vectorAB;
+        Point3 vectorBC;
+        Point3 vectorAC;
 
         List<String> cellList = new LinkedList<>();
 
@@ -59,7 +59,7 @@ public class NavMesh {
         }
 
         public String toString() {
-            return "point a: " + a + ", point b: " + b + ", point c: " + c +
+            return "point3 a: " + a + ", point3 b: " + b + ", point3 c: " + c +
                     ", cell list: " + cellList;
         }
 
@@ -87,7 +87,7 @@ public class NavMesh {
 
         // 计算中心点
         for(Triangle t: allTriangles) {
-            t.center = new Point(
+            t.center = new Point3(
                     t.a.x + t.b.x + t.c.x / 3,
                     t.a.y + t.b.y + t.c.y / 3,
                     t.a.z + t.b.z + t.c.z / 3
@@ -96,14 +96,14 @@ public class NavMesh {
 
         // 计算三角形面的三条边向量
         for (Triangle t: allTriangles) {
-            t.vectorAB = new Point(t.b.x - t.a.x, t.b.y - t.a.y, t.b.z - t.a.z);
-            t.vectorBC = new Point(t.c.x - t.b.x, t.c.y - t.b.y, t.c.z - t.b.z);
-            t.vectorAC = new Point(t.c.x - t.a.x, t.c.y - t.a.y, t.c.z - t.a.z);
+            t.vectorAB = new Point3(t.b.x - t.a.x, t.b.y - t.a.y, t.b.z - t.a.z);
+            t.vectorBC = new Point3(t.c.x - t.b.x, t.c.y - t.b.y, t.c.z - t.b.z);
+            t.vectorAC = new Point3(t.c.x - t.a.x, t.c.y - t.a.y, t.c.z - t.a.z);
         }
 
         // 获得navmesh共点的三角形面
         int count = 0;
-        Map<Point, List<Triangle>> pointMap = new HashMap<>();
+        Map<Point3, List<Triangle>> pointMap = new HashMap<>();
         for (Triangle t: allTriangles) {
             if (pointMap.get(t.a) == null) {
                 List<Triangle> pointTriangleList = new LinkedList<>();
@@ -256,7 +256,7 @@ public class NavMesh {
         }
     }
 
-    private int getBoundary(Point a, Point b, Point c, BoundaryType type, Axis axis) {
+    private int getBoundary(Point3 a, Point3 b, Point3 c, BoundaryType type, Axis axis) {
         if (type == BoundaryType.max) {
             if (axis == Axis.x) {
                 return max(a.x, b.x, c.x);
@@ -385,8 +385,8 @@ public class NavMesh {
         }
     }
 
-    public Deque<Point> getPath(Point start, Point end) {
-        LinkedList<Point> pointList = new LinkedList<>();
+    public Deque<Point3> getPath(Point3 start, Point3 end) {
+        LinkedList<Point3> point3List = new LinkedList<>();
 
         Map<Triangle, PathInfo> pathInfoMap = new HashMap<>();
         Set<Triangle> openSet = new HashSet<>();
@@ -397,14 +397,14 @@ public class NavMesh {
         Triangle endTri = getTriangleByAxis(end.x, end.z);
 
         if(startTri == null || endTri == null) {
-            log.warn("point is not in navmesh");
-            return pointList;
+            log.warn("point3 is not in navmesh");
+            return point3List;
         }
 
         if (startTri == endTri) {
-            pointList.add(start);
-            pointList.add(end);
-            return pointList;
+            point3List.add(start);
+            point3List.add(end);
+            return point3List;
         }
 
         Triangle current = startTri;
@@ -452,7 +452,7 @@ public class NavMesh {
         // 如果是因为没有了节点结束了循环，也就是没有找到终结点，返回空列表
         if (openSet.size() == 0) {
             log.warn("can't get path");
-            return pointList;
+            return point3List;
         }
 
         LinkedList<Triangle> triPathList = new LinkedList<>();
@@ -464,16 +464,16 @@ public class NavMesh {
         }
 
         triPathList.pollLast();
-        pointList.add(start);
+        point3List.add(start);
         while (true) {
             Triangle currentTri = triPathList.pollLast();
             if (currentTri == endTri) {
                 break;
             }
-            pointList.add(getRandomPositionInTriangle(currentTri));
+            point3List.add(getRandomPositionInTriangle(currentTri));
         }
-        pointList.add(end);
-        return pointList;
+        point3List.add(end);
+        return point3List;
     }
 
     private Triangle getSmallestTriangle(Set<Triangle> openSet, Map<Triangle, PathInfo> pathInfoMap) {
@@ -504,8 +504,8 @@ public class NavMesh {
     /**
      * 计算F值
      */
-    private int computerF(Triangle currentTri, int distance, Point endPoint, Map<Triangle, PathInfo> pathInfo) {
-        return computerG(currentTri, distance, pathInfo) + currentTri.center.distance(endPoint);
+    private int computerF(Triangle currentTri, int distance, Point3 endPoint3, Map<Triangle, PathInfo> pathInfo) {
+        return computerG(currentTri, distance, pathInfo) + currentTri.center.distance(endPoint3);
     }
 
     /**
@@ -513,15 +513,15 @@ public class NavMesh {
      * @deprecated
      * 参考：https://adamswaab.wordpress.com/2009/12/11/random-point-in-a-triangle-barycentric-coordinates/
      */
-    public Deque<Point> getPath(Point point, int minDistance) {
-        Triangle triangle = getTriangleByAxis(point.x, point.z);
+    public Deque<Point3> getPath(Point3 point3, int minDistance) {
+        Triangle triangle = getTriangleByAxis(point3.x, point3.z);
 
         int distance = 0;
         int count = 0;
 
-        LinkedList<Point> pointList = new LinkedList<>();
+        LinkedList<Point3> point3List = new LinkedList<>();
         Triangle nextTriangle;
-        Point nextPoint;
+        Point3 nextPoint3;
         List<Integer> triangleListForRandom = new LinkedList<>();
         while (distance < minDistance && count < 100) {
             if (triangle.ab != null) {
@@ -538,20 +538,20 @@ public class NavMesh {
 
             if (i == 0) {
                 nextTriangle = triangle.ab;
-                nextPoint = triangle.a.add(triangle.vectorAB, random.nextDouble());
+                nextPoint3 = triangle.a.add(triangle.vectorAB, random.nextDouble());
             } else if (i == 1) {
                 nextTriangle = triangle.bc;
-                nextPoint = triangle.b.add(triangle.vectorBC, random.nextDouble());
+                nextPoint3 = triangle.b.add(triangle.vectorBC, random.nextDouble());
             } else {
                 nextTriangle = triangle.ac;
-                nextPoint = triangle.c.add(triangle.vectorAC, random.nextDouble());
+                nextPoint3 = triangle.c.add(triangle.vectorAC, random.nextDouble());
             }
 
-            distance += nextPoint.distance(point);
-            pointList.add(nextPoint);
+            distance += nextPoint3.distance(point3);
+            point3List.add(nextPoint3);
             count ++;
 
-            point = nextPoint;
+            point3 = nextPoint3;
             triangle = nextTriangle;
             triangleListForRandom.clear();
         }
@@ -560,29 +560,29 @@ public class NavMesh {
             log.warn("can't reach distance after 100 times");
         }
 
-        nextPoint = getRandomPositionInTriangle(triangle);
-        pointList.add(nextPoint);
+        nextPoint3 = getRandomPositionInTriangle(triangle);
+        point3List.add(nextPoint3);
 
-        return pointList;
+        return point3List;
     }
 
-    public Point getRandomPositionPoint() {
+    public Point3 getRandomPositionPoint() {
         // TODO 随机得到的点有可能不在选定的面上，临时处理
         Triangle triangle;
         Triangle triangleByAxis;
-        Point point;
+        Point3 point3;
         do {
             List<Triangle> triangleList = triangleCellMap.get(
                     triangleCellIdList.get(random.nextInt(triangleCellIdList.size())));
             triangle = triangleList.get(random.nextInt(triangleList.size()));
-            point = getRandomPositionInTriangle(triangle);
+            point3 = getRandomPositionInTriangle(triangle);
 
-            triangleByAxis = getTriangleByAxis(point.x, point.z);
+            triangleByAxis = getTriangleByAxis(point3.x, point3.z);
         } while (triangleByAxis == null || triangleByAxis != triangle);
-        return point;
+        return point3;
     }
 
-    private Point getRandomPositionInTriangle(Triangle triangle) {
+    private Point3 getRandomPositionInTriangle(Triangle triangle) {
         double r = random.nextDouble();
         double s = random.nextDouble();
 
@@ -601,10 +601,10 @@ public class NavMesh {
         for(int i = 0; i < 100000; i ++) {
             System.out.println("try times: " + i);
 
-            Point start = navmesh.getRandomPositionPoint();
-            Point end = navmesh.getRandomPositionPoint();
+            Point3 start = navmesh.getRandomPositionPoint();
+            Point3 end = navmesh.getRandomPositionPoint();
             System.out.println("start: " + start + ", end: " + end);
-            Deque<Point> path = navmesh.getPath(start, end);
+            Deque<Point3> path = navmesh.getPath(start, end);
 
             if (path.size() == 0) {
                 throw new RuntimeException("path is empty");

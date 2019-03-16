@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.navmesh;
 
-import com.prosper.chasing.game.base.Point;
+import com.prosper.chasing.game.base.Point3;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -34,14 +34,14 @@ public class NavMeshGroup {
         navMeshGroup.load();
     }
 
-    public Point getRandomPositionPoint(String metagameCode) {
+    public Point3 getRandomPositionPoint(String metagameCode) {
         if (!navMeshMap.containsKey(metagameCode)) {
             return null;
         }
         return navMeshMap.get(metagameCode).getRandomPositionPoint();
     }
 
-    public Deque<Point> getPath(String metagameCode, Point start, Point end) {
+    public Deque<Point3> getPath(String metagameCode, Point3 start, Point3 end) {
         if (!navMeshMap.containsKey(metagameCode)) {
             return null;
         }

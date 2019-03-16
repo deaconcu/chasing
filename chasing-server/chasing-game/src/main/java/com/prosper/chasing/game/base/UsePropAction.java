@@ -9,9 +9,9 @@ public class UsePropAction {
 
     private long startTime;
 
-    private Point startPosition;
+    private Point3 startPosition;
 
-    public  UsePropAction(short propTypeId, GameObject target, long startTime, Point startPosition) {
+    public  UsePropAction(short propTypeId, GameObject target, long startTime, Point3 startPosition) {
         this.target = target;
         this.startPosition = startPosition;
         this.startTime = startTime;

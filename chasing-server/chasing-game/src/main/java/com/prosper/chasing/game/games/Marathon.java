@@ -1,9 +1,10 @@
 package com.prosper.chasing.game.games;
 
 import com.prosper.chasing.game.base.*;
-import com.prosper.chasing.game.base.Point;
+import com.prosper.chasing.game.base.Point3;
 import com.prosper.chasing.game.map.Block;
 import com.prosper.chasing.game.map.BlockGroup;
+import com.prosper.chasing.game.map.SpecialSection;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import com.prosper.chasing.game.util.Enums;
@@ -25,8 +26,8 @@ public class Marathon extends GameBase {
 
     protected static GamePropConfigMap gamePropConfigMap;
 
-    private Point startPosition;
-    private Point endPosition;
+    private Point3 startPosition;
+    private Point3 endPosition;
 
     private Stationary endFlag;
 
@@ -45,7 +46,7 @@ public class Marathon extends GameBase {
     }
 
     // 出发地
-    private Point birthArea = new Point(0, 0, 0);
+    private Point3 birthArea = new Point3(0, 0, 0);
 
     public static class MarathonUser extends User {
 
@@ -69,11 +70,8 @@ public class Marathon extends GameBase {
 
     @Override
     public void customInit() {
-        Block block = gameMap.getStartBlock();
-        startPosition = new Point(block.position.x * 1000, 0, block.position.y * 1000);
-
-        block = gameMap.getEndBlock();
-        endPosition = new Point(block.position.x * 1000, 0, block.position.y * 1000);
+        startPosition = gameMap.getStart().toPoint3();
+        endPosition = gameMap.getEnd().toPoint3();
     }
 
     @Override
@@ -137,7 +135,7 @@ public class Marathon extends GameBase {
             int x = startPosition.x + ThreadLocalRandom.current().nextInt(2000) - 1000;
             int z = startPosition.z + ThreadLocalRandom.current().nextInt(2000) - 1000;
 
-            user.setPoint(new Point(x, 0 ,z));
+            user.setPoint3(new Point3(x, 0 ,z));
             user.setRotateY(ThreadLocalRandom.current().nextInt(360 * 1000));
             user.setMoveState(Constant.MoveState.IDLE);
 
@@ -159,7 +157,7 @@ public class Marathon extends GameBase {
     @Override
     protected void doPositionChanged(User user) {
         // TODO 需要优化，不需要每次都计算平方根
-        if (user.getPoint().distance(endPosition) < 2000) {
+        if (user.getPoint3().distance(endPosition) < 2000) {
             user.setState(Constant.UserState.GAME_OVER);
 
             ByteBuilder resultMessage = generateResultMessage(user);
@@ -172,45 +170,37 @@ public class Marathon extends GameBase {
      */
     @Override
     protected void initStationary() {
-        for (BlockGroup blockGroup: gameMap.blockGroupMap.values()) {
-            if (!blockGroup.isSingle()) continue;
-            Point mapPoint = gameMap.getPoint(blockGroup.getStartBlockId());
-            Point point = new Point(mapPoint.x *  1000, 0, mapPoint.z * 1000);
-            int rotateY = 0;
-            if (!gameMap.isRoadAlongX(mapPoint.x, mapPoint.z)) {
-                rotateY = 90 * 1000;
-            }
-            if (blockGroup.getTerrainType() == Enums.TerrainType.RIVER) {
-                addGameObject(new Stationary(Enums.StationaryType.RIVER, point, rotateY));
-            } else if (blockGroup.getTerrainType() == Enums.TerrainType.STONE) {
-                addGameObject(new Stationary(Enums.StationaryType.STONES, point, rotateY));
-            } else if (blockGroup.getTerrainType() == Enums.TerrainType.FIRE_FENCE) {
-                addGameObject(new Stationary(Enums.StationaryType.FIRE_FENCE, point, rotateY));
-            } else if (blockGroup.getTerrainType() == Enums.TerrainType.GATE) {
-                addGameObject(new Stationary(Enums.StationaryType.GATE, point, rotateY));
-            }
+        for (SpecialSection specialSection: gameMap.specialSectionMap.values()) {
+            if (!specialSection.isSingle()) continue;
+            RoadPoint roadPoint = specialSection.getRoadPoints()[0];
+            Enums.StationaryType type = null;
+            if (specialSection.getTerrainType() == Enums.TerrainType.RIVER)
+                type = Enums.StationaryType.RIVER;
+            else if (specialSection.getTerrainType() == Enums.TerrainType.STONE)
+                type = Enums.StationaryType.STONES;
+            else if (specialSection.getTerrainType() == Enums.TerrainType.FIRE_FENCE)
+                type = Enums.StationaryType.FIRE_FENCE;
+            else if (specialSection.getTerrainType() == Enums.TerrainType.GATE)
+                type = Enums.StationaryType.GATE;
+            else continue;
+            addGameObject(new Stationary(type, roadPoint.getPoint().toPoint3(), roadPoint.getDegree()));
         }
 
-        List<Integer> crossBlockIdList = gameMap.getRandomRoadCrossPosition(30);
-        for (int crossBlockId: crossBlockIdList) {
-            Enums.Direction direction = gameMap.getPointsDirection(crossBlockId, gameMap.endBlockId);
-            Point point = gameMap.getRoadSidePoint(crossBlockId);
-
-            if (direction == Enums.Direction.RIGHT) {
-                addGameObject(new Stationary(Enums.StationaryType.SIGNPOST_1, point, 0));
-            } else if (direction ==  Enums.Direction.DOWN) {
-                addGameObject(new Stationary(Enums.StationaryType.SIGNPOST_1, point, 90));
-            } else if (direction ==  Enums.Direction.UP) {
-                addGameObject(new Stationary(Enums.StationaryType.SIGNPOST_2, point, 0));
-            } else {
-                addGameObject(new Stationary(Enums.StationaryType.SIGNPOST_2, point, 90));
+        List<RoadPoint[]> crossRoadPoints = gameMap.randomBranchCrossList(0.3f);
+        for (RoadPoint[] roadPoints: crossRoadPoints) {
+            RoadPoint farRoadPoint = null;
+            int distance = 0;
+            for (RoadPoint roadPoint: roadPoints) {
+                if (roadPoint.getPoint().distance(0, 0) > distance) farRoadPoint = roadPoint;
             }
+            addGameObject(new Stationary(
+                    Enums.StationaryType.SIGNPOST_1, farRoadPoint.getPoint().toPoint3(), farRoadPoint.getDegree()));
         }
 
         /*
-        Point2D position;
+        Point2 position;
         int rotateY = 0;
-        Point point;
+        Point3 point3;
 
 
         position = gameMap.mainRoad.hexagonList.get(38).position;
@@ -218,16 +208,16 @@ public class Marathon extends GameBase {
         if (!gameMap.isRoadAlongX(position.x, position.y)) {
             rotateY = 90 * 1000;
         }
-        point = new Point(position.x *  1000, 0, position.y * 1000);
-        addGameObject(new Stationary(Enums.StationaryType.RIVER, point, rotateY));
+        point3 = new Point3(position.x *  1000, 0, position.y * 1000);
+        addGameObject(new Stationary(Enums.StationaryType.RIVER, point3, rotateY));
 
         position = gameMap.mainRoad.hexagonList.get(58).position;
         rotateY = 0;
         if (!gameMap.isRoadAlongX(position.x, position.y)) {
             rotateY = 90 * 1000;
         }
-        point = new Point(position.x *  1000, 0, position.y * 1000);
-        addGameObject(new Stationary(Enums.StationaryType.STONES, point, rotateY));
+        point3 = new Point3(position.x *  1000, 0, position.y * 1000);
+        addGameObject(new Stationary(Enums.StationaryType.STONES, point3, rotateY));
 
         position = gameMap.mainRoad.hexagonList.get(78).position;
         rotateY = 0;
@@ -235,8 +225,8 @@ public class Marathon extends GameBase {
             rotateY = 90 * 1000;
         }
 
-        point = new Point(position.x *  1000, 0, position.y * 1000);
-        addGameObject(new Stationary(Enums.StationaryType.FIRE_FENCE, point, rotateY));
+        point3 = new Point3(position.x *  1000, 0, position.y * 1000);
+        addGameObject(new Stationary(Enums.StationaryType.FIRE_FENCE, point3, rotateY));
 
         position = gameMap.mainRoad.hexagonList.get(118).position;
         rotateY = 0;
@@ -244,8 +234,8 @@ public class Marathon extends GameBase {
             rotateY = 90 * 1000;
         }
 
-        point = new Point(position.x *  1000, 0, position.y * 1000);
-        addGameObject(new Stationary(Enums.StationaryType.GATE, point, rotateY));
+        point3 = new Point3(position.x *  1000, 0, position.y * 1000);
+        addGameObject(new Stationary(Enums.StationaryType.GATE, point3, rotateY));
 
 
         position = gameMap.mainRoad.hexagonList.get(15).position;
@@ -257,18 +247,18 @@ public class Marathon extends GameBase {
             position.x += 3;
         }
 
-        point = new Point((startPosition.x + 3000), 0, startPosition.z);
-        addGameObject(new Stationary(Enums.StationaryType.STORE, point, rotateY));
+        point3 = new Point3((startPosition.x + 3000), 0, startPosition.z);
+        addGameObject(new Stationary(Enums.StationaryType.STORE, point3, rotateY));
         */
 
         addGameObject(new Stationary(
                 Enums.StationaryType.FLAG,
-                new Point(startPosition.x, 0, startPosition.z),
+                new Point3(startPosition.x, 0, startPosition.z),
                 45));
 
         endFlag = new Stationary(
                 Enums.StationaryType.FLAG,
-                new Point(endPosition.x, 0, endPosition.z),
+                new Point3(endPosition.x, 0, endPosition.z),
                 45);
 
         addGameObject(endFlag);
@@ -287,10 +277,8 @@ public class Marathon extends GameBase {
             envProp.typeId = propList.removeFirst();
             envProp.setId(nextPropSeqId ++);
 
-            int randomBlockId = gameMap.getRandomRoadBlockId();
-            int x = gameMap.getX(randomBlockId);
-            int y = gameMap.getY(randomBlockId);
-            envProp.setPoint(new Point(x * 1000, 100, y * 1000));
+            Point2 point2 = gameMap.getRandomPoint(Enums.RoadPointType.CENTER).getPoint();
+            envProp.setPoint3(new Point3(point2.x, 100, point2.y));
             envProp.createTime = System.currentTimeMillis();
             envProp.vanishTime = envProp.createTime +
                     getGamePropConfigMap().getPropConfig(envProp.typeId).duration * 1000;
@@ -300,7 +288,7 @@ public class Marathon extends GameBase {
             count --;
 
             log.info("created prop: {}:{}-{}:{}:{}", gameInfo.getId(), envProp.getId(),
-                    envProp.getPoint().x, envProp.getPoint().y, envProp.getPoint().z);
+                    envProp.getPoint3().x, envProp.getPoint3().y, envProp.getPoint3().z);
         }
     }
 

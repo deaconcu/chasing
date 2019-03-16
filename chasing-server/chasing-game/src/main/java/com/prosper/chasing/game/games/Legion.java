@@ -1,9 +1,10 @@
 package com.prosper.chasing.game.games;
 
 import com.prosper.chasing.game.base.*;
-import com.prosper.chasing.game.base.Point;
+import com.prosper.chasing.game.base.Point3;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
+import com.prosper.chasing.game.util.Enums;
 
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -75,8 +76,8 @@ public class Legion extends GameBase {
         int halfSize = userMap.size() / 2;
 
         for (User user: userMap.values()) {
-            Point point = gameMap.getRandomRoadPosition(true);
-            user.setPoint(point);
+            Point3 point3 = gameMap.getRandomPoint(Enums.RoadPointType.CENTER).getPoint().toPoint3();
+            user.setPoint3(point3);
             user.setRotateY(ThreadLocalRandom.current().nextInt(360));
             user.setMoveState(Constant.MoveState.IDLE);
 

@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.map;
 
-import com.prosper.chasing.game.base.Point2D;
+import com.prosper.chasing.game.base.Point2;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -452,7 +452,7 @@ public class GameMapCreator {
     protected void addBlock(int blockId, int fromBlockId, BlockType type) {
         if (usedBlockMap.containsKey(blockId)) return;
 
-        Block block = new Block(new Point2D(getX(blockId), getY(blockId)), blockId, type);
+        Block block = new Block(new Point2(getX(blockId), getY(blockId)), blockId, type);
         if (fromBlockId != -1) {
             if (getX(blockId) > getX(fromBlockId))  {
                 bridgeSet.add(getBridgeId(fromBlockId, RIGHT));

@@ -11,6 +11,7 @@ import javax.annotation.PostConstruct;
 
 import com.prosper.chasing.game.map.GameMap;
 import com.prosper.chasing.game.map.MapCreator;
+import com.prosper.chasing.game.map.MapSkeleton;
 import com.prosper.chasing.game.message.*;
 import com.prosper.chasing.game.navmesh.NavMeshGroup;
 import com.prosper.chasing.game.util.ByteBuilder;
@@ -132,7 +133,7 @@ public class GameManage {
                 log.error("create game failed, game class:" + Game.class.getName(), e);
             }
 
-            GameMap gameMap = mapCreator.getMap(gameInfo.getMetagameCode());
+            MapSkeleton gameMap = mapCreator.getMap(gameInfo.getMetagameCode());
             if (gameMap == null) {
                 throw new RuntimeException("map is null");
             }

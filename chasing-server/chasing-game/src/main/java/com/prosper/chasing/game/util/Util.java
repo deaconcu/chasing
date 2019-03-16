@@ -1,5 +1,7 @@
 package com.prosper.chasing.game.util;
 
+import com.prosper.chasing.game.base.Point2;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,5 +38,14 @@ public class Util {
         else if (direction == Enums.HexagonDirection.UP_LEFT) return 120;
         else if (direction == Enums.HexagonDirection.UP_RIGHT) return 60;
         else return -1;
+    }
+
+    public static int distance(long x1, long y1, long x2, long y2) {
+        return (int)Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+    }
+
+    public static void main(String... args) {
+        double a = Math.atan2(-1, 1);
+        int b = 1;
     }
 }
