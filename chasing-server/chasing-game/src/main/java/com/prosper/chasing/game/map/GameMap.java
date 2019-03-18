@@ -27,7 +27,7 @@ public class GameMap {
     public static Map<BuildingType, Byte> buildingBlockCount = new HashMap<>();
 
     /**
-     * 预定义的group id
+     * 预定义的group objectId
      */
     public static short ROAD_GROUP_ID = 0;
 
@@ -145,7 +145,7 @@ public class GameMap {
 
     public short getNextGroupId() {
         if (nextGroupId == Short.MAX_VALUE) {
-            throw new RuntimeException("invalid group id");
+            throw new RuntimeException("invalid group objectId");
         }
         return nextGroupId ++;
     }
@@ -841,8 +841,8 @@ public class GameMap {
         Direction direction = getDirection(startBlockId, nextBlockId);
         if (direction == Direction.DOWN_LEFT || direction == Direction.DOWN_RIGHT ||
                 direction == Direction.UP_LEFT || direction == Direction.UP_RIGHT) {
-            System.out.println("block id:" + startBlockId + ", x:" + getX(startBlockId) + ", y:" + getY(startBlockId));
-            System.out.println("block id:" + nextBlockId + ", x:" + getX(nextBlockId) + ", y:" + getY(nextBlockId));
+            System.out.println("block objectId:" + startBlockId + ", x:" + getX(startBlockId) + ", y:" + getY(startBlockId));
+            System.out.println("block objectId:" + nextBlockId + ", x:" + getX(nextBlockId) + ", y:" + getY(nextBlockId));
 
             int a =  1;
         }
@@ -937,7 +937,7 @@ public class GameMap {
 
         for (int blockId: crossBlockIdSet) {
             Direction direction = getPointsDirection(blockId, endBlockId);
-            System.out.println("block id:" + blockId + ", x:" + getX(blockId) + ", y:" + getY(blockId) + ", direction: " + direction);
+            System.out.println("block objectId:" + blockId + ", x:" + getX(blockId) + ", y:" + getY(blockId) + ", direction: " + direction);
         }
     }
 

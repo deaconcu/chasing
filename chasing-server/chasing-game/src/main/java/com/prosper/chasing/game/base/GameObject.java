@@ -1,5 +1,6 @@
 package com.prosper.chasing.game.base;
 
+import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Enums;
 import com.prosper.chasing.game.util.Enums.*;
 
@@ -38,7 +39,7 @@ public class GameObject {
 
     // 同步的动作, 有时候需要根据不同的同步动作同步不一样的信息
     // 比如出生的时候客户端需要创建，死亡的时候客户端需要销毁，其他时间客户端只需要同步数据
-    private SyncAction SyncAction;
+    private SyncAction syncAction;
 
     private LinkedList<Point3> path;
 
@@ -49,7 +50,7 @@ public class GameObject {
     public GameObject() {
         this.isMoved = true;
         this.isAlive = true;
-        this.SyncAction = SyncAction.BORN;
+        this.syncAction = syncAction.BORN;
         this.createTime = System.currentTimeMillis();
         this.lastMoveTimestamp = createTime;
     }
@@ -162,11 +163,11 @@ public class GameObject {
     }
 
     public SyncAction getSyncAction() {
-        return SyncAction;
+        return syncAction;
     }
 
     public void setSyncAction(Enums.SyncAction syncAction) {
-        SyncAction = syncAction;
+        this.syncAction = syncAction;
     }
 
     public long getCreateTime() {
@@ -199,5 +200,24 @@ public class GameObject {
 
     public void setSpeed(int speed) {
         this.speed = speed;
+    }
+
+    public void appendBytes(ByteBuilder byteBuilder) {
+        appendPrefixBytes(byteBuilder);
+        if (syncAction == SyncAction.BORN) {
+            appendBornBytes(byteBuilder);
+            syncAction = SyncAction.ALIVE;
+        } else {
+            appendAliveBytes(byteBuilder);
+        }
+    }
+
+    public void appendPrefixBytes(ByteBuilder byteBuilder) {
+    }
+
+    public void appendBornBytes(ByteBuilder byteBuilder) {
+    }
+
+    public void appendAliveBytes(ByteBuilder byteBuilder) {
     }
 }

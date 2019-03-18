@@ -15,35 +15,26 @@ import java.io.IOException;
 /**
  * Created by deacon on 2019/3/5.
  */
-public class Canvas  extends JPanel {
+public class Canvas {
 
     private MapSkeleton mapSkeleton;
 
-    private int squareW = 4;
-    private int squareH = 4;
-
     public Canvas(MapSkeleton mapSkeleton) {
         this.mapSkeleton = mapSkeleton;
-        setBackground(Color.WHITE);
     }
 
-    public Dimension getPreferredSize() {
-        return new Dimension(12000, 12000);
-    }
-
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D graph2 = (Graphics2D) g;
+    protected void paintGraph(Graphics2D graph2) {
         graph2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         graph2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         graph2.setStroke(new BasicStroke(8));
 
-
+        // 画边
         for (Hexagon hexagon: mapSkeleton.occupiedMap.values()) {
             java.util.List<Hexagon> roadSiblingList = mapSkeleton.getRoadSibling(hexagon);
             paintEdge(graph2, hexagon, roadSiblingList);
         }
 
+        // 画所有顶点的位置和信息
         for (Hexagon hexagon: mapSkeleton.occupiedMap.values()) {
             if (!mapSkeleton.vertexSet.contains(hexagon)) {
                 //paintNormal(graph2, hexagon);
@@ -52,12 +43,14 @@ public class Canvas  extends JPanel {
             }
         }
 
+        // 画支路的信息：长度和绕路距离
         for (Branch branch: mapSkeleton.branchSet) {
             paintBranch(graph2, branch);
         }
 
+        // 画特殊路段填充点的位置
         for (Point2 point: mapSkeleton.pointMap.keySet()) {
-            g.setColor(Color.blue);
+            graph2.setColor(Color.blue);
             //fillCenteredCircle(graph2, 1000, 1000, 100);
             fillCenteredCircle(graph2, point.getXInFloat(), point.getYInFloat(), 1);
         }
@@ -85,6 +78,9 @@ public class Canvas  extends JPanel {
         for (View view: mapSkeleton.viewMap.values()) {
             paintView(graph2, view);
         }
+
+        graph2.setColor(Color.pink);
+        fillCenteredCircle(graph2, mapSkeleton.getStart().getXInFloat(), mapSkeleton.getStart().getYInFloat(), 20);
     }
 
     private void paintBranch(Graphics2D g, Branch branch) {
@@ -231,19 +227,27 @@ public class Canvas  extends JPanel {
         g.fillRect(positionX, positionY, (int)r, (int)r);
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                try {
-                    createAndShowGUI();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+    public static void createAndShowGUI(MapSkeleton mapSkeleton) {
+        try {
+            System.out.println("print map ....");
+            Canvas canvas = new Canvas(mapSkeleton);
+            BufferedImage bi = new BufferedImage(12000, 12000, BufferedImage.TYPE_INT_RGB);
+
+            Graphics2D g = bi.createGraphics();
+            g.setColor(Color.white);
+            g.fillRect(0, 0, 12000, 12000);
+
+            canvas.paintGraph(g);
+
+            g.dispose();
+            ImageIO.write(bi, "png", new File("/Users/deacon/Desktop/table.png"));
+            System.out.println("print map done!");
+        } catch(Exception e) {
+            throw new RuntimeException();
+        }
     }
 
-    private static void createAndShowGUI() throws IOException {
+    public static void main(String[] args) throws IOException {
         MapSkeleton mapSkeleton = new MapSkeleton(30, 100)
                 .merge(new MapSkeleton(30, 100))
                 .merge(new MapSkeleton(30, 100))
@@ -253,27 +257,7 @@ public class Canvas  extends JPanel {
         mapSkeleton.optimize();
         mapSkeleton.generateTerrain();
         mapSkeleton.toBytes();
-        //mapSkeleton = mapSkeleton.expand();
-        Canvas canvas = new Canvas(mapSkeleton);
-        System.out.println("ok");
 
-        System.out.println("Created GUI on EDT? "+
-                SwingUtilities.isEventDispatchThread());
-        JFrame f = new JFrame("Swing Paint Demo");
-        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        f.add(canvas);
-        f.pack();
-
-        BufferedImage bi = new BufferedImage(12000, 12000, BufferedImage.TYPE_INT_RGB);
-
-        Graphics g = bi.createGraphics();
-        canvas.paint(g);
-
-        g.dispose();
-        //JOptionPane.showMessageDialog(null, new JLabel(new ImageIcon(bi)));
-        ImageIO.write(bi, "png", new File("/Users/deacon/Desktop/table.png"));
-
-        System.exit(0);
-        //f.setVisible(true);
+        createAndShowGUI(mapSkeleton);
     }
 }

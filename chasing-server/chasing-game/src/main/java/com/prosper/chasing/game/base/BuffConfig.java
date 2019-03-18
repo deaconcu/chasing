@@ -73,11 +73,11 @@ public class BuffConfig {
 
     /*
     public static void putBuff(BuffConfig buffConfig) {
-        if (buffConfigMap.containsKey(buffConfig.id)) {
-            log.warn("buff id is exist: " + buffConfig.id);
+        if (buffConfigMap.containsKey(buffConfig.objectId)) {
+            log.warn("buff objectId is exist: " + buffConfig.objectId);
             return;
         }
-        buffConfigMap.put(buffConfig.id, buffConfig);
+        buffConfigMap.put(buffConfig.objectId, buffConfig);
     }
     */
 
@@ -113,13 +113,13 @@ public class BuffConfig {
     }
     */
 
-    //public byte id;
+    //public byte objectId;
     //public short last;
 
 
     /*
-    public BuffConfig (byte id, short last) {
-        this.id = id;
+    public BuffConfig (byte objectId, short last) {
+        this.objectId = objectId;
         this.last = last;
     }
     */

@@ -119,7 +119,7 @@ public class PropConfig {
 
     public static void putProp(Prop prop) {
         if (typeMap.get(prop.propTypeId) != null) {
-            log.warn("prop id exist: " + prop.propTypeId);
+            log.warn("prop objectId exist: " + prop.propTypeId);
             return;
         }
         typeMap.put(prop.propTypeId, prop);
@@ -177,7 +177,7 @@ public class PropConfig {
             }
             // 检查道具使用对象是否正确
             if (!checkType(message.getType())) {
-                log.warn("prop type is not right, prop id: {}, message type: {}", message.getType());
+                log.warn("prop type is not right, prop objectId: {}, message type: {}", message.getType());
                 //return;
             }
 
@@ -366,7 +366,7 @@ public class PropConfig {
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
             RoadPoint roadPoint = game.gameMap.getRandomPoint(Enums.RoadPointType.CENTER);
-            toUser.resetPoint(new Point3(roadPoint.getPoint().x, 0, roadPoint.getPoint().y * 1000));
+            toUser.resetPoint(new Point3(roadPoint.getPoint().x, 0, roadPoint.getPoint().y));
             return true;
         }
     }

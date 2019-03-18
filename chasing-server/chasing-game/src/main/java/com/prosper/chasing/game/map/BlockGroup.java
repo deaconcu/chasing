@@ -55,7 +55,7 @@ public class BlockGroup {
 
     @Override
     public String toString() {
-        return "[id:" + id + ", terrainType:" +  terrainType;
+        return "[objectId:" + id + ", terrainType:" +  terrainType;
     }
 
     public byte[] getBytes() {

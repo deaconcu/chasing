@@ -39,7 +39,7 @@ public class SkillService {
 
     public void use(short skillId, SkillMessage message, User user, User toUser, Map<Integer, User> userMap) {
         if (!checkType(skillId, message.getType())) {
-            log.warn("prop type is not right, prop id: {}, message type: {}", skillId, message.getType());
+            log.warn("prop type is not right, prop objectId: {}, message type: {}", skillId, message.getType());
             return;
         }
 

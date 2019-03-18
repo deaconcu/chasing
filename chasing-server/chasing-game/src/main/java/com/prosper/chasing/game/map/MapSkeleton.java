@@ -29,7 +29,7 @@ public class MapSkeleton {
     public int bound;
 
     public Set<Hexagon> vertexSet = new HashSet<>();
-    public Map<Hexagon, RoadPoint[]> branchCrossPoint;
+    public Map<Hexagon, RoadPoint[]> branchCrossPoint = new HashMap<>();
     public Set<Branch> branchSet = new HashSet<>();
     public Map<Integer, Integer> distancesToEnd = new HashMap<>();
     public Map<Integer, Map<Integer, List<Integer>>> pathMap;
@@ -65,7 +65,7 @@ public class MapSkeleton {
             for (TreeNode treeNode: children) {
                 childString += treeNode.hexagonId + ",";
             }
-            return "block id:" + hexagonId + ", child: [" + childString + "]";
+            return "block objectId:" + hexagonId + ", child: [" + childString + "]";
         }
     }
 
@@ -867,7 +867,7 @@ public class MapSkeleton {
 
     public short getNextSpecialSectionId() {
         if (nextGroupId == Short.MAX_VALUE) {
-            throw new RuntimeException("invalid group id");
+            throw new RuntimeException("invalid group objectId");
         }
         return nextGroupId ++;
     }
@@ -914,12 +914,12 @@ public class MapSkeleton {
                 expandedMap.addBlock(expandedMap.freeMap.get(hexagonId), current);
                 expandedMap.addBlock(expandedMap.freeMap.get(hexagonId), current);
 
-                System.out.println("o hexagon id:" + hexagonId);
+                System.out.println("o hexagon objectId:" + hexagonId);
                 while (!expandedMap.occupiedMap.containsKey(hexagonId)) {
                     current = expandedMap.getOccupiedHexagon(hexagonId);
                     System.out.println("current:" + current);
                     hexagonId = expandedMap.getHexagonIdByDirection(current, direction);
-                    System.out.println("hexagon id:" + hexagonId);
+                    System.out.println("hexagon objectId:" + hexagonId);
                 }
             }
         }
@@ -929,8 +929,9 @@ public class MapSkeleton {
 
     public SpecialSection getSpecialSection(int x, int z) {
         int pointId = getPointId(x, z);
-        short specialSectionId = pointMap.get(pointId);
-        return specialSectionMap.get(specialSectionId);
+        if (pointMap.containsKey(pointId) && specialSectionMap.containsKey(pointMap.get(pointId)))
+            return specialSectionMap.get(pointMap.get(pointId));
+        else return null;
     }
 
     public RoadPoint getRandomPoint(Enums.RoadPointType type) {
@@ -952,14 +953,18 @@ public class MapSkeleton {
         return occupiedMap.get(end).coordinatePoint();
     }
 
-    public List<RoadPoint[]> randomBranchCrossList(float percent) {
-        List<RoadPoint[]> allRoadPoints = new LinkedList<>();
-        for (RoadPoint[] roadPoints: branchCrossPoint.values()) {
-            allRoadPoints.add(roadPoints);
+    public Map<Hexagon, RoadPoint[]> randomBranchCrossList(float percent) {
+        List<Hexagon> allRoadPoints = new LinkedList<>();
+        for (Hexagon hexagon: branchCrossPoint.keySet()) {
+            allRoadPoints.add(hexagon);
         }
 
         Collections.shuffle(allRoadPoints);
-        return allRoadPoints.subList(0, (int)(allRoadPoints.size() * percent));
+        Map<Hexagon, RoadPoint[]> subCrossPointMap = new HashMap<>();
+        for (Hexagon hexagon: allRoadPoints.subList(0, (int)(allRoadPoints.size() * percent))) {
+            subCrossPointMap.put(hexagon, branchCrossPoint.get(hexagon));
+        }
+        return subCrossPointMap;
     }
 
     public byte[] toBytes() {

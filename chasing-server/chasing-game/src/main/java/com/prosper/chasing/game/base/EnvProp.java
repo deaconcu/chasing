@@ -1,5 +1,8 @@
 package com.prosper.chasing.game.base;
 
+import com.prosper.chasing.game.util.ByteBuilder;
+import com.prosper.chasing.game.util.Enums;
+
 public class EnvProp extends GameObject {
 
     // 类型id
@@ -29,5 +32,23 @@ public class EnvProp extends GameObject {
     protected void catched(User user) {
         user.setProp(typeId, (byte)(user.getProp(typeId) + 1));
         vanishTime = System.currentTimeMillis();
+    }
+
+    public void appendPrefixBytes(ByteBuilder byteBuilder) {
+        byteBuilder.append(Enums.GameObjectType.ENV_PROP.getValue());
+        byteBuilder.append(getId());
+    }
+
+    public void appendBornBytes(ByteBuilder byteBuilder) {
+        byteBuilder.append(getSyncAction().getValue());
+        byteBuilder.append(typeId);
+        byteBuilder.append(getPoint3().x);
+        byteBuilder.append(getPoint3().y);
+        byteBuilder.append(getPoint3().z);
+        byteBuilder.append(getRemainSecond());
+    }
+
+    public void appendAliveBytes(ByteBuilder byteBuilder) {
+        byteBuilder.append(getRemainSecond());
     }
 }

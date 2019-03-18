@@ -3,28 +3,43 @@ package com.prosper.chasing.game.message;
 import com.prosper.chasing.game.util.Enums;
 
 /**
+ * 交互消息，暂时定义为两种消息：
+ * 1：玩家拾取游戏场景中的道具
+ * 2：玩家和游戏场景中的可交互对象进行交互，比如打开木门，架设桥梁等
+ *
  * 格式：
- * messageType(4)|interaciveObjectId(2)
+ * messageType(4)|objectType(1)|objectId(2)|objectState(1)
  */
 public class InteractionMessage extends UserMessage {
 
-    public Enums.GameObjectType interactiveObjectType;
+    /**
+     * 交互的对象类型
+     */
+    public Enums.GameObjectType objectType;
 
-    public int interactiveObjectId;
+    /**
+     * 交互的对象id
+     */
+    public int objectId;
+
+    /**
+     * 交互的对象状态，只对interactive object有效
+     */
+    public byte objectState;
 
     public InteractionMessage(UserMessage message) {
         super(message);
-        byte type = message.getContent().get();
-        if (type == Enums.GameObjectType.NPC.getValue()) {
-            interactiveObjectType = Enums.GameObjectType.NPC;
-        } else if (type == Enums.GameObjectType.INTERACT.getValue()) {
-                interactiveObjectType = Enums.GameObjectType.INTERACT;
-        } else if (type == Enums.GameObjectType.DYNAMIC.getValue()) {
-            interactiveObjectType = Enums.GameObjectType.DYNAMIC;
-        } else if (type == Enums.GameObjectType.PROP.getValue()) {
-            interactiveObjectType = Enums.GameObjectType.PROP;
-        }
-        interactiveObjectId = message.getContent().getInt();
-    }
 
+        byte type = message.getContent().get();
+        if (type == Enums.GameObjectType.INTERACT.getValue()) {
+            objectType = Enums.GameObjectType.INTERACT;
+        } else if (type == Enums.GameObjectType.ENV_PROP.getValue()) {
+            objectType = Enums.GameObjectType.PROP;
+        }
+
+        objectId = message.getContent().getInt();
+        if (objectType == Enums.GameObjectType.INTERACT) {
+            objectState = message.getContent().get();
+        }
+    }
 }

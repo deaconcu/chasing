@@ -1,5 +1,6 @@
 package com.prosper.chasing.game.base;
 
+import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Enums;
 
 /**
@@ -76,6 +77,25 @@ public class Stationary extends GameObject {
         return true;
     }
 
+    public void appendPrefixBytes(ByteBuilder byteBuilder) {
+        byteBuilder.append(Enums.GameObjectType.STATIONARY.getValue());
+        byteBuilder.append(getId());
+    }
+
+    public void appendBornBytes(ByteBuilder byteBuilder) {
+        byteBuilder.append(getType().getValue());
+        byteBuilder.append(getPoint3().x);
+        byteBuilder.append(getPoint3().y);
+        byteBuilder.append(getPoint3().z);
+        byteBuilder.append(getRotateY());
+        byteBuilder.append(getRemainSec());
+    }
+
+    public void appendAliveBytes(ByteBuilder byteBuilder) {
+        byteBuilder.append(getRemainSec());
+    }
+
+    /*
     public void interact(Game game, User user) {
         if (type == Enums.StationaryType.RIVER) {
             if (consumeProp(user, PropConfig.BRIDGE, 0)) {
@@ -99,4 +119,5 @@ public class Stationary extends GameObject {
             }
         }
     }
+    */
 }

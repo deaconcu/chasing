@@ -1525,7 +1525,7 @@ public class MarathonGameMapCreator {
 
         List<Block> key1Array = new ArrayList<>(possiblePositionMap1.keySet());
         List<Block> key2Array = new ArrayList<>(possiblePositionMap2.keySet());
-        int id = 1;
+        int objectId = 1;
         for (Map.Entry<BuildingType, Byte> buildingConfig : buildingConfigMap.entrySet()) {
             BuildingType buildingType = buildingConfig.getKey();
             int count = buildingConfig.getValue();
@@ -1548,7 +1548,7 @@ public class MarathonGameMapCreator {
                     int randomIndex = ThreadLocalRandom.current().nextInt(chosenMap.size());
                     Block buildingBlock = chosenKeyArray.get(randomIndex);
                     Direction direction = chosenMap.get(buildingBlock);
-                    gameMap.buildingMap.put(id, new Building(id ++, buildingType, buildingBlock.position, direction));
+                    gameMap.buildingMap.put(objectId, new Building(objectId ++, buildingType, buildingBlock.position, direction));
 
                     count --;
                     removeList.clear();

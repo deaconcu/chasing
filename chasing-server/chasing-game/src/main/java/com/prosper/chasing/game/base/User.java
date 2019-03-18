@@ -356,7 +356,8 @@ public class User extends GameObject {
 
         long currentTime = System.currentTimeMillis();
         long timeGap = System.currentTimeMillis() - lastStrengthCountTime;
-        this.strengthConsumed += (int)(((float)this.speed / 1000 * STRENGTH_CONSUME_SPEED_RATE  - STRENGTH_RECOVER_RATE) * timeGap);
+        this.strengthConsumed += (int)(((float)this.speed / 1000 *
+                STRENGTH_CONSUME_SPEED_RATE  - STRENGTH_RECOVER_RATE) * timeGap);
         this.lastStrengthCountTime = currentTime;
 
         int strength = this.strength - strengthConsumed;
@@ -585,9 +586,9 @@ public class User extends GameObject {
 
     /**
      * 增加地形造成的buff
-     * @param buffTypeId buff id
+     * @param buffTypeId buff objectId
      * @param last 持续时间，单位为秒
-     * @param groupId group id 地形的组id
+     * @param groupId group objectId 地形的组id
      * @param values buff附带的一些信息, 比如跟随的时候需要跟随的用户id
      */
     public boolean addBuff(byte buffTypeId, short last, int groupId, Object... values)  {
@@ -892,7 +893,41 @@ public class User extends GameObject {
     }
 
     /**
-     * 将修改写成byte[]，用来同步客户端用户数据
+     * 获取有变化的数据用来同步给其它玩家
+     * @param byteBuilder
+     */
+    public void appendBytes(ByteBuilder byteBuilder) {
+        byteBuilder.append(id);
+        byteBuilder.append(isMoved() ? 0x1 : 0x0);
+        if (isMoved()) {
+            byteBuilder.append(moveState);
+            byteBuilder.append(getPoint3().x);
+            byteBuilder.append(getPoint3().y);
+            byteBuilder.append(getPoint3().z);
+            byteBuilder.append(getRotateY());
+            // TODO 临时放一下，需要移出去
+            byteBuilder.append(getGroupId());
+        }
+
+        byteBuilder.append(buffChangedSet.size() != 0 ? 0x1 : 0x0);
+        if (buffChangedSet.size() != 0) {
+            byte count = 0;
+            for (Buff buff: getBuffList()) {
+                if (buff.getRemainSecond() > 0) {
+                    count ++;
+                }
+            }
+            byteBuilder.append(count);
+            for (Buff buff: getBuffList()) {
+                if (buff.getRemainSecond() > 0) {
+                    byteBuilder.append(buff.typeId);
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取有变化的数据用来同步给自己
      * 格式：
      * seqId(4)
      * messageType(1)
@@ -915,15 +950,15 @@ public class User extends GameObject {
      *
      * sign: gameChanges|focusUserInfo|target|RESERVED|RESERVED|RESERVED|action|baseInfo|
      *       position|strength|speedRate|buff|prop|customProperty|RESERVED|RESERVED|
-     * EnvProp: id(2)|seqId(4)|positionX(4)|positionY(4)|positionZ(4)|remainSecond(4)|
-     * NPCOld: id(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
-     * Action: id(2)|code(1)|type(1)|value(4)|
+     * EnvProp: objectId(2)|seqId(4)|positionX(4)|positionY(4)|positionZ(4)|remainSecond(4)|
+     * NPCOld: objectId(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
+     * Action: objectId(2)|code(1)|type(1)|value(4)|
      * Buff: buffId(1)|remainSecond(4)|
      * Prop: propId(2)|count(2)|
      * UserPosition userId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * UserBuff userId(4)|buffByte(4)
      */
-    public ByteBuilder ChangesToBytes() {
+    public ByteBuilder bytesOfChangesToMe() {
         ByteBuilder byteBuilder =  new ByteBuilder();
         int seqId = 0;
         byteBuilder.append(seqId);
@@ -961,7 +996,7 @@ public class User extends GameObject {
                 byteBuilder.append((byte)1);
                 byteBuilder.append((byte)focusUser.buffList.distance());
                 for (Buff buff: focusUser.buffList) {
-                    byteBuilder.append(buff.id);
+                    byteBuilder.append(buff.objectId);
                     byteBuilder.append(buff.typeId);
                 }
             } else {
@@ -1154,7 +1189,7 @@ public class User extends GameObject {
             if (System.currentTimeMillis() - replyMessage.getTimestamp() > FROZEN_TIME &&
                     getState() != Constant.UserState.OFFLINE) {
                 //setState(Constant.UserState.OFFLINE);
-                //log.info("user is offline, user id: {}", getId());
+                //log.info("user is offline, user objectId: {}", getId());
             }
         }
 

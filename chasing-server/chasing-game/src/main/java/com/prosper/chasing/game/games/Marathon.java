@@ -2,12 +2,14 @@ package com.prosper.chasing.game.games;
 
 import com.prosper.chasing.game.base.*;
 import com.prosper.chasing.game.base.Point3;
-import com.prosper.chasing.game.map.Block;
-import com.prosper.chasing.game.map.BlockGroup;
+import com.prosper.chasing.game.map.Hexagon;
 import com.prosper.chasing.game.map.SpecialSection;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import com.prosper.chasing.game.util.Enums;
+import com.prosper.chasing.game.base.InteractiveObjects.*;
+
+import com.prosper.chasing.game.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -173,28 +175,36 @@ public class Marathon extends GameBase {
         for (SpecialSection specialSection: gameMap.specialSectionMap.values()) {
             if (!specialSection.isSingle()) continue;
             RoadPoint roadPoint = specialSection.getRoadPoints()[0];
-            Enums.StationaryType type = null;
             if (specialSection.getTerrainType() == Enums.TerrainType.RIVER)
-                type = Enums.StationaryType.RIVER;
+                addGameObject(new River(roadPoint.getPoint().toPoint3(), roadPoint.getDegree()));
             else if (specialSection.getTerrainType() == Enums.TerrainType.STONE)
-                type = Enums.StationaryType.STONES;
+                addGameObject(new Stone(roadPoint.getPoint().toPoint3(), roadPoint.getDegree()));
             else if (specialSection.getTerrainType() == Enums.TerrainType.FIRE_FENCE)
-                type = Enums.StationaryType.FIRE_FENCE;
+                addGameObject(new FireFence(roadPoint.getPoint().toPoint3(), roadPoint.getDegree()));
             else if (specialSection.getTerrainType() == Enums.TerrainType.GATE)
-                type = Enums.StationaryType.GATE;
+                addGameObject(new Gate(roadPoint.getPoint().toPoint3(), roadPoint.getDegree()));
             else continue;
-            addGameObject(new Stationary(type, roadPoint.getPoint().toPoint3(), roadPoint.getDegree()));
         }
 
-        List<RoadPoint[]> crossRoadPoints = gameMap.randomBranchCrossList(0.3f);
-        for (RoadPoint[] roadPoints: crossRoadPoints) {
+        Map<Hexagon, RoadPoint[]> crossRoadPointMap = gameMap.randomBranchCrossList(0.3f);
+        for (Map.Entry<Hexagon, RoadPoint[]> entry : crossRoadPointMap.entrySet()) {
             RoadPoint farRoadPoint = null;
             int distance = 0;
-            for (RoadPoint roadPoint: roadPoints) {
+            for (RoadPoint roadPoint: entry.getValue()) {
                 if (roadPoint.getPoint().distance(0, 0) > distance) farRoadPoint = roadPoint;
             }
-            addGameObject(new Stationary(
-                    Enums.StationaryType.SIGNPOST_1, farRoadPoint.getPoint().toPoint3(), farRoadPoint.getDegree()));
+
+            Enums.HexagonDirection direction = gameMap.getRoadDirectionToEnd(entry.getKey().getId());
+            int degree = Util.getDegree(direction);
+
+            addGameObject(new SignPost(farRoadPoint.getPoint().toPoint3(), degree));
+            /*
+            if (degree > 45 && degree < 225) {
+            } else {
+                addGameObject(new Stationary(
+                        Enums.StationaryType.SIGNPOST_2, farRoadPoint.getPoint().toPoint3(), degree));
+            }
+            */
         }
 
         /*
@@ -283,7 +293,7 @@ public class Marathon extends GameBase {
             envProp.vanishTime = envProp.createTime +
                     getGamePropConfigMap().getPropConfig(envProp.typeId).duration * 1000;
             propMap.put(envProp.getId(), envProp);
-            getEnvPropChangedList().add(envProp);
+            getObjectChangedSet().add(envProp);
 
             count --;
 

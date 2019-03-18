@@ -1,5 +1,6 @@
 package com.prosper.chasing.game.map;
 
+import com.prosper.chasing.game.util.Canvas;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import redis.clients.jedis.Jedis;
@@ -30,7 +31,10 @@ public class MapCreator {
 
         mapSkeleton.optimize();
         mapSkeleton.generateTerrain();
-        mapSkeleton.toBytes();
+        Canvas.createAndShowGUI(mapSkeleton);
+
+        System.out.println("start: " + mapSkeleton.getStart());
+        System.out.println("end: " + mapSkeleton.getEnd());
 
         //MarathonGameMapCreator marathonGameMapCreator = new MarathonGameMapCreator();
         //GameMap gameMap = marathonGameMapCreator.generateV2(20, 20, 49);

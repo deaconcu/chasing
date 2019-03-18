@@ -3,13 +3,13 @@ package com.prosper.chasing.game.base;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.prosper.chasing.game.games.Marathon;
 import com.prosper.chasing.game.map.*;
 import com.prosper.chasing.game.message.*;
 import com.prosper.chasing.game.navmesh.NavMeshGroup;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import com.prosper.chasing.game.util.Enums;
+import com.prosper.chasing.game.base.InteractiveObjects.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +17,6 @@ import com.prosper.chasing.game.message.Message;
 import com.prosper.chasing.game.util.Constant.UserState;
 import com.prosper.chasing.common.util.CommonConstant.GameState;
 import com.prosper.chasing.common.util.JsonUtil;
-
-import static com.sun.tools.doclets.formats.html.markup.HtmlStyle.block;
 
 /**
  * 游戏主要逻辑对象
@@ -66,6 +64,8 @@ public abstract class Game {
 
     private Map<Integer, Stationary> stationaryMap = new HashMap<>();
 
+    private Map<Integer, InteractiveObject> interactiveMap = new HashMap<>();
+
     private List<Action> actionList = new LinkedList<>();
 
     // 地图中的npc集合
@@ -96,14 +96,12 @@ public abstract class Game {
     private Random random = new Random();
 
     protected boolean isStepChanged = false;
+
     // 每一次同步的时候有位置变化和buff变化的用户map
-    List<EnvProp> envPropChangedList = new LinkedList<>();
     Set<Integer> positionChangedSet = new HashSet<>();
     Set<Integer> buffChangedSet = new HashSet<>();
-    Set<Integer> terrainChangedSet = new HashSet<>();
-    Set<NPC> npcChangedSet = new HashSet<>();
-    Set<DynamicGameObject> dObjectChangedSet = new HashSet<>();
-    Set<Stationary> stationaryChangedSet = new HashSet<>();
+
+    Set<GameObject> objectChangedSet = new HashSet<>();
 
     public long startTime = System.currentTimeMillis();
     private long lastUpdateTime = System.currentTimeMillis();
@@ -197,13 +195,13 @@ public abstract class Game {
     /*
     private void initLamp() {
         for (Block block: gameMap.occupiedBlockMap.values()) {
-            int id = getNextDObjectId();
+            int objectId = getNextDObjectId();
             if (block.distanceAwayFromRoadCrossPoint == 0) {
                 dGameObjectMap.put(
-                        id,
+                        objectId,
                         new DynamicGameObject(
                                 Enums.StationaryType.LAMP,
-                                id,
+                                objectId,
                                 new Point3(block.position.x * 1000, 0, block.position.y * 1000),
                                 ThreadLocalRandom.current().nextInt(360),
                                 Short.MAX_VALUE));
@@ -233,12 +231,14 @@ public abstract class Game {
         if (gameObject instanceof Stationary) {
             Stationary stationary = (Stationary) gameObject;
             stationaryMap.put(stationary.getId(), stationary);
-            stationaryChangedSet.add(stationary);
         } else if (gameObject instanceof NPC) {
             NPC npc = (NPC) gameObject;
             npcMap.put(npc.getId(), npc);
-            npcChangedSet.add(npc);
+        } else if (gameObject instanceof Interactive) {
+            InteractiveObject interactiveObject = (InteractiveObject) gameObject;
+            interactiveMap.put(interactiveObject.getId(), interactiveObject);
         }
+        objectChangedSet.add(gameObject);
     }
 
     /**
@@ -252,17 +252,17 @@ public abstract class Game {
             Stationary stationary = (Stationary) gameObject;
             stationary.setSyncAction(Enums.SyncAction.DEAD);
             stationaryMap.remove(stationary.getId());
-            stationaryChangedSet.add(stationary);
+            objectChangedSet.add(stationary);
         } else if (gameObject instanceof NPC) {
             NPC npc = (NPC) gameObject;
             npc.setSyncAction(Enums.SyncAction.DEAD);
             npcMap.remove(npc.getId());
-            npcChangedSet.add(npc);
+            objectChangedSet.add(npc);
         } else if (gameObject instanceof EnvProp) {
             EnvProp prop = (EnvProp) gameObject;
             prop.setSyncAction(Enums.SyncAction.DEAD);
             propMap.remove(prop);
-            envPropChangedList.add(prop);
+            objectChangedSet.add(prop);
         }
         return true;
     }
@@ -323,6 +323,7 @@ public abstract class Game {
             user.countSpeedRate();
 
             SpecialSection specialSection = gameMap.getSpecialSection(user.getPoint3().x, user.getPoint3().z);
+            if (specialSection == null) continue;
 
             if (specialSection.getTerrainType() == Enums.TerrainType.FOG) {
                 if (!user.isCrossZone()) continue;
@@ -572,35 +573,25 @@ public abstract class Game {
      */
     public void generateUserMessage() {
         for (User user: userMap.values()) {
-            if (user.isMoved()) {
-                positionChangedSet.add(user.getId());
-            }
-            if (user.buffChangedSet.size() != 0) {
-                buffChangedSet.add(user.getId());
-            }
+            if (user.isMoved() || user.buffChangedSet.size() != 0) objectChangedSet.add(user);
         }
 
         ByteBuilder gameChangeBytes = changesToBytes();
-
         for (User user: userMap.values()) {
             if (gameChangeBytes != null) {
                 user.offerMessage(gameChangeBytes);
             }
 
-            ByteBuilder userChangeBytes = user.ChangesToBytes();
+            ByteBuilder userChangeBytes = user.bytesOfChangesToMe();
             if (userChangeBytes != null) {
                 user.offerMessage(userChangeBytes);
             }
             user.clearAfterSync();
         }
 
-        envPropChangedList.clear();
-        npcChangedSet.clear();
+        objectChangedSet.clear();
         positionChangedSet.clear();
         buffChangedSet.clear();
-        npcChangedSet.clear();
-        dObjectChangedSet.clear();
-        stationaryChangedSet.clear();
         actionList.clear();
     }
 
@@ -618,133 +609,14 @@ public abstract class Game {
         byteBuilder.append(sign);
         byteBuilder.append(System.currentTimeMillis());
 
-        if (terrainChangedSet.size() > 0 || stationaryChangedSet.size() > 0 ||
-                envPropChangedList.size() > 0 || npcChangedSet.size() > 0 || positionChangedSet.size() > 0 ||
-                buffChangedSet.size() > 0  || actionList.size() > 0) {
+        if (objectChangedSet.size() > 0 || actionList.size() > 0) {
             if (byteBuilder == null) {
                 byteBuilder =  new ByteBuilder();
             }
             sign = (short) (sign | 4096);
-            byteBuilder.append((short)terrainChangedSet.size());
-            for (int specialRoadId: terrainChangedSet) {
-                SpecialSection specialSection = gameMap.specialSectionMap.get(specialRoadId);
-                byteBuilder.append(specialSection.getId());
-                byteBuilder.append(specialSection.getTerrainType().getValue());
-            }
-
-            /*
-            byteBuilder.append((short)dObjectChangedSet.distance());
-            for(DynamicGameObject dynamicGameObject: dObjectChangedSet) {
-                byteBuilder.append(dynamicGameObject.getSyncAction().getValue());
-                byteBuilder.append(dynamicGameObject.getId());
-                byteBuilder.append(dynamicGameObject.getTypeId().getValue());
-                byteBuilder.append(dynamicGameObject.getPoint3().x);
-                byteBuilder.append(dynamicGameObject.getPoint3().y);
-                byteBuilder.append(dynamicGameObject.getPoint3().z);
-                byteBuilder.append(dynamicGameObject.getRotateY());
-            }
-            */
-
-            byteBuilder.append((short) stationaryChangedSet.size());
-            for(Stationary stationary : stationaryChangedSet) {
-                byteBuilder.append(stationary.getId());
-                byteBuilder.append(stationary.getType().getValue());
-                byteBuilder.append(stationary.getPoint3().x);
-                byteBuilder.append(stationary.getPoint3().y);
-                byteBuilder.append(stationary.getPoint3().z);
-                byteBuilder.append(stationary.getRotateY());
-                byteBuilder.append(stationary.getRemainSec());
-            }
-
-            byteBuilder.append((short)envPropChangedList.size());
-            for (EnvProp envProp: envPropChangedList) {
-                byteBuilder.append(envProp.getSyncAction().getValue());
-                byteBuilder.append(envProp.typeId);
-                byteBuilder.append(envProp.getId());
-                byteBuilder.append(envProp.getPoint3().x);
-                byteBuilder.append(envProp.getPoint3().y);
-                byteBuilder.append(envProp.getPoint3().z);
-                byteBuilder.append(envProp.getRemainSecond());
-
-                if (envProp.getSyncAction() == Enums.SyncAction.BORN)
-                    envProp.setSyncAction(Enums.SyncAction.ALIVE);
-            }
-
-            byteBuilder.append((short) npcChangedSet.size());
-            for (NPC npc: npcChangedSet) {
-                if (npc != null) {
-                    //if (npc.getSyncAction() == Enums.SyncAction.BORN || npc.getSyncAction() == Enums.SyncAction.DEAD
-                    //        || (npc.getSyncAction() == Enums.SyncAction.ALIVE && npc.isMoved())) {
-                        if (npc instanceof Merchant) {
-                            byteBuilder.append(Constant.NPCType.MERCHANT);
-
-                            byteBuilder.append(npc.getSyncAction().getValue());
-                            byteBuilder.append(npc.getId());
-                            byteBuilder.append(npc.getPoint3().x);
-                            byteBuilder.append(npc.getPoint3().y);
-                            byteBuilder.append(npc.getPoint3().z);
-                            byteBuilder.append(npc.getRotateY());
-
-                            if (npc.getSyncAction() == Enums.SyncAction.BORN) {
-                                Merchant merchant = (Merchant) npc;
-                                byte[] nameBytes = merchant.getName().getBytes();
-                                byteBuilder.append(nameBytes.length);
-                                byteBuilder.append(nameBytes);
-                                byteBuilder.append(merchant.getPropIds().length);
-                                for (short propId: merchant.getPropIds()) {
-                                    byteBuilder.append(propId);
-                                }
-                                npc.setSyncAction(Enums.SyncAction.ALIVE);
-                            }
-                        } else if (npc instanceof Animal){
-                            Animal animal = (Animal) npc;
-                            byteBuilder.append(Constant.NPCType.ANIMAL);
-                            byteBuilder.append(npc.getSyncAction().getValue());
-                            byteBuilder.append(animal.getAnimalType().getValue());
-                            byteBuilder.append(animal.getId());
-                            byteBuilder.append(animal.getTargetUser().getId());
-                            byteBuilder.append(animal.getPoint3().x);
-                            byteBuilder.append(animal.getPoint3().y);
-                            byteBuilder.append(animal.getPoint3().z);
-                            byteBuilder.append(animal.getRotateY());
-                            if (npc.getSyncAction() == Enums.SyncAction.BORN) {
-                                npc.setSyncAction(Enums.SyncAction.ALIVE);
-                            }
-                        }
-                        npc.setMoved(false);
-                    //}
-                }
-            }
-
-            byteBuilder.append((byte)positionChangedSet.size());
-            for (int userId: positionChangedSet) {
-                User user = userMap.get(userId);
-                byteBuilder.append(userId);
-                byteBuilder.append(user.moveState);
-                byteBuilder.append(user.getPoint3().x);
-                byteBuilder.append(user.getPoint3().y);
-                byteBuilder.append(user.getPoint3().z);
-                byteBuilder.append(user.getRotateY());
-
-                // TODO 临时放一下，需要移出去
-                byteBuilder.append(user.getGroupId());
-            }
-
-            byteBuilder.append((byte)buffChangedSet.size());
-            for (int userId: buffChangedSet) {
-                byteBuilder.append(userId);
-                byte count = 0;
-                for (Buff buff: getUser(userId).getBuffList()) {
-                    if (buff.getRemainSecond() > 0) {
-                        count ++;
-                    }
-                }
-                byteBuilder.append(count);
-                for (Buff buff: getUser(userId).getBuffList()) {
-                    if (buff.getRemainSecond() > 0) {
-                        byteBuilder.append(buff.typeId);
-                    }
-                }
+            byteBuilder.append((short)objectChangedSet.size());
+            for (GameObject gameObject: objectChangedSet) {
+                gameObject.appendBytes(byteBuilder);
             }
 
             byteBuilder.append((short)actionList.size());
@@ -757,68 +629,8 @@ public abstract class Game {
             }
         }
 
-        /*
-        if (dObjectChangedSet.distance() > 0) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 16384);
-
-        }
-
-        if (stationaryChangedSet.distance() > 0) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 4096);
-
-        }
-        */
-
-        /*
-        if (isStepChanged()) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 4096);
-            byteBuilder.append(getStep());
-        }
-        if (envPropChangedList.distance() != 0) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 2048);
-
-        }
-
-        if (npcChangedSet.distance() > 0) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 1024);
-
-
-        }
-
-        if (positionChangedSet.distance() != 0) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 2);
-
-        }
-
-        if (buffChangedSet.distance() != 0) {
-            if (byteBuilder == null) {
-                byteBuilder =  new ByteBuilder();
-            }
-            sign = (short) (sign | 1);
-
-        }
-
-        */
+        // 如果没有需要同步的内容，返回null
         if (sign == 0) {
-            // 如果没有需要同步的内容，返回null
             return null;
         } else {
             byteBuilder.set(sign, 5);
@@ -863,9 +675,9 @@ public abstract class Game {
      * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]|propCount(2)|list<PropPrice>|Map
      *
      * User: userId(4)|nameLength(1)|name
-     * PropPrice: id(2)|price(4)
+     * PropPrice: objectId(2)|price(4)
      * //Map: boundX(4)|boundY(4)|mapByteCount|List<byte>
-     * Building: id(4)|type(1)|positionX(4)|positionY(4)|orientation(1)
+     * Building: objectId(4)|type(1)|positionX(4)|positionY(4)|orientation(1)
      */
     public void generatePrepareMessage() {
         ByteBuilder bb = new ByteBuilder();
@@ -1079,45 +891,18 @@ public abstract class Game {
         if (user.getState() == UserState.GAME_OVER) return;
         // for override
 
-        if (message.interactiveObjectType == Enums.GameObjectType.INTERACT) {
-            Stationary stationary = stationaryMap.get(message.interactiveObjectId);
-            if (stationary == null) return;
+        if (message.objectType == Enums.GameObjectType.INTERACTIVE) {
+            InteractiveObject interactiveObject = interactiveMap.get(message.objectId);
+            if (interactiveObject == null) return;
 
             // TODO 需要判断玩家是不是在这个对象附近
-            stationary.interact(this, user);
-        } else if (message.interactiveObjectType ==  Enums.GameObjectType.PROP) {
-            EnvProp prop = propMap.get(message.interactiveObjectId);
+            interactiveObject.interact(this, user, message.objectState);
+        } else if (message.objectType ==  Enums.GameObjectType.PROP) {
+            EnvProp prop = propMap.get(message.objectId);
             if (prop != null && removeGameObject(prop)) {
                 user.increaseProp(prop.typeId, (short)1);
             }
         }
-
-        /*
-        BlockGroup blockGroup = gameMap.blockGroupMap.get(message.interactiveObjectId);
-        if (blockGroup == null) return;
-
-        BlockGroup blockGroupAround = null;
-        List<Block> blocksAround = gameMap.getBlocksInDistance(user.getPoint3(), 1);
-        for (Block block:  blocksAround) {
-            if (block.blockGroupId == message.interactiveObjectId) {
-                blockGroupAround = gameMap.blockGroupMap.get(block.blockGroupId);
-            }
-        }
-
-        if (blockGroupAround == null) return;
-        TerrainTransferConfigs.TerrainTransferConfig config =
-                TerrainTransferConfigs.getConfig(blockGroupAround.getTerrainType());
-
-        if (config.resourceType == Enums.ResourceType.MONEY) {
-            if (user.getMoney() < config.count) return;
-            user.modifyMoney( - config.count);
-        } else if (config.resourceType == Enums.ResourceType.PROP) {
-            short propId = (short)config.id;
-            if (user.getProp(propId) < config.count) return;
-            user.reduceProp(propId, (short)config.count);
-        }
-        blockGroupAround.setTerrainType(config.target);
-        */
     }
 
     /**
@@ -1230,7 +1015,7 @@ public abstract class Game {
     private User getUser(int userId, boolean isThrow) {
         User user = userMap.get(userId);
         if (user == null && isThrow) {
-            throw new RuntimeException("user is not exist, user id:" + userId);
+            throw new RuntimeException("user is not exist, user objectId:" + userId);
         }
         return user;
     }
@@ -1407,7 +1192,7 @@ public abstract class Game {
             envProp.vanishTime = envProp.createTime +
                     getGamePropConfigMap().getPropConfig(envProp.typeId).duration * 1000;
             propMap.put(envProp.getId(), envProp);
-            getEnvPropChangedList().add(envProp);
+            objectChangedSet.add(envProp);
             log.info("created prop: {}:{}-{}:{}:{}", gameInfo.getId(), envProp.getId(),
                     envProp.getPoint3().x, envProp.getPoint3().y, envProp.getPoint3().z);
 
@@ -1429,8 +1214,8 @@ public abstract class Game {
                 prop.vanishTime = prop.createTime +
                         getGamePropConfigMap().getPropConfig(prop.typeId).duration * 1000;
 
-                getEnvPropChangedList().add(prop);
-                //log.info("recreated prop: {}:{}:{}", gameInfo.getId(), prop.id, getEnvPropChangedList());
+                objectChangedSet.add(prop);
+                //log.info("recreated prop: {}:{}:{}", gameInfo.getId(), prop.objectId, getEnvPropChangedList());
                 continue;
             }
         }
@@ -1443,7 +1228,7 @@ public abstract class Game {
         return propMap.get(id);
         /*
         for (EnvProp prop: propInSceneList) {
-            if (prop.getId() == id) {
+            if (prop.getId() == objectId) {
                 return prop;
             }
         }
@@ -1594,33 +1379,8 @@ public abstract class Game {
         this.state = state;
     }
 
-
-
     public Map<Integer, User> getUserMap() {
         return userMap;
-    }
-
-    public Random getRandom() {
-        return random;
-    }
-
-    public List<EnvProp> getEnvPropChangedList() {
-        return envPropChangedList;
-    }
-
-    /*
-    public List<EnvProp> getPropInSceneList() {
-        return propInSceneList;
-    }
-    */
-
-    public byte getStep() {
-        return step;
-    }
-
-    public void setStep(byte step) {
-        isStepChanged = true;
-        this.step = step;
     }
 
     public MapSkeleton getGameMap() {
@@ -1629,6 +1389,10 @@ public abstract class Game {
 
     public void setGameMap(MapSkeleton gameMap) {
         this.gameMap = gameMap;
+    }
+
+    public Set<GameObject> getObjectChangedSet() {
+        return objectChangedSet;
     }
 
     public boolean isStepChanged() {

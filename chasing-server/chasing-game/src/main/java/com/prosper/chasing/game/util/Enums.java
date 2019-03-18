@@ -62,23 +62,29 @@ public class Enums {
         FLAG(3),
         SNOW_OLD(4),
         FIRE(5),
-        STORE(6),
-
-        RIVER(7), // 河流
-        RIVER_WITH_BRIDGE(8),   // 有桥的河流
-        GATE(9),   // 不能通过的门
-        GATE_OPEN(10),   // 可以通过的门
-        FIRE_FENCE(11),   // 火焰
-        FIRE_FENCE_PUT_OUT(12),   // 已经熄灭的火焰
-        STONES(13), // 石墙
-        STONES_BROKEN(14), // 已破裂的石墙
-
-        SIGNPOST_1(15),
-        SIGNPOST_2(16);
+        STORE(6);
 
         private int value;
 
         StationaryType(int value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return (byte)value;
+        }
+    }
+
+    public enum InteractiveType {
+        RIVER(1), // 河流
+        GATE(2),   // 不能通过的门
+        FIRE_FENCE(3),   // 火焰
+        STONES(4), // 石墙
+        SIGNPOST(5);
+
+        private int value;
+
+        InteractiveType(int value) {
             this.value = value;
         }
 
@@ -121,6 +127,11 @@ public class Enums {
     }
 
     public enum GameObjectType {
+        ENV_PROP(1),
+        STATIONARY(2),
+        INTERACTIVE(3),
+        USER(4),
+
         NPC(1),
         INTERACT(2),
         DYNAMIC(3),
@@ -283,5 +294,6 @@ public class Enums {
         CENTER,
         WAYSIDE
     }
+
 
 }

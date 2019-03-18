@@ -163,7 +163,7 @@ public class GameManage {
             String serverAddr = config.serverIp + ":" + config.rpcPort;
             zkClient.createNode(config.gameZkName + "/" + gameInfo.getId(),
                     serverAddr.getBytes(), CreateMode.PERSISTENT, true);
-            log.info("create game success, game id:" + gameInfo.getId() + ", user count: " + userList.size());
+            log.info("create game success, game objectId:" + gameInfo.getId() + ", user count: " + userList.size());
         } catch (Exception e) {
             log.error("create game failed", e);
         }
@@ -182,7 +182,7 @@ public class GameManage {
             gamePool.remove(gameId);
             log.info("game finished, game: {}", game.getGameInfo().getId());
         } catch (TException e) {
-            log.error("finish game failed, game id: " + gameId, e);
+            log.error("finish game failed, game objectId: " + gameId, e);
         }
     }
 
@@ -274,7 +274,7 @@ public class GameManage {
                             Game game = gamePool.get(gameId);
                             // 如果game不存在，返回一个游戏不存在的消息
                             if (game == null) {
-                                log.warn("game is not exist, game id: {}", gameId);
+                                log.warn("game is not exist, game objectId: {}", gameId);
                                 if (message instanceof UserMessage) {
                                     ByteBuilder byteBuilder =  new ByteBuilder();
                                     UserMessage userMessage = (UserMessage) parsedMessage;
@@ -372,11 +372,11 @@ public class GameManage {
                         asyncClient.executeData(userId, message.getContent(), new AsyncMethodCallback<Object>() {
                             @Override
                             public void onComplete(Object response) {
-                                log.info("response success, user id:" + userId);
+                                log.info("response success, user objectId:" + userId);
                             }
                             @Override
                             public void onError(Exception exception) {
-                                log.info("response failed, user id:" + userId, exception);
+                                log.info("response failed, user objectId:" + userId, exception);
                             }
                         });
                         */

@@ -82,7 +82,7 @@ public class Hexagon {
 
     @Override
     public String toString() {
-        return "id: " + id + ", x: " + x + ", y: " + y + ", bridge: " + Arrays.toString(bridges);
+        return "objectId: " + id + ", x: " + x + ", y: " + y + ", bridge: " + Arrays.toString(bridges);
     }
 
     public int getId() {

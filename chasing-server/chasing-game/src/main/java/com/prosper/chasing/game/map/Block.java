@@ -136,7 +136,7 @@ public class Block {
 
     @Override
     public String toString() {
-        return "block id: " + blockId + ", type: " + type + ", position x: " + position.x + ", position y: " +
+        return "block objectId: " + blockId + ", type: " + type + ", position x: " + position.x + ", position y: " +
                 position.y + ", distance to finish: " + distanceToFinish;
     }
 

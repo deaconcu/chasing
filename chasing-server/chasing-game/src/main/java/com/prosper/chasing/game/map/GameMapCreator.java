@@ -57,7 +57,7 @@ public class GameMapCreator {
             for (TreeNode treeNode: children) {
                 childString += treeNode.blockId + ",";
             }
-            return "block id:" + blockId + ", child: [" + childString + "]";
+            return "block objectId:" + blockId + ", child: [" + childString + "]";
         }
     }
 
@@ -93,10 +93,10 @@ public class GameMapCreator {
             int nextBlockId = getRandomUnusedSibling(blockId);
             while (nextBlockId == -1 && pathBlockIdList.size() > 0) {
                 blockId = pathBlockIdList.get(ThreadLocalRandom.current().nextInt(pathBlockIdList.size()));
-                //System.out.println("get block id from nodes, x:" + getX(hexagonId) + ", y:" + getY(hexagonId));
+                //System.out.println("get block objectId from nodes, x:" + getX(hexagonId) + ", y:" + getY(hexagonId));
 
                 nextBlockId = getRandomUnusedSibling(blockId);
-                //System.out.println("get next block id, x:" + getX(nextBlockId) + ", y:" + getY(nextBlockId));
+                //System.out.println("get next block objectId, x:" + getX(nextBlockId) + ", y:" + getY(nextBlockId));
                 if (nextBlockId == -1) {
                     pathBlockIdList.remove(new Integer(blockId));
                 }

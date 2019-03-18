@@ -20,7 +20,9 @@ public class RoadPoint {
     }
 
     public int getDegree() {
-        return (int)Math.toDegrees(deflection) * 1000;
+        int degree = (int)Math.toDegrees(deflection) * 1000;
+        if (degree < 0) return degree % 360 + 360;
+        else return degree % 360;
     }
 
     public Point2 getPoint() {
