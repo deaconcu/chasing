@@ -36,39 +36,6 @@ public class Lover extends GameBase {
     }
 
     @Override
-    public ByteBuilder generateResultMessage(User user) {
-        int rank = 1;
-        for (User gameUser: getUserMap().values()) {
-            if (gameUser.gameOverTime == 0 || gameUser.gameOverTime > user.gameOverTime) {
-                rank ++;
-            }
-        }
-
-        ByteBuilder bb = new ByteBuilder();
-        bb.append(Constant.MessageType.RESULT);
-        bb.append(rank);
-        bb.append(0);
-
-        return bb;
-    }
-
-    @Override
-    public GamePropConfigMap getGamePropConfigMap() {
-        return gamePropConfigMap;
-    }
-
-    @Override
-    protected int getCustomPropPrice(short propTypeId) {
-        if (propTypeId == PropConfig.MARK) return 10;
-        else return -1;
-    }
-
-    @Override
-    protected short[] getStorePropIds() {
-        return new short[]{1,2,3,4,5,6,7,8,9,10};
-    }
-
-    @Override
     protected void customInitUser(Map<Integer, User> userMap) {
         byte groupId = 1;
         int count = 1;

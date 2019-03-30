@@ -38,12 +38,12 @@ public class Animal extends NPC {
         }
 
         if (getTargetUser().isCrossZone()) {
-            setPath(game.getPath(getPoint3(), targetUser.getPoint3()));
+            //setPath(game.getPath(getPoint3(), targetUser.getPoint3()));
         }
 
         move();
         if (isMoved()) {
-            game.npcChangedSet.add(this);
+            //game.npcChangedSet.add(this);
         }
     }
 

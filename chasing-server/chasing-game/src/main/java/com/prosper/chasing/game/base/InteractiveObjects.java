@@ -3,26 +3,30 @@ package com.prosper.chasing.game.base;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Enums;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * 所有可以和用户交互的游戏对象称为Interactive Object,
+ * 它们有自己的逻辑，需要在game中执行
+ * 有自己的状态，可以接受用户的命令改变状态
  * Created by deacon on 2019/3/18.
  */
 public class InteractiveObjects {
 
-    public static abstract class InteractiveObject extends GameObject implements Interactive {
+    public static abstract class Interactive extends GameObject {
 
         private static int id = 0;
 
-        public static Map<Enums.InteractiveType, boolean[][]> transferMatrixMap;
+        public static Map<Enums.InteractiveType, boolean[][]> transferMatrixMap = new HashMap<>();
 
-        private int currentState;
+        private byte currentState;
 
         static void init(Enums.InteractiveType type, int stateSize) {
             transferMatrixMap.put(type, new boolean[stateSize][stateSize]);
         }
 
-        InteractiveObject(Point3 position, int rotateY) {
+        Interactive(Point3 position, int rotateY) {
             super(id ++, position, rotateY);
         }
 
@@ -34,15 +38,9 @@ public class InteractiveObjects {
             return transferMatrixMap.get(getType())[fromState][toState];
         }
 
-        public boolean change(int fromState, int toState) {
-            if (!isAllowed(fromState, toState)) return false;
-            setCurrentState(toState);
-            return true;
-        }
-
-        public void appendPrefixBytes(ByteBuilder byteBuilder) {
-            byteBuilder.append(Enums.GameObjectType.INTERACTIVE.getValue());
-            byteBuilder.append(getId());
+        @Override
+        public Enums.GameObjectType getObjectType() {
+            return Enums.GameObjectType.INTERACTIVE;
         }
 
         public void appendBornBytes(ByteBuilder byteBuilder) {
@@ -56,26 +54,37 @@ public class InteractiveObjects {
 
         public void appendAliveBytes(ByteBuilder byteBuilder) {
             byteBuilder.append(getCurrentState());
-            byteBuilder.append(getRotateY());
         }
 
-        public int getCurrentState() {
+        public byte getCurrentState() {
             return currentState;
         }
 
-        public void setCurrentState(int currentState) {
+        public void setCurrentState(byte currentState) {
             this.currentState = currentState;
         }
 
         abstract Enums.InteractiveType getType();
 
-        abstract void interact(Game game, User user, byte state);
+        public void logic(Game game){}
+
+        public boolean interact(Game game, User user, byte state) {
+            byte currentState =  getCurrentState();
+            if (!isAllowed(getCurrentState(), state)) return false;
+            setCurrentState(state);
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "[id:" + getId() + ", type:" + getType() + ", position:" + getPoint3().toString() + "]";
+        }
     }
 
-    public static class River extends InteractiveObject {
+    public static class River extends Interactive {
 
-        public static byte NO_BRIDGE = 1;
-        public static byte WITH_BRIDGE = 2;
+        public static byte NO_BRIDGE = 0;
+        public static byte WITH_BRIDGE = 1;
 
         static {
             init(Enums.InteractiveType.RIVER, 2);
@@ -92,17 +101,12 @@ public class InteractiveObjects {
             return Enums.InteractiveType.RIVER;
         }
 
-        @Override
-        void interact(Game game, User user, byte state) {
-            // todo need prop bridge
-            change(getCurrentState(), state);
-        }
     }
 
-    public static class Stone extends InteractiveObject {
+    public static class Stone extends Interactive {
 
-        public static byte INTACT = 1;
-        public static byte BROKEN = 2;
+        public static byte INTACT = 0;
+        public static byte BROKEN = 1;
 
         static {
             init(Enums.InteractiveType.STONES, 2);
@@ -116,19 +120,14 @@ public class InteractiveObjects {
 
         @Override
         Enums.InteractiveType getType() {
-            return Enums.InteractiveType.RIVER;
-        }
-
-        @Override
-        void interact(Game game, User user, byte state) {
-            change(getCurrentState(), state);
+            return Enums.InteractiveType.STONES;
         }
     }
 
-    public static class Gate extends InteractiveObject {
+    public static class Gate extends Interactive {
 
-        public static byte CLOSE = 1;
-        public static byte OPEN = 2;
+        public static byte CLOSE = 0;
+        public static byte OPEN = 1;
 
         static {
             init(Enums.InteractiveType.GATE, 2);
@@ -142,19 +141,15 @@ public class InteractiveObjects {
 
         @Override
         Enums.InteractiveType getType() {
-            return Enums.InteractiveType.RIVER;
+            return Enums.InteractiveType.GATE;
         }
 
-        @Override
-        void interact(Game game, User user, byte state) {
-            change(getCurrentState(), state);
-        }
     }
 
-    public static class FireFence extends InteractiveObject {
+    public static class FireFence extends Interactive {
 
-        public static byte FIRE_ON = 1;
-        public static byte FIRE_PUT_OUT = 2;
+        public static byte FIRE_ON = 0;
+        public static byte FIRE_PUT_OUT = 1;
 
         static {
             init(Enums.InteractiveType.FIRE_FENCE, 2);
@@ -168,20 +163,15 @@ public class InteractiveObjects {
 
         @Override
         Enums.InteractiveType getType() {
-            return Enums.InteractiveType.RIVER;
-        }
-
-        @Override
-        void interact(Game game, User user, byte state) {
-            change(getCurrentState(), state);
+            return Enums.InteractiveType.FIRE_FENCE;
         }
     }
 
-    public static class SignPost extends InteractiveObject {
+    public static class SignPost extends Interactive {
 
-        public static byte DIRECTION_1 = 1;
-        public static byte DIRECTION_2 = 2;
-        public static byte DIRECTION_3 = 3;
+        public static byte DIRECTION_1 = 0;
+        public static byte DIRECTION_2 = 1;
+        public static byte DIRECTION_3 = 2;
 
         static {
             init(Enums.InteractiveType.SIGNPOST, 3);
@@ -200,12 +190,25 @@ public class InteractiveObjects {
 
         @Override
         Enums.InteractiveType getType() {
-            return Enums.InteractiveType.RIVER;
+            return Enums.InteractiveType.SIGNPOST;
+        }
+    }
+
+    public static class Tent extends Interactive {
+
+        public Tent(Point3 position, int rotateY) {
+            super(position, rotateY);
         }
 
         @Override
-        void interact(Game game, User user, byte state) {
-            change(getCurrentState(), state);
+        Enums.InteractiveType getType() {
+            return Enums.InteractiveType.TENT;
+        }
+
+        @Override
+        public void logic(Game game) {
+
+
         }
     }
 }

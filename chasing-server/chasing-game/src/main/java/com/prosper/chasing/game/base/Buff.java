@@ -4,38 +4,46 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
+ * 用户buff
+ * buff有三种类型：
+ * 1 普通buff，一般是使用道具产生的buff
+ * 2 地形buff，当前所在的道路产生的buff
+ * 3 道具光环，持有道具产生的buff
  * Created by deacon on 2018/1/1.
  */
 public class Buff {
 
+    /**
+     * buff 标识id
+     */
     int id;
-    byte typeId;
-    long startSecond; // 起始时间
-    short last;      // 持续时间
-    int groupId;
-    List<Object> valueList;
 
-    public Buff(int id, byte typeId, short last) {
+    /**
+     * buff 类型id
+     */
+    byte typeId;
+
+    /**
+     * buff的开始时间
+     */
+    long startSecond; // 起始时间
+
+    /**
+     * buff的结束时间
+     */
+    short last;      // 持续时间
+
+    /**
+     * 一些附加的信息
+     */
+    Object[] valueList;
+
+    public Buff(int id, byte typeId, short last, Object... values) {
         this.id = id;
         this.typeId = typeId;
         this.startSecond = System.currentTimeMillis();
         this.last = last;
-        this.valueList = new LinkedList<>();
-        this.groupId = 0;
-    }
-
-    public Buff(int id, byte typeId, short last, int groupId, Object... values) {
-        this(id, typeId, last);
-        this.groupId = groupId;
-        if (values != null) {
-            for (Object o: values) {
-                valueList.add(o);
-            }
-        }
-    }
-
-    public Buff(int id, byte typeId, short last, Object... values) {
-        this(id, typeId, last, 0, values);
+        valueList = values;
     }
 
     /**
@@ -51,8 +59,38 @@ public class Buff {
         return remainSecond;
     }
 
+    public boolean isValid() {
+        return getRemainSecond() > 0;
+    }
+
     public void refresh(short last) {
         this.startSecond = System.currentTimeMillis();
         this.last = last;
+    }
+
+    /**
+     * 特殊地形buff
+     */
+    public static class SpcSectionBuff extends Buff {
+
+        int groupId;
+
+        public SpcSectionBuff(int id, byte typeId, int groupId) {
+            super(id, typeId, (short)-1);
+            this.groupId = groupId;
+        }
+    }
+
+    /**
+     * 道具buff
+     */
+    public static class PropBuff extends Buff {
+
+        short propTypeId;
+
+        public PropBuff(int id, byte typeId, short propTypeId) {
+            super(id, typeId, (short)-1);
+            this.propTypeId = propTypeId;
+        }
     }
 }

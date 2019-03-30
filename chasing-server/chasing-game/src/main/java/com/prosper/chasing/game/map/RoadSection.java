@@ -122,8 +122,20 @@ public class RoadSection {
         if (type == Enums.RoadPointType.CENTER) {
             return between[ThreadLocalRandom.current().nextInt(between.length)];
         } else {
-            // TODO
-            return edgeOfBetween[ThreadLocalRandom.current().nextInt(edgeOfBetween.length)][0];
+            RoadPoint[] roadPoints = edgeOfBetween[ThreadLocalRandom.current().nextInt(edgeOfBetween.length)];
+            if (roadPoints[0].getPoint().distance(0, 0) > roadPoints[1].getPoint().distance(0, 0)) return roadPoints[0];
+            else return roadPoints[1];
+        }
+    }
+
+    public RoadPoint getRandomLightPoint(Enums.RoadPointType type) {
+        boolean isStart = ThreadLocalRandom.current().nextBoolean();
+        if (type == Enums.RoadPointType.CENTER) {
+            return isStart ? start :end;
+        } else {
+            RoadPoint[] roadPoints = isStart ? edgeOfStart : edgeOfEnd;
+            if (roadPoints[0].getPoint().distance(0, 0) > roadPoints[1].getPoint().distance(0, 0)) return roadPoints[0];
+            else return roadPoints[1];
         }
     }
 

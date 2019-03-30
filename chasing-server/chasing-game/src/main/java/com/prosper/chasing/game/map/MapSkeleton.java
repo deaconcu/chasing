@@ -37,6 +37,7 @@ public class MapSkeleton {
     public Map<Integer, Lamp> lampMap = new HashMap<>();
     public Map<Short, SpecialSection> specialSectionMap = new HashMap<>();
     public Map<Point2, Short> pointMap = new HashMap<>();
+    public Map<Integer, Short> pointIdMap = new HashMap<>();
     public Map<Integer, View> viewMap = new HashMap<>();
 
     private short nextGroupId;
@@ -591,7 +592,8 @@ public class MapSkeleton {
         int offset = RoadSection.ROAD_WIDTH;
         for (int i = x - offset; i <= x + offset; i += 1000) {
             for (int j = y - offset; j <= y + offset; j += 1000) {
-                pointMap.put(new Point2(i, j), specialSectionId);
+                pointMap.put(new Point2((i / 1000) * 1000, (j / 1000) * 1000), specialSectionId);
+                pointIdMap.put(getPointId(i / 1000, j / 1000), specialSectionId);
             }
         }
     }
@@ -928,9 +930,9 @@ public class MapSkeleton {
     }
 
     public SpecialSection getSpecialSection(int x, int z) {
-        int pointId = getPointId(x, z);
-        if (pointMap.containsKey(pointId) && specialSectionMap.containsKey(pointMap.get(pointId)))
-            return specialSectionMap.get(pointMap.get(pointId));
+        int pointId = getPointId(x / 1000, z / 1000);
+        if (pointIdMap.containsKey(pointId) && specialSectionMap.containsKey(pointIdMap.get(pointId)))
+            return specialSectionMap.get(pointIdMap.get(pointId));
         else return null;
     }
 
@@ -945,10 +947,55 @@ public class MapSkeleton {
         return chosen.getRandomRoadPoint(type);
     }
 
+    public List<Segment> getRandomEndpointSegment(float percent) {
+        if (percent > 1) percent = 1;
+        else if (percent < 0) percent = 0;
+
+        List<Hexagon> hexagonList = new LinkedList<>();
+        for (Hexagon vertex: vertexSet) {
+            hexagonList.add(vertex);
+        }
+        Collections.shuffle(hexagonList);
+        List<Hexagon> selectedList = hexagonList.subList(0, (int)(hexagonList.size() * percent));
+        List<Segment> segmentList = getSegments(selectedList);
+        return segmentList;
+    }
+
+    public List<Segment> getSegments(List<Hexagon> vertexList) {
+        List<Segment> segmentList = new LinkedList<>();
+        for (Segment segment : segmentMap.values()) {
+            if (vertexList.contains(segment.getH1()) || vertexList.contains((segment.getH2())))
+                segmentList.add(segment);
+        }
+        return segmentList;
+    }
+
+    /**
+     * 根据一个RoadSection的起点或者终点坐标，返回与之相关的roadSection
+     * @return
+     */
+    public RoadSection[] getNearestRoadSectioon(Point2 p) {
+        RoadSection[] roadSections = new RoadSection[3];
+        int index = 0;
+        for (Segment segment: segmentMap.values()) {
+            for (RoadSection roadSection: segment.getRoadSections()) {
+                if (roadSection.getStart().getPoint().equals(p))
+                    roadSections[index ++] = roadSection;
+            }
+        }
+        return Arrays.copyOf(roadSections, index);
+    }
+
+    /**
+     * 获得起点坐标
+     */
     public Point2 getStart() {
         return occupiedMap.get(start).coordinatePoint();
     }
 
+    /**
+     * 获得终点坐标
+     */
     public Point2 getEnd() {
         return occupiedMap.get(end).coordinatePoint();
     }

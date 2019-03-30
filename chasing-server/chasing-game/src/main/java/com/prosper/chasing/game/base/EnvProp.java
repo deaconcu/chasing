@@ -35,12 +35,16 @@ public class EnvProp extends GameObject {
     }
 
     public void appendPrefixBytes(ByteBuilder byteBuilder) {
-        byteBuilder.append(Enums.GameObjectType.ENV_PROP.getValue());
+        byteBuilder.append(Enums.GameObjectType.PROP.getValue());
         byteBuilder.append(getId());
     }
 
+    @Override
+    public Enums.GameObjectType getObjectType() {
+        return Enums.GameObjectType.PROP;
+    }
+
     public void appendBornBytes(ByteBuilder byteBuilder) {
-        byteBuilder.append(getSyncAction().getValue());
         byteBuilder.append(typeId);
         byteBuilder.append(getPoint3().x);
         byteBuilder.append(getPoint3().y);

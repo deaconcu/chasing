@@ -20,9 +20,24 @@ public class RoadPoint {
     }
 
     public int getDegree() {
-        int degree = (int)Math.toDegrees(deflection) * 1000;
-        if (degree < 0) return degree % 360 + 360;
-        else return degree % 360;
+        double degree = Math.toDegrees(deflection);
+        if (degree < 0) return (int)((degree % 360 + 360) * 1000);
+        else return (int)(degree % 360) * 1000;
+    }
+
+    /**
+     * 路边道具的角度只能在 (-135，45）之间，不然道具会背对着道路
+     * @return
+     */
+    public int getStationaryDegree() {
+        double degree = Math.toDegrees(deflection);
+        if (degree < 0) degree = degree % 360 + 360;
+        else degree = degree % 360;
+
+        if (degree < 45) ;
+        else if (degree < 135) degree += 180;
+        else if (degree < 225) degree -= 180;
+        return (int)(degree * 1000);
     }
 
     public Point2 getPoint() {

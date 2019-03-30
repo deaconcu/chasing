@@ -1,5 +1,7 @@
 package com.prosper.chasing.game.base;
 
+import com.prosper.chasing.game.util.Enums;
+
 /**
  * Created by deacon on 2018/12/31.
  */
@@ -9,10 +11,10 @@ public class Action {
 
         public short propTypeId;
         public int userId;
-        public byte targetType;
+        public Enums.TargetType targetType;
         public int targetId;
 
-        public PropAction(short propTypeId, int userId, byte targetType, int targetId) {
+        public PropAction(short propTypeId, int userId, Enums.TargetType targetType, int targetId) {
             this.propTypeId = propTypeId;
             this.userId = userId;
             this.targetType = targetType;

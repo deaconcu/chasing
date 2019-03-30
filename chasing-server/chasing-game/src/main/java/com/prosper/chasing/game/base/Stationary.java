@@ -77,9 +77,9 @@ public class Stationary extends GameObject {
         return true;
     }
 
-    public void appendPrefixBytes(ByteBuilder byteBuilder) {
-        byteBuilder.append(Enums.GameObjectType.STATIONARY.getValue());
-        byteBuilder.append(getId());
+    @Override
+    public Enums.GameObjectType getObjectType() {
+        return Enums.GameObjectType.STATIONARY;
     }
 
     public void appendBornBytes(ByteBuilder byteBuilder) {
@@ -94,6 +94,12 @@ public class Stationary extends GameObject {
     public void appendAliveBytes(ByteBuilder byteBuilder) {
         byteBuilder.append(getRemainSec());
     }
+
+    @Override
+    public String toString() {
+        return "[id:" + getId() + ", type:" + type + ", position:" + getPoint3().toString() + "]";
+    }
+
 
     /*
     public void interact(Game game, User user) {

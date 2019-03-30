@@ -1,7 +1,9 @@
 package com.prosper.chasing.game.map;
 
-import com.prosper.chasing.game.base.RoadPoint;
+import com.prosper.chasing.game.base.*;
 import com.prosper.chasing.game.util.Enums;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by deacon on 2019/3/14.

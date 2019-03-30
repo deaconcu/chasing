@@ -35,4 +35,9 @@ public class DynamicGameObject extends GameObject {
     public int getLifeTime() {
         return lifeTime;
     }
+
+    @Override
+    public Enums.GameObjectType getObjectType() {
+        return Enums.GameObjectType.STATIONARY;
+    }
 }

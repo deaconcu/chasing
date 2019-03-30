@@ -32,11 +32,11 @@ public class Util {
 
     public static int getDegree(Enums.HexagonDirection direction) {
         if (direction == Enums.HexagonDirection.RIGHT) return 0;
-        else if (direction == Enums.HexagonDirection.DOWN_RIGHT) return 300;
-        else if (direction == Enums.HexagonDirection.DOWN_LEFT) return 240;
-        else if (direction == Enums.HexagonDirection.LEFT) return 180;
-        else if (direction == Enums.HexagonDirection.UP_LEFT) return 120;
-        else if (direction == Enums.HexagonDirection.UP_RIGHT) return 60;
+        else if (direction == Enums.HexagonDirection.DOWN_RIGHT) return 300 * 1000;
+        else if (direction == Enums.HexagonDirection.DOWN_LEFT) return 240 * 1000;
+        else if (direction == Enums.HexagonDirection.LEFT) return 180 * 1000;
+        else if (direction == Enums.HexagonDirection.UP_LEFT) return 120 * 1000;
+        else if (direction == Enums.HexagonDirection.UP_RIGHT) return 60 * 1000;
         else return -1;
     }
 

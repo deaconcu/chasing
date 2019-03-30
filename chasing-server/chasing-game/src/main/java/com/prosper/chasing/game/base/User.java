@@ -1,9 +1,11 @@
 package com.prosper.chasing.game.base;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.prosper.chasing.game.map.SpecialSection;
 import com.prosper.chasing.game.message.ReplyMessage;
 import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
+import com.prosper.chasing.game.util.Enums;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,7 +131,7 @@ public class User extends GameObject {
     boolean isStrengthChanged = false;
 
     // 结束游戏的时间
-    public long gameOverTime;
+    public long finishTime;
 
     // 动作列表
     @JsonIgnore
@@ -174,7 +176,7 @@ public class User extends GameObject {
 
     private Object targetObject;
 
-    private Object dreamTargetObject;
+    private Object systemTargetObject;
 
     private Map<Integer, ChasingInfo> chasingInfoMap = new HashMap<>();
 
@@ -260,31 +262,34 @@ public class User extends GameObject {
         return targetObject;
     }
 
-    public GameObject getTargetObject(byte type, int id) {
-        if (type == Constant.TargetType.TYPE_PROP) {
+    public GameObject getTargetObject(Enums.TargetType type, int id) {
+        if (type == Enums.TargetType.PROP) {
             return game.getProp(id);
-        } else if (type == Constant.TargetType.TYPE_STATIONARY) {
+        } else if (type == Enums.TargetType.STATIONARY) {
             return game.getStationary(id);
-        } else if (type == Constant.TargetType.TYPE_USER) {
+        } else if (type == Enums.TargetType.INTERACTIVE) {
+            return game.getInteractive(id);
+        } else if (type == Enums.TargetType.USER) {
             return game.getUser(id);
         }
         return null;
     }
 
-    public byte getTargetType() {
-        if (targetObject instanceof Point3) return Constant.TargetType.TYPE_POSITION;
-        else if (targetObject instanceof EnvProp) return Constant.TargetType.TYPE_PROP;
-        else if (targetObject instanceof User) return Constant.TargetType.TYPE_USER;
-        else if (targetObject instanceof Stationary) return Constant.TargetType.TYPE_STATIONARY;
-        else return Constant.TargetType.TYPE_NONE;
+    public Enums.TargetType getTargetType() {
+        if (targetObject instanceof Point3) return Enums.TargetType.POSITION;
+        else if (targetObject instanceof EnvProp) return Enums.TargetType.PROP;
+        else if (targetObject instanceof User) return Enums.TargetType.USER;
+        else if (targetObject instanceof Stationary) return Enums.TargetType.STATIONARY;
+        else if (targetObject instanceof InteractiveObjects.Interactive) return Enums.TargetType.INTERACTIVE;
+        else return Enums.TargetType.NONE;
     }
 
     /**
      * 设置目标对象
      * @return 修改成功返回true，否则返回false
      */
-    public boolean setTarget(byte type, int id, Point3 point3) {
-        if (type == Constant.TargetType.TYPE_POSITION)  {
+    public boolean setTarget(Enums.TargetType type, int id, Point3 point3) {
+        if (type == Enums.TargetType.POSITION)  {
             if (targetObject != null && targetObject.equals(point3)) {
                 return false;
             }
@@ -314,12 +319,12 @@ public class User extends GameObject {
         return true;
     }
 
-    public Object getDreamTargetObject() {
-        return dreamTargetObject;
+    public Object getSystemTargetObject() {
+        return systemTargetObject;
     }
 
-    public void setDreamTargetObject(Object dreamTargetObject) {
-        this.dreamTargetObject = dreamTargetObject;
+    public void setSystemTargetObject(Object systemTargetObject) {
+        this.systemTargetObject = systemTargetObject;
         isTargetChanged = true;
     }
 
@@ -379,6 +384,8 @@ public class User extends GameObject {
             speedRate -= 40;
         } else if (hasBuff(BuffConfig.SPEED_DOWN_LEVEL_1)) {
             speedRate -= 20;
+        } else if (hasBuff(BuffConfig.HOLD_SCEPTER)) {
+            speedRate += 100;
         }
 
         if (hasBuff(BuffConfig.SPEED_DOWN_LEVEL_1_TERRAIN)) {
@@ -524,6 +531,9 @@ public class User extends GameObject {
         propChangedSet.add(propId);
     }
 
+    /**
+     * 获取用户拥有的某一类型道具数量
+     */
     public Short getProp(short propId) {
         Short count = propMap.get(propId);
         if (count == null) {
@@ -538,8 +548,8 @@ public class User extends GameObject {
     public int getPackagePropCount() {
         int count = 0;
         for (short propTypeId: propMap.keySet()) {
-            PropConfig.Prop prop = PropConfig.getProp(propTypeId);
-            if (prop.isInPackage) {
+            PropConfig.PropOld propOld = PropConfig.getProp(propTypeId);
+            if (propOld.isInPackage) {
                 count += propMap.get(propTypeId);
             }
         }
@@ -587,30 +597,32 @@ public class User extends GameObject {
     /**
      * 增加地形造成的buff
      * @param buffTypeId buff objectId
-     * @param last 持续时间，单位为秒
      * @param groupId group objectId 地形的组id
-     * @param values buff附带的一些信息, 比如跟随的时候需要跟随的用户id
      */
-    public boolean addBuff(byte buffTypeId, short last, int groupId, Object... values)  {
+    public boolean addBuff(byte buffTypeId, int groupId)  {
         if (groupId <= 0 || hasBuff(buffTypeId, groupId)) return false;
-        Buff buff = new Buff(getNextBuffId(), buffTypeId, last, groupId, values);
+        Buff buff = new Buff.SpcSectionBuff(getNextBuffId(), buffTypeId, groupId);
         buffList.add(buff);
         buffChangedSet.add(buff);
         return true;
     }
 
     /**
-     * 增加其他因素形成的buff
-     * @param buffTypeId
-     * @return
+     * 增加buff
+     * @param typeId buff的类型id
+     * @param last buff持续时间, 单位为秒, last < 0 时表示buff没有时间限制
+     * @param refresh 当user已存在该类型buff时，是否刷新该buff时间
+     * @return 修改或者添加了buff时返回true，否则返回false
      */
-    public boolean addBuff(byte buffTypeId, short last, boolean refresh, Object... values) {
-        Buff buff = getBuff(buffTypeId);
-        if (buff != null && refresh) {
-            buff.refresh(last);
-        } else {
-            buff = new Buff(getNextBuffId(), buffTypeId, last);
+    public boolean addBuff(byte typeId, short last, boolean refresh, Object... objects) {
+        Buff buff = getBuff(typeId);
+        if (buff != null && !refresh) return false;
+
+        if (buff == null) {
+            buff = new Buff(getNextBuffId(), typeId, last);
             buffList.add(buff);
+        } else {
+            buff.refresh(last);
         }
         buffChangedSet.add(buff);
         return true;
@@ -640,7 +652,7 @@ public class User extends GameObject {
      */
     public void clearTerrainBuff() {
         for (Buff buff: buffList) {
-            if (buff.groupId > 0) {
+            if (buff instanceof Buff.SpcSectionBuff) {
                 buff.expire();
                 buffChangedSet.add(buff);
             }
@@ -662,17 +674,21 @@ public class User extends GameObject {
      */
     public boolean hasBuff(byte buffTypeId, int groupId) {
         for (Buff buff: buffList) {
-            if (buff.typeId == buffTypeId && buff.groupId == groupId) return true;
+            if (!(buff instanceof Buff.SpcSectionBuff)) continue;
+            Buff.SpcSectionBuff spcSectionBuff = (Buff.SpcSectionBuff) buff;
+            if (spcSectionBuff.typeId == buffTypeId && spcSectionBuff.groupId == groupId) return true;
         }
         return false;
     }
 
     /**
-     * 获取buff上的信息
+     * 获取用户身上已存在的buff信息
+     * @param typeId buff的类型id
+     * @return 已存在的buff对象，如果不存在，返回null
      */
-    public Buff getBuff(byte bufferTypeId) {
+    public Buff getBuff(byte typeId) {
         for (Buff buff: buffList) {
-            if (buff.typeId == bufferTypeId) {
+            if (buff.typeId == typeId) {
                 return buff;
             }
         }
@@ -745,6 +761,11 @@ public class User extends GameObject {
         this.lastStrengthCountTime = currentTime;
         */
         this.speed = speed;
+    }
+
+    @Override
+    public Enums.GameObjectType getObjectType() {
+        return Enums.GameObjectType.PLAYER;
     }
 
     public byte getGroupId() {
@@ -897,8 +918,10 @@ public class User extends GameObject {
      * @param byteBuilder
      */
     public void appendBytes(ByteBuilder byteBuilder) {
+        byteBuilder.append(getSyncAction().getValue());
+        byteBuilder.append(getObjectType().getValue());
         byteBuilder.append(id);
-        byteBuilder.append(isMoved() ? 0x1 : 0x0);
+        byteBuilder.append(isMoved() ? (byte)1 : (byte)0);
         if (isMoved()) {
             byteBuilder.append(moveState);
             byteBuilder.append(getPoint3().x);
@@ -909,7 +932,7 @@ public class User extends GameObject {
             byteBuilder.append(getGroupId());
         }
 
-        byteBuilder.append(buffChangedSet.size() != 0 ? 0x1 : 0x0);
+        byteBuilder.append(buffChangedSet.size() != 0 ? (byte)1 : (byte)0);
         if (buffChangedSet.size() != 0) {
             byte count = 0;
             for (Buff buff: getBuffList()) {
@@ -943,7 +966,7 @@ public class User extends GameObject {
      * lifeValue(2)
      * speedValue(4)
      * buffCount(1)|list<Buff>
-     * propCount(1)|list<Prop>
+     * propCount(1)|list<PropOld>
      * customProperty 详见各自定义user类
      * userCount(1)|list<UserPosition>
      * userCount(1)|list<UserBuff>
@@ -954,7 +977,7 @@ public class User extends GameObject {
      * NPCOld: objectId(1)|seqId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * Action: objectId(2)|code(1)|type(1)|value(4)|
      * Buff: buffId(1)|remainSecond(4)|
-     * Prop: propId(2)|count(2)|
+     * PropOld: propId(2)|count(2)|
      * UserPosition userId(4)|moveState(1)|positionX(4)|positionY(4)|positionZ(4)|rotateY(4)
      * UserBuff userId(4)|buffByte(4)
      */
@@ -1011,8 +1034,8 @@ public class User extends GameObject {
             }
             sign = (short) (sign | 8192);
 
-            byte targetType = getTargetType();
-            byteBuilder.append(targetType);
+            Enums.TargetType targetType = getTargetType();
+            byteBuilder.append(targetType.getValue());
             if (targetObject instanceof Point3) {
                 byteBuilder.append(((Point3) targetObject).x);
                 byteBuilder.append(((Point3) targetObject).y);
@@ -1021,11 +1044,11 @@ public class User extends GameObject {
                 byteBuilder.append(((GameObject) targetObject).getId());
             }
 
-            if (dreamTargetObject instanceof Point3) {
+            if (systemTargetObject instanceof Point3) {
                 byteBuilder.append((byte) 1);
-                byteBuilder.append(((Point3) dreamTargetObject).x);
-                byteBuilder.append(((Point3) dreamTargetObject).y);
-                byteBuilder.append(((Point3) dreamTargetObject).z);
+                byteBuilder.append(((Point3) systemTargetObject).x);
+                byteBuilder.append(((Point3) systemTargetObject).y);
+                byteBuilder.append(((Point3) systemTargetObject).z);
             } else {
                 byteBuilder.append((byte) 0);
             }
@@ -1177,6 +1200,10 @@ public class User extends GameObject {
         while (iterator.hasNext()) {
             Buff buff = iterator.next();
             if (!checkBuff(buff)) {
+                // 如果是道具buff，需要移除该道具
+                if (buff instanceof Buff.PropBuff) {
+                    reduceProp(((Buff.PropBuff)buff).propTypeId, (short)1);
+                }
                 buffChangedSet.add(buff);
                 iterator.remove();
             }
@@ -1222,8 +1249,8 @@ public class User extends GameObject {
      */
     protected void checkIfEnd() {
         if (life == 0) {
-            setState(Constant.UserState.GAME_OVER);
-            gameOverTime = System.currentTimeMillis();
+            setState(Constant.UserState.FINISHED);
+            finishTime = System.currentTimeMillis();
         }
     }
 

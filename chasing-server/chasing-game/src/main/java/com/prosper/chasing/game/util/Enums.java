@@ -57,12 +57,9 @@ public class Enums {
     }
 
     public enum StationaryType {
-        LAMP(1),
-        BRIDGE(2),
-        FLAG(3),
-        SNOW_OLD(4),
-        FIRE(5),
-        STORE(6);
+        FLAG(1),
+        STORE(2),
+        FIRE(3);
 
         private int value;
 
@@ -80,7 +77,9 @@ public class Enums {
         GATE(2),   // 不能通过的门
         FIRE_FENCE(3),   // 火焰
         STONES(4), // 石墙
-        SIGNPOST(5);
+        SIGNPOST(5), // 路标
+        TENT(6), // 帐篷
+        HOUSE(7); // 房子
 
         private int value;
 
@@ -127,15 +126,12 @@ public class Enums {
     }
 
     public enum GameObjectType {
-        ENV_PROP(1),
-        STATIONARY(2),
-        INTERACTIVE(3),
-        USER(4),
-
-        NPC(1),
-        INTERACT(2),
-        DYNAMIC(3),
-        PROP(4);
+        NONE(-1),
+        SELF(0),
+        PLAYER(1),
+        PROP(2),
+        STATIONARY(3),
+        INTERACTIVE(4);
 
         private int value;
 
@@ -254,14 +250,26 @@ public class Enums {
 
     public enum TargetType {
         NONE((byte)0),
-        USER((byte)1),
-        PROP((byte)2),
-        POSITION((byte)3);
+        SELF((byte)1),
+        USER((byte)2),
+        PROP((byte)3),
+        STATIONARY((byte)4),
+        INTERACTIVE((byte)5),
+        POSITION((byte)6);
 
         private byte value;
 
         TargetType(byte value) {
             this.value = value;
+        }
+
+        public static TargetType getTargetType(byte value) {
+            for(TargetType t: TargetType.values()) {
+                if(t.value == value) {
+                    return t;
+                }
+            }
+            return TargetType.NONE;
         }
 
         public byte getValue() {
@@ -295,5 +303,114 @@ public class Enums {
         WAYSIDE
     }
 
+    public enum RankValueType {
+        TIME_ASCEND((byte)0),
+        TIME_DESCEND((byte)1),
+        INT_ASCEND((byte)2),
+        INT_DESCEND((byte)3);
 
+        private byte value;
+
+        RankValueType(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
+    public enum AbilityType {
+        SPEED_RATE_ADD_ON,
+        STOP_MOVING,
+        ADD_BUFF
+    }
+
+    public enum PropType {
+        MARK((byte)1), // 单人位置显示 标记一个离你位置最近的不同队伍的人，点亮离他最近的那一盏灯，方便在追踪的时候有一个目标
+        INVISIBLE_LEVEL_1((byte)2),   // 隐身30秒，不能被标记，不在地图和场景中显示，可以移动
+        INVISIBLE_LEVEL_2((byte)3),   // 隐身5分钟，不能被标记，不在地图和场景中显示，不能移动
+        ANTI_INVISIBLE((byte)4),  // 对玩家所在地点使用，以该地点为中心点的周围200米距离内，使用了隐形药水的玩家立即显形
+        RETURN_TO_INIT_POSITION((byte)5),  // 单人模式下使用，回到出发点
+        RANDOM_POSITION((byte)6), // 随机传送到一个位置
+        FLASH_LEVEL_1((byte)7),  // 立即传送到被标记目标2米范围内
+        FLASH_LEVEL_2((byte)8),  // 向被标记目标前进50米
+        FOLLOW((byte)9), // 跟随某一个目标移动，两人速度为正常值的一半
+        SPEED_UP_LEVEL_1((byte)10), // 加速道具 20%
+        SPEED_UP_LEVEL_2((byte)11), // 加速道具 40%
+        SPEED_DOWN_LEVEL_1((byte)12), // 减速道具 20%
+        SPEED_DOWN_LEVEL_2((byte)13), // 减速道具 20%
+        HOLD_POSITION((byte)14), // 停止移动
+        BLOOD_PILL((byte)15), // 加血一点
+        BLOOD_BAG((byte)16), // 加血到满
+        REBIRTH((byte)17), // 死亡后可以重生
+        DARK_VISION((byte)18), // 让目标视野变黑
+        IMMUNITY((byte)19), // 对所有道具免疫5分钟，不能移动
+        REBOUND((byte)21),            // 反弹，持续3分钟
+        NEAR_ENEMY_REMIND((byte)22),     // 100米接近提醒，正常为50米
+        PROP_BOMB((byte)23),  // 摧毁目标道具
+        MONEY((byte)24),  // 金钱
+        GIFT_BOX((byte)25),  // 未知道具礼盒
+        SCEPTER((byte)26), // 灵魂权杖
+        BRIDGE((byte)27), // 桥梁
+        RAIN_CLOUD((byte)28), // 云雨
+        WOOD((byte)29); // 云雨
+
+        private byte value;
+
+        PropType(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
+    public enum BuffType {
+        FLASH_LEVEL_1((byte)1),
+        FLASH_LEVEL_2((byte)2),
+        SPEED_UP_LEVEL_1((byte)3),
+        SPEED_UP_LEVEL_2((byte)4),
+        SPEED_DOWN_LEVEL_1((byte)5),
+        SPEED_DOWN_LEVEL_2((byte)6),
+        HOLD_POSITION((byte)7),
+        FOLLOW((byte)8),
+        FOLLOWED((byte)9),
+        INVISIBLE_LEVEL_1((byte)10),
+        INVISIBLE_LEVEL_2((byte)11),
+        DARK_VISION((byte)12),
+        IMMUNITY((byte)13),
+        NEAR_ENEMY_REMIND((byte)14),
+        REBOUND((byte)15),
+        HOLD_SCEPTER((byte)16),// 持有权杖，可以淘汰对手
+        EXPEL((byte)17),// 持有权杖，可以淘汰对手
+        SPEED_DOWN_LEVEL_1_TERRAIN ((byte)18),
+        SPEED_DOWN_LEVEL_2_TERRAIN((byte)19),
+        SPEED_DOWN_LEVEL_3_TERRAIN((byte)20),
+        WIND((byte)21),
+        ANIMAL((byte)22),
+        SLEEPY_LEVEL_1((byte)23),
+        SLEEPY_LEVEL_2((byte)24),
+        DREAMING ((byte)25);
+
+        private byte value;
+
+        BuffType(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
+    /**
+     * 道具的使用类型
+     * 1：持有，不能使用，比如任务道具，权杖
+     * 3：使用，比如卷轴，血瓶之类的
+     */
+    public enum PropUsageType {
+        HOLD, USE
+    }
 }

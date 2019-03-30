@@ -9,7 +9,7 @@ import java.util.LinkedList;
 /**
  * 场景中所有物体的基类，应该包含如下几种子类：
  * User 游戏中的玩家
- * Prop 场景中的道具
+ * PropOld 场景中的道具
  * Animal 场景中生成的可以追踪玩家的活动体
  * Stationary 场景中静止不动的一些物体，比如商店，火墙，玩家可以和一部分物体交互
  * Created by deacon on 2018/3/14.
@@ -202,17 +202,20 @@ public class GameObject {
         this.speed = speed;
     }
 
+    public Enums.GameObjectType getObjectType() {
+        return GameObjectType.NONE;
+    }
+
     public void appendBytes(ByteBuilder byteBuilder) {
-        appendPrefixBytes(byteBuilder);
+        byteBuilder.append(getSyncAction().getValue());
+        byteBuilder.append(getObjectType().getValue());
+        byteBuilder.append(getId());
         if (syncAction == SyncAction.BORN) {
             appendBornBytes(byteBuilder);
             syncAction = SyncAction.ALIVE;
-        } else {
+        } else if (syncAction == SyncAction.ALIVE) {
             appendAliveBytes(byteBuilder);
         }
-    }
-
-    public void appendPrefixBytes(ByteBuilder byteBuilder) {
     }
 
     public void appendBornBytes(ByteBuilder byteBuilder) {

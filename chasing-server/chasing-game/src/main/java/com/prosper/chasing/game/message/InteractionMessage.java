@@ -8,7 +8,7 @@ import com.prosper.chasing.game.util.Enums;
  * 2：玩家和游戏场景中的可交互对象进行交互，比如打开木门，架设桥梁等
  *
  * 格式：
- * messageType(4)|objectType(1)|objectId(2)|objectState(1)
+ * messageType(1)|objectType(1)|objectId(2)|objectState(1)
  */
 public class InteractionMessage extends UserMessage {
 
@@ -30,15 +30,15 @@ public class InteractionMessage extends UserMessage {
     public InteractionMessage(UserMessage message) {
         super(message);
 
-        byte type = message.getContent().get();
-        if (type == Enums.GameObjectType.INTERACT.getValue()) {
-            objectType = Enums.GameObjectType.INTERACT;
-        } else if (type == Enums.GameObjectType.ENV_PROP.getValue()) {
-            objectType = Enums.GameObjectType.PROP;
+        byte objectType = message.getContent().get();
+        if (objectType == Enums.GameObjectType.INTERACTIVE.getValue()) {
+            this.objectType = Enums.GameObjectType.INTERACTIVE;
+        } else if (objectType == Enums.GameObjectType.PROP.getValue()) {
+            this.objectType = Enums.GameObjectType.PROP;
         }
 
         objectId = message.getContent().getInt();
-        if (objectType == Enums.GameObjectType.INTERACT) {
+        if (this.objectType == Enums.GameObjectType.INTERACTIVE) {
             objectState = message.getContent().get();
         }
     }

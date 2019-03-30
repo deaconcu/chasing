@@ -16,12 +16,27 @@ public class GameBase extends Game {
     }
 
     @Override
+    public Class<? extends User> getUserClass() {
+        return User.class;
+    }
+
+    @Override
+    public GameConfig getGameConfig() {
+        return null;
+    }
+
+    @Override
     protected ByteBuilder createIntroductionMessage() {
         return null;
     }
 
     @Override
-    protected void initStationary() {
+    protected void initGameObject() {
+
+    }
+
+    @Override
+    protected void doCustomUserLogic(User user) {
 
     }
 
@@ -33,26 +48,6 @@ public class GameBase extends Game {
     @Override
     protected void doPositionChanged(User user) {
 
-    }
-
-    @Override
-    public GamePropConfigMap getGamePropConfigMap() {
-        return null;
-    }
-
-    @Override
-    protected int getCustomPropPrice(short propTypeId) {
-        return 0;
-    }
-
-    @Override
-    protected short[] getStorePropIds() {
-        return new short[0];
-    }
-
-    @Override
-    protected List<NPC> generateNPC() {
-        return null;
     }
 
     @Override

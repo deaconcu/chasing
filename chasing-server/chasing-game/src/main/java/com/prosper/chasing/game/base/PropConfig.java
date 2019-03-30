@@ -7,6 +7,7 @@ import com.prosper.chasing.game.message.PropMessage;
 import com.prosper.chasing.game.navmesh.NavMeshGroup;
 import com.prosper.chasing.game.util.Constant;
 import com.prosper.chasing.game.util.Enums;
+import com.prosper.chasing.game.util.Enums.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,19 +82,19 @@ public class PropConfig {
     public static final byte Scepter = 50;
 
 
-    public static Map<Short, Prop> typeMap = new HashMap<>();
+    public static Map<Short, PropOld> typeMap = new HashMap<>();
 
     static {
         ClassPathScanningCandidateComponentProvider provider =
                 new ClassPathScanningCandidateComponentProvider(false);
-        provider.addIncludeFilter(new AssignableTypeFilter(Prop.class));
+        provider.addIncludeFilter(new AssignableTypeFilter(PropOld.class));
 
         Set<BeanDefinition> components = provider.findCandidateComponents(SCAN_PACKAGE);
         for (BeanDefinition component : components) {
             try {
                 Class cls = Class.forName(component.getBeanClassName());
-                Prop prop = (Prop) cls.newInstance();
-                typeMap.put(prop.propTypeId, prop);
+                PropOld propOld = (PropOld) cls.newInstance();
+                typeMap.put(propOld.propTypeId, propOld);
             } catch (ClassNotFoundException e) {
                 log.warn("class not found: " + component.getBeanClassName());
             } catch (Exception e) {
@@ -113,16 +114,16 @@ public class PropConfig {
         return 0;
     }
 
-    public static Prop getProp(short propId) {
+    public static PropOld getProp(short propId) {
         return typeMap.get(propId);
     }
 
-    public static void putProp(Prop prop) {
-        if (typeMap.get(prop.propTypeId) != null) {
-            log.warn("prop objectId exist: " + prop.propTypeId);
+    public static void putProp(PropOld propOld) {
+        if (typeMap.get(propOld.propTypeId) != null) {
+            log.warn("propOld objectId exist: " + propOld.propTypeId);
             return;
         }
-        typeMap.put(prop.propTypeId, prop);
+        typeMap.put(propOld.propTypeId, propOld);
     }
 
     /**
@@ -133,7 +134,7 @@ public class PropConfig {
         return -1;
     }
 
-    public static abstract class Prop {
+    public static abstract class PropOld {
 
         private Logger log = LoggerFactory.getLogger(getClass());
 
@@ -141,7 +142,7 @@ public class PropConfig {
         private NavMeshGroup navimeshGroup;
 
         // 道具允许使用的对象类型
-        protected byte[] allowTargetType;
+        protected Enums.TargetType[] allowTargetType;
 
         // 道具类型id
         protected short propTypeId;
@@ -159,9 +160,9 @@ public class PropConfig {
         /**
          * 检查道具的使用对象是否正确
          */
-        private boolean checkType (byte messageType) {
-            for (byte i : allowTargetType) {
-                if (i == messageType) {
+        private boolean checkType (Enums.TargetType messageType) {
+            for (Enums.TargetType targetType : allowTargetType) {
+                if (targetType == messageType) {
                     return true;
                 }
             }
@@ -201,10 +202,10 @@ public class PropConfig {
     /**
      * 追踪:随机设定一个目标为追逐对象 ******
      */
-    public static class Mark extends Prop {
+    public static class Mark extends PropOld {
 
         public Mark() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF};
             propTypeId = MARK;
         }
 
@@ -223,7 +224,7 @@ public class PropConfig {
             }
             if (activeUserList.size() > 0) {
                 User targetUser = activeUserList.get(ThreadLocalRandom.current().nextInt(activeUserList.size()));
-                return user.setTarget(Constant.TargetType.TYPE_USER, targetUser.getId(), null);
+                return user.setTarget(Enums.TargetType.USER, targetUser.getId(), null);
             } else {
                 return false;
             }
@@ -235,10 +236,10 @@ public class PropConfig {
      * 类型：可以给自己, 友方阵容玩家使用
      * 隐身30秒，取消所有追踪标记，且不能被标记，移动后buff失效
      */
-    public static class InvisibleLevel1 extends Prop {
+    public static class InvisibleLevel1 extends PropOld {
 
         public InvisibleLevel1() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF, PropMessage.TYPE_FRIEND};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
             propTypeId = INVISIBLE_LEVEL_1;
         }
 
@@ -264,10 +265,10 @@ public class PropConfig {
      * 类型：可以给自己, 友方阵容玩家使用
      * 隐身30秒，取消所有追踪标记，且不能被标记，可以移动
      */
-    public static class InvisibleLevel2 extends Prop {
+    public static class InvisibleLevel2 extends PropOld {
 
         public InvisibleLevel2() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF, PropMessage.TYPE_FRIEND};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
             propTypeId = INVISIBLE_LEVEL_2;
         }
 
@@ -297,10 +298,10 @@ public class PropConfig {
      * 类型：可以给敌方玩家使用
      * 随机让一个使用了隐形药水的玩家立即显形, 如果没有玩家使用隐形药水，该药水使用失败
      */
-    public static class AntiInvisible extends Prop {
+    public static class AntiInvisible extends PropOld {
 
         public AntiInvisible() {
-            allowTargetType = new byte[]{PropMessage.TYPE_ENEMY};
+            allowTargetType = new Enums.TargetType[]{TargetType.USER};
             propTypeId = ANTI_INVISIBLE;
         }
 
@@ -335,7 +336,7 @@ public class PropConfig {
      * 回到出生点位置
      */
     /*
-    public static class ReturnToInitPosition extends Prop {
+    public static class ReturnToInitPosition extends PropOld {
 
         public ReturnToInitPosition() {
             allowTargetType = new byte[]{PropMessage.TYPE_SELF};
@@ -356,10 +357,10 @@ public class PropConfig {
      * 类型：可以给自己, 友方阵容玩家或者敌方阵容玩家使用
      * 传送到一个随机位置
      */
-    public static class RandomPosition extends Prop {
+    public static class RandomPosition extends PropOld {
 
         public RandomPosition() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF, PropMessage.TYPE_FRIEND, PropMessage.TYPE_ENEMY};
+            allowTargetType = new Enums.TargetType[]{Enums.TargetType.SELF, TargetType.USER};
             propTypeId = RANDOM_POSITION;
         }
 
@@ -376,10 +377,10 @@ public class PropConfig {
      * 类型：可以给自己, 友方阵容玩家或者敌方阵容玩家使用
      * 速度提高为20，向当前追踪目标前进，持续10秒, 最多前进到距离目标20米,
      */
-    public static class FlashLevel1 extends Prop {
+    public static class FlashLevel1 extends PropOld {
 
         public FlashLevel1() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF, PropMessage.TYPE_FRIEND};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
             propTypeId = FLASH_LEVEL_1;
         }
 
@@ -404,10 +405,10 @@ public class PropConfig {
      * 类型：可以给自己, 友方阵容玩家或者敌方阵容玩家使用
      * 速度提高为20，向当前追踪目标前进，持续30秒, 最多前进到距离目标20米,
      */
-    public static class FlashLevel2 extends Prop {
+    public static class FlashLevel2 extends PropOld {
 
         public FlashLevel2() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF, PropMessage.TYPE_FRIEND};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
             propTypeId = FLASH_LEVEL_2;
         }
 
@@ -436,10 +437,10 @@ public class PropConfig {
      * 类型：可以给友方阵容玩家或者敌方阵容玩家使用
      * 跟随一个玩家，当前玩家和被跟随的玩家速度降为速度和的一半
      */
-    public static class Follow extends Prop {
+    public static class Follow extends PropOld {
 
         public Follow() {
-            allowTargetType = new byte[]{PropMessage.TYPE_FRIEND, PropMessage.TYPE_ENEMY};
+            allowTargetType = new Enums.TargetType[]{TargetType.USER};
             propTypeId = FOLLOW;
         }
 
@@ -464,10 +465,10 @@ public class PropConfig {
      * 类型：可以给友方阵容玩家或者敌方阵容玩家使用
      * 移除所有减速道具，速度增加20%，持续时间20秒
      */
-    public static class SpeedUpLevel1 extends Prop {
+    public static class SpeedUpLevel1 extends PropOld {
 
         public SpeedUpLevel1() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF, PropMessage.TYPE_FRIEND};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
             propTypeId = SPEED_UP_LEVEL_1;
         }
 
@@ -489,10 +490,10 @@ public class PropConfig {
      * 类型：可以给友方阵容玩家或者敌方阵容玩家使用
      * 移除所有减速道具，速度增加40%，持续时间20秒
      */
-    public static class SpeedUpLevel2 extends Prop {
+    public static class SpeedUpLevel2 extends PropOld {
 
         public SpeedUpLevel2() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF, PropMessage.TYPE_FRIEND};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
             propTypeId = SPEED_UP_LEVEL_2;
         }
 
@@ -512,10 +513,10 @@ public class PropConfig {
      * 类型：可以给敌方阵容玩家使用
      * 移除所有加速道具，速度减少20%，持续时间20秒
      */
-    public static class SpeedDownLevel1 extends Prop {
+    public static class SpeedDownLevel1 extends PropOld {
 
         public SpeedDownLevel1() {
-            allowTargetType = new byte[]{PropMessage.TYPE_ENEMY};
+            allowTargetType = new Enums.TargetType[]{TargetType.USER};
             propTypeId = SPEED_DOWN_LEVEL_1;
         }
 
@@ -542,10 +543,10 @@ public class PropConfig {
      * 类型：给敌方阵容玩家使用
      * 移除所有加速道具，速度减少40%，持续时间20秒
      */
-    public static class SpeedDownLevel2 extends Prop {
+    public static class SpeedDownLevel2 extends PropOld {
 
         public SpeedDownLevel2() {
-            allowTargetType = new byte[]{PropMessage.TYPE_ENEMY};
+            allowTargetType = new Enums.TargetType[]{TargetType.USER};
             propTypeId = SPEED_DOWN_LEVEL_2;
         }
 
@@ -566,10 +567,10 @@ public class PropConfig {
      * 类型：给敌方阵容玩家使用
      * 停止移动，持续时间20秒
      */
-    public static class HoldPosition extends Prop {
+    public static class HoldPosition extends PropOld {
 
         public HoldPosition() {
-            allowTargetType = new byte[]{PropMessage.TYPE_ENEMY};
+            allowTargetType = new Enums.TargetType[]{TargetType.USER};
             propTypeId = HOLD_POSITION;
         }
 
@@ -586,7 +587,7 @@ public class PropConfig {
      * 血片 加血一点
      */
     /*
-    public static class BloodPill extends Prop {
+    public static class BloodPill extends PropOld {
 
         public BloodPill() {
             allowTargetType = new byte[]{PropMessage.TYPE_SELF};
@@ -605,7 +606,7 @@ public class PropConfig {
      * 血包 加满血
      */
     /*
-    public static class BloodBag extends Prop {
+    public static class BloodBag extends PropOld {
 
         public BloodBag() {
             allowTargetType = new byte[]{PropMessage.TYPE_SELF};
@@ -625,10 +626,10 @@ public class PropConfig {
      * 类型：自己使用
      * 死亡后复活
      */
-    public static class Rebirth extends Prop {
+    public static class Rebirth extends PropOld {
 
         public Rebirth() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF};
             propTypeId = REBIRTH;
         }
 
@@ -645,10 +646,10 @@ public class PropConfig {
      * 类型：给敌方玩家使用
      * 让某人视野变黑，持续时间20秒
      */
-    public static class DarkVision extends Prop {
+    public static class DarkVision extends PropOld {
 
         public DarkVision() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF};
             propTypeId = DARK_VISION;
         }
 
@@ -666,10 +667,10 @@ public class PropConfig {
      * 类型：给自己或者友方玩家使用
      * 去除所有buff，并对所有道具免疫，持续30秒
      */
-    public static class Immunity extends Prop {
+    public static class Immunity extends PropOld {
 
         public Immunity() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF};
             propTypeId = IMMUNITY;
         }
 
@@ -686,10 +687,10 @@ public class PropConfig {
      * 类型：给自己或者友方玩家使用
      * 持续1分钟，将负面单体效果反弹至使用者
      */
-    public static class Rebound extends Prop {
+    public static class Rebound extends PropOld {
 
         public Rebound() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF, PropMessage.TYPE_FRIEND};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
             propTypeId = REBOUND;
         }
 
@@ -705,10 +706,10 @@ public class PropConfig {
      * 类型：给自己或者友方玩家使用
      * 100米接近提醒，正常为50米 持续时间2分钟
      */
-    public static class NearEnemyRemind extends Prop {
+    public static class NearEnemyRemind extends PropOld {
 
         public NearEnemyRemind() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF, PropMessage.TYPE_FRIEND};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
             propTypeId = NEAR_ENEMY_REMIND;
         }
 
@@ -723,10 +724,10 @@ public class PropConfig {
      * TODO
      * 炸弹 摧毁某个道具，有效距离100米
      */
-    public static class PropBomb extends Prop {
+    public static class PropOldBomb extends PropOld {
 
-        public PropBomb() {
-            allowTargetType = new byte[]{PropMessage.TYPE_PROP};
+        public PropOldBomb() {
+            allowTargetType = new Enums.TargetType[]{TargetType.PROP};
             propTypeId = PROP_BOMB;
         }
 
@@ -742,10 +743,10 @@ public class PropConfig {
      * 类型：给自己使用
      * 随机加金子 1000内
      */
-    public static class Money extends Prop {
+    public static class Money extends PropOld {
 
         public Money() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF};
             propTypeId = MONEY;
         }
 
@@ -761,16 +762,16 @@ public class PropConfig {
      * 类型：给自己使用
      * 给玩家随机增加一个道具
      */
-    public static class GiftBox extends Prop {
+    public static class GiftBox extends PropOld {
 
         public GiftBox() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF};
             propTypeId = GIFT_BOX;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            GamePropConfigMap gamePropConfigMap = game.getGamePropConfigMap();
+            GamePropConfigMap gamePropConfigMap = game.getGameConfig().getPropConfig();
             int index = ThreadLocalRandom.current().nextInt(gamePropConfigMap.getConfigMap().size() - 1);
             int i = 0;
             short propTypeId = 0;
@@ -790,28 +791,26 @@ public class PropConfig {
     /**
      * 灵魂权杖: 抽离灵魂
      */
-    /*
-    public static class Scepter extends PropConfig.Prop {
+    public static class Scepter extends PropOld {
 
         public Scepter() {
-            allowTargetType = new byte[]{PropMessage.TYPE_SELF};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF};
             propTypeId = SCEPTER;
             autoUse = true;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            user.addBuff(HOLD_SCEPTER);
+            //user.addBuff(HOLD_SCEPTER);
             return true;
         }
     }
-    */
 
     /**
      * 桥梁
      */
     /*
-    public static class Bridge extends PropConfig.Prop {
+    public static class Bridge extends PropConfig.PropOld {
 
         public Bridge() {
             allowTargetType = new byte[]{PropMessage.TYPE_SELF};

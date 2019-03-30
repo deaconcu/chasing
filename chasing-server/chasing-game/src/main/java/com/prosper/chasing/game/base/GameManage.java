@@ -9,7 +9,6 @@ import java.util.concurrent.*;
 
 import javax.annotation.PostConstruct;
 
-import com.prosper.chasing.game.map.GameMap;
 import com.prosper.chasing.game.map.MapCreator;
 import com.prosper.chasing.game.map.MapSkeleton;
 import com.prosper.chasing.game.message.*;
@@ -314,7 +313,7 @@ public class GameManage {
                                 game.createIntroductionMessages();
                                 game.setState(GameState.PROCESSING);
                             } else if (game.getState() == GameState.PROCESSING) {
-                                game.execute();
+                                game.executeLogic();
                                 game.generateUserMessage();
                             } else if (game.getState() == GameState.FINISHED) {
                                 // 执行玩家退出消息

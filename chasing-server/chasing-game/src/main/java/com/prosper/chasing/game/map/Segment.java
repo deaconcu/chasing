@@ -191,4 +191,10 @@ public class Segment {
         return roadSection.getRandomRoadPoint(type);
     }
 
+    public RoadPoint getRandomLampPoint(Enums.RoadPointType type) {
+        RoadSection roadSection = getRoadSections()[
+                ThreadLocalRandom.current().nextInt(getRoadSections().length)];
+        return roadSection.getRandomLightPoint(type);
+    }
+
 }
