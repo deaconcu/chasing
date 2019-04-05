@@ -1,5 +1,7 @@
 package com.prosper.chasing.game.base;
 
+import com.prosper.chasing.game.util.Enums.*;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,7 +23,7 @@ public class Buff {
     /**
      * buff 类型id
      */
-    byte typeId;
+    BuffType type;
 
     /**
      * buff的开始时间
@@ -38,9 +40,9 @@ public class Buff {
      */
     Object[] valueList;
 
-    public Buff(int id, byte typeId, short last, Object... values) {
+    public Buff(int id, BuffType type, short last, Object... values) {
         this.id = id;
-        this.typeId = typeId;
+        this.type = type;
         this.startSecond = System.currentTimeMillis();
         this.last = last;
         valueList = values;
@@ -75,8 +77,8 @@ public class Buff {
 
         int groupId;
 
-        public SpcSectionBuff(int id, byte typeId, int groupId) {
-            super(id, typeId, (short)-1);
+        public SpcSectionBuff(int id, BuffType type, int groupId) {
+            super(id, type, (short)-1);
             this.groupId = groupId;
         }
     }
@@ -86,11 +88,11 @@ public class Buff {
      */
     public static class PropBuff extends Buff {
 
-        short propTypeId;
+        PropType propType;
 
-        public PropBuff(int id, byte typeId, short propTypeId) {
-            super(id, typeId, (short)-1);
-            this.propTypeId = propTypeId;
+        public PropBuff(int id, BuffType type, PropType propType) {
+            super(id, type, (short)-1);
+            this.propType = propType;
         }
     }
 }

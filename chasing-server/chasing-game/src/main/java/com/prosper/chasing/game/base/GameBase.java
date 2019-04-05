@@ -10,6 +10,10 @@ import java.util.Map;
  */
 public class GameBase extends Game {
 
+    public GameBase() {
+        super();
+    }
+
     @Override
     protected void customInit() {
 
@@ -26,7 +30,12 @@ public class GameBase extends Game {
     }
 
     @Override
-    protected ByteBuilder createIntroductionMessage() {
+    public PropGenerator getPropGenerator() {
+        return null;
+    }
+
+    @Override
+    protected Prologue createPrologue() {
         return null;
     }
 

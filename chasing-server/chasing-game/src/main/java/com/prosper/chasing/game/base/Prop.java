@@ -3,6 +3,7 @@ package com.prosper.chasing.game.base;
 import com.prosper.chasing.game.util.Enums.*;
 import com.prosper.chasing.game.base.Abilitys.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -10,7 +11,7 @@ import java.util.Map;
  */
 public class Prop {
 
-    private Map<PropUsageType, Ability[]> abilityMap;
+    private Map<PropUsageType, Ability[]> abilityMap = new HashMap<>();
 
     public Prop(Ability[] holdAbilities, Ability[] useAbilities) {
         abilityMap.put(PropUsageType.HOLD, holdAbilities);

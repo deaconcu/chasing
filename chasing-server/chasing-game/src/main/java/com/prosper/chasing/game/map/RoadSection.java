@@ -36,16 +36,13 @@ public class RoadSection {
                 pointAngle = (pointAngle + previous.getEnd().getDeflection()) / 2;
                 previous.resetP2Deflection(pointAngle);
             }
-            this.start = new RoadPoint(start, pointAngle, true);
-            this.end = new RoadPoint(end, pointAngle, true);
+            this.start = new RoadPoint(start, pointAngle, 0);
+            this.end = new RoadPoint(end, pointAngle, 0);
 
             Point2[] points = Point2.getPointInSegment(start, end, SUB_SECTION_SIZE - 1, 0);
             between =  new RoadPoint[points.length];
             for (int i = 0; i < between.length; i ++) {
-                if ((i + 1) % (SUB_SECTION_SIZE / 4) == 0)
-                    between[i] = new RoadPoint(points[i], pointAngle, true);
-                else
-                    between[i] = new RoadPoint(points[i], pointAngle);
+                between[i] = new RoadPoint(points[i], pointAngle, i + 1);
             }
         } else {
             double startPointAngle = Point2.getDegree(start, wayPoints[0]);
@@ -56,9 +53,9 @@ public class RoadSection {
                 startPointAngle = (startPointAngle + previous.getEnd().getDeflection()) / 2;
                 previous.resetP2Deflection(startPointAngle);
             }
-            this.start = new RoadPoint(start, startPointAngle, true);
+            this.start = new RoadPoint(start, startPointAngle, 0);
             double endPointAngle = Point2.getDegree(wayPoints[wayPoints.length - 1], end);
-            this.end = new RoadPoint(end, endPointAngle, true);
+            this.end = new RoadPoint(end, endPointAngle, 0);
 
             between =  new RoadPoint[SUB_SECTION_SIZE - 1];
             int distanceGap = Point2.distance(start, end, wayPoints) / SUB_SECTION_SIZE;
@@ -72,10 +69,7 @@ public class RoadSection {
                     centerPointAngle = Point2.getDegree(
                             wayPoints[pointInfo.getY()], pointInfo.getX());
                 }
-                if ((i + 1) % (SUB_SECTION_SIZE / 4) == 0)
-                    between[i] = new RoadPoint(pointInfo.getX(), centerPointAngle, true);
-                else
-                    between[i] = new RoadPoint(pointInfo.getX(), centerPointAngle);
+                between[i] = new RoadPoint(pointInfo.getX(), centerPointAngle, i + 1);
             }
         }
 

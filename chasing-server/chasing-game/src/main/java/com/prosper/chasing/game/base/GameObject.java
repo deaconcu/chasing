@@ -16,6 +16,16 @@ import java.util.LinkedList;
  */
 public class GameObject {
 
+    /**
+     * 游戏中地图的分区单元格大小，基本等于两个灯距离的一半
+     */
+    public static final int GROUP_CELL_WIDTH = 15000;
+
+    /**
+     * 游戏中地图的分区最大宽度, 需要满足：分区单元格宽度 * 分区最大宽度 > 地图宽度
+     */
+    public static final int GROUP_WIDTH_MAX = 10000;
+
     private int id;
 
     // 当前位置
@@ -47,6 +57,11 @@ public class GameObject {
 
     private int speed;
 
+    /**
+     * 当前位置的分区id
+     */
+    private int posGroupId;
+
     public GameObject() {
         this.isMoved = true;
         this.isAlive = true;
@@ -58,8 +73,8 @@ public class GameObject {
     public GameObject(int id, Point3 point3, int rotateY) {
         this();
         this.id = id;
-        this.point3 = point3;
         this.rotateY = rotateY;
+        setPoint3(point3);
     }
 
     public void move() {
@@ -67,7 +82,7 @@ public class GameObject {
 
         long currentTimeMillis = System.currentTimeMillis();
         int distance = (int)((float)speed * (currentTimeMillis - lastMoveTimestamp) / 1000);
-        Point3 currPoint3 = point3;
+        Point3 currPoint3 = getPoint3();
         int nextPointDistance = currPoint3.distance(path.peek());
         while (nextPointDistance < distance) {
             distance -= nextPointDistance;
@@ -81,17 +96,17 @@ public class GameObject {
 
         if (path.size() == 0) {
             setPath(null);
-            point3 = currPoint3;
+            setPoint3(currPoint3);
         } else {
             nextPointDistance = currPoint3.distance(path.peek());
-            point3 = currPoint3.add(path.peek().x - currPoint3.x, 0, path.peek().z - currPoint3.z,
-                    (double)distance / nextPointDistance);
+            setPoint3(currPoint3.add(path.peek().x - currPoint3.x, 0,
+                    path.peek().z - currPoint3.z, (double)distance / nextPointDistance));
         }
 
 
         if (path.peek() != null) {
-            double deltaX = path.peek().x - point3.x;
-            double deltaY = path.peek().z - point3.z;
+            double deltaX = path.peek().x - getPoint3().x;
+            double deltaY = path.peek().z - getPoint3().z;
 
             int targetRotateY = 0;
             if (deltaX == 0 && deltaY > 0) targetRotateY = 90000;
@@ -123,9 +138,16 @@ public class GameObject {
         this.point3 = point3;
         isMoved = true;
 
-        if (!this.point3.sameZone(point3)) {
+        if (!this.point3.crossBlock(point3)) {
             setCrossZone(true);
+            updatePosGroupId();
         }
+    }
+
+    public void updatePosGroupId() {
+        int x = point3.x / GROUP_CELL_WIDTH;
+        int z = point3.z / GROUP_CELL_WIDTH;
+        posGroupId = z * GROUP_WIDTH_MAX + x + 1;
     }
 
     public int getRotateY() {
@@ -138,11 +160,14 @@ public class GameObject {
     }
 
     public void move(Point3 vector, int speed) {
+        //TODO
+        /*
         if (vector.isZero()) return;
         this.point3.x += vector.x * speed;
         this.point3.y += vector.y * speed;
         this.point3.z += vector.z * speed;
         isMoved = true;
+        */
     }
 
     // 获取对象是否移动
@@ -190,6 +215,11 @@ public class GameObject {
         isCrossZone = crossZone;
     }
 
+    public boolean isNear(GameObject gameObject, int distance) {
+        if (gameObject.getPoint3().minDistanceOfAxis(gameObject.getPoint3()) < distance) return true;
+        return false;
+    }
+
     public LinkedList<Point3> getPath() {
         return path;
     }
@@ -222,5 +252,9 @@ public class GameObject {
     }
 
     public void appendAliveBytes(ByteBuilder byteBuilder) {
+    }
+
+    public int getPosGroupId() {
+        return posGroupId;
     }
 }

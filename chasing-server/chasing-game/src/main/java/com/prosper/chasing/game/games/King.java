@@ -2,19 +2,14 @@ package com.prosper.chasing.game.games;
 
 import com.prosper.chasing.game.base.*;
 
-import com.prosper.chasing.game.base.PropConfig;
-import com.prosper.chasing.game.map.Hexagon;
-import com.prosper.chasing.game.map.Segment;
-import com.prosper.chasing.game.map.SpecialSection;
-import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
-import com.prosper.chasing.game.util.Enums;
-import com.prosper.chasing.game.util.Util;
+import com.prosper.chasing.game.util.Enums.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+
+import static com.prosper.chasing.game.util.Enums.PropType.*;
 
 @MetaGameAnno("king")
 public class King extends GameBase {
@@ -23,21 +18,21 @@ public class King extends GameBase {
 
     static {
         gameConfig = new GameConfig(
-                "Finish Time", Enums.RankValueType.TIME_DESCEND,
-                "Kills", Enums.RankValueType.INT_DESCEND,
+                "Finish Time", RankValueType.TIME_DESCEND,
+                "Kills", RankValueType.INT_DESCEND,
                 new HashMap<>(),
-                new short[]{1,2,3,4,5,6,7,8,9,10},
-                new GamePropConfigMap(10, 1)
-                        .add(PropConfig.SPEED_UP_LEVEL_1, (short)100, (short)60, false)
-                        .add(PropConfig.SPEED_UP_LEVEL_2, (short)100, (short)60, false)
-                        .add(PropConfig.SPEED_DOWN_LEVEL_1, (short)100, (short)60, false)
-                        .add(PropConfig.SPEED_DOWN_LEVEL_2, (short)100, (short)60, false)
-                        .add(PropConfig.BLOOD_PILL, (short)100, (short)60, false)
-                        .add(PropConfig.BLOOD_BAG, (short)100, (short)60, false)
-                        .add(PropConfig.FLASH_LEVEL_1, (short)100, (short)60, false)
-                        .add(PropConfig.FLASH_LEVEL_2, (short)100, (short)60, false)
-                        .add(PropConfig.MONEY, (short)100, (short)60, true)
-                        .add(PropConfig.GIFT_BOX, (short)100, (short)60, true)
+                new PropType[]{
+                        FLASH_LEVEL_1,
+                        FLASH_LEVEL_2,
+                        SPEED_UP_LEVEL_1,
+                        SPEED_UP_LEVEL_2,
+                        SPEED_DOWN_LEVEL_1,
+                        SPEED_DOWN_LEVEL_2,
+                        BLOOD_PILL,
+                        BLOOD_BAG,
+                        MONEY,
+                        GIFT_BOX
+                }
         );
     }
 
@@ -47,8 +42,14 @@ public class King extends GameBase {
     }
 
     @Override
+    public PropGenerator getPropGenerator() {
+        // TODO
+        return null;
+    }
+
+    @Override
     public void doCustomUserLogic(User user) {
-        if (user.getProp(PropConfig.SCEPTER) > 0) user.addBuff(BuffConfig.HOLD_SCEPTER, (short)-1, false);
+        if (user.getProp(PropType.SCEPTER) > 0) user.addBuff(BuffType.HOLD_SCEPTER, (short)-1, false);
     }
 
     @Override
@@ -59,7 +60,7 @@ public class King extends GameBase {
     protected void customInitUser(Map<Integer, User> userMap) {
         byte groupId = 1;
         for (User user: userMap.values()) {
-            Point3 point3 = gameMap.getRandomPoint(Enums.RoadPointType.CENTER).getPoint().toPoint3();
+            Point3 point3 = gameMap.getRandomRoadPoint(RoadPointType.CENTER).getPoint().toPoint3();
             user.setPoint3(point3);
             user.setRotateY(ThreadLocalRandom.current().nextInt(360));
             user.setMoveState(Constant.MoveState.IDLE);

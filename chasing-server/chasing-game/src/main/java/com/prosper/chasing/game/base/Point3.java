@@ -28,7 +28,7 @@ public class Point3 {
     }
 
     /**
-     * @see this.add( Point3 point, double ratio)
+     * @see this.add(Point3, double)
      */
     public Point3 add(int x, int y, int z, double ratio) {
         return new Point3(this.x + (int) (x * ratio), this.y + (int) (y * ratio), this.z + (int) (z * ratio));
@@ -60,8 +60,8 @@ public class Point3 {
      */
     public int minDistanceOfAxis(Point3 point3) {
         int distanceX = point3.x - x;
-        int distanceY = point3.y - y;
-        return distanceX <= distanceY ? distanceX : distanceY;
+        int distanceZ = point3.z - z;
+        return distanceX <= distanceZ ? distanceX : distanceZ;
     }
 
     /**
@@ -95,12 +95,10 @@ public class Point3 {
     }
 
     /**
-     * 是否在同一分区
+     * 检查位置是否移动到了当前单元块的外部，简化一些操作
      */
-    public boolean sameZone(Point3 point3) {
-        if (point3.x / 1000 == x && point3.y / 1000 == y && point3.z / 1000 == z) {
-            return true;
-        }
+    public boolean crossBlock(Point3 point3) {
+        if (point3.x / 1000 == x && point3.y / 1000 == y && point3.z / 1000 == z) return true;
         return false;
     }
 

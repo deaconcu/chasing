@@ -13,8 +13,14 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class Hexagon {
 
+    /**
+     * 六边形中心点到顶点的距离
+     */
     public static float OUTER_RADIUS = 100f;
 
+    /**
+     * 六边形中心点到边的最短距离，在地图上基本等于一个segment的一半
+     */
     public static float INNER_RADIUS = OUTER_RADIUS * 0.866025404f;
 
     private int id;

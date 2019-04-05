@@ -177,14 +177,14 @@ public class PropConfig {
                 return false;
             }
             // 检查道具使用对象是否正确
-            if (!checkType(message.getType())) {
-                log.warn("prop type is not right, prop objectId: {}, message type: {}", message.getType());
+            if (!checkType(message.getTargetType())) {
+                log.warn("prop type is not right, prop objectId: {}, message type: {}", message.getTargetType());
                 //return;
             }
 
             // 如果使用成功，扣除道具数量
             if (doUse(message, user, toUser, game)) {
-                user.reduceProp(message.getPropTypeId(), (byte)1);
+                //user.reduceProp(message.getPropTypeId(), (byte)1);
                 return true;
             }
             return false;
@@ -217,14 +217,14 @@ public class PropConfig {
                 if ((singleUser.getState() == Constant.UserState.ACTIVE ||
                         singleUser.getState() == Constant.UserState.LOADED ||
                         singleUser.getState() == Constant.UserState.OFFLINE)
-                        && !singleUser.hasBuff(BuffConfig.INVISIBLE_LEVEL_1)
-                        && !singleUser.hasBuff(BuffConfig.INVISIBLE_LEVEL_2)) {
+                        && !singleUser.hasBuff(BuffType.INVISIBLE_LEVEL_1)
+                        && !singleUser.hasBuff(BuffType.INVISIBLE_LEVEL_2)) {
                     activeUserList.add(singleUser);
                 }
             }
             if (activeUserList.size() > 0) {
                 User targetUser = activeUserList.get(ThreadLocalRandom.current().nextInt(activeUserList.size()));
-                return user.setTarget(Enums.TargetType.USER, targetUser.getId(), null);
+                return user.setTarget(Enums.TargetType.PLAYER, targetUser.getId(), null);
             } else {
                 return false;
             }
@@ -239,18 +239,18 @@ public class PropConfig {
     public static class InvisibleLevel1 extends PropOld {
 
         public InvisibleLevel1() {
-            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.PLAYER};
             propTypeId = INVISIBLE_LEVEL_1;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
-            if (toUser.hasBuff(BuffConfig.INVISIBLE_LEVEL_1) || toUser.hasBuff(BuffConfig.INVISIBLE_LEVEL_2)) {
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
+            if (toUser.hasBuff(BuffType.INVISIBLE_LEVEL_1) || toUser.hasBuff(BuffType.INVISIBLE_LEVEL_2)) {
                 return false;
             }
 
-            toUser.addBuff(BuffConfig.INVISIBLE_LEVEL_1, (short)30, true);
+            toUser.addBuff(BuffType.INVISIBLE_LEVEL_1, (short)30, true);
             for (User gameUser: game.getUserMap().values()) {
                 if (toUser.equals(gameUser.getTargetObject())) {
                     gameUser.clearTarget();
@@ -268,22 +268,22 @@ public class PropConfig {
     public static class InvisibleLevel2 extends PropOld {
 
         public InvisibleLevel2() {
-            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.PLAYER};
             propTypeId = INVISIBLE_LEVEL_2;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
             // 如果存在隐身1级，去除该buff
-            if (toUser.hasBuff(BuffConfig.INVISIBLE_LEVEL_2)) {
+            if (toUser.hasBuff(BuffType.INVISIBLE_LEVEL_2)) {
                 return false;
             }
 
-            if (toUser.hasBuff(BuffConfig.INVISIBLE_LEVEL_1)) {
-                toUser.removeBuff(BuffConfig.INVISIBLE_LEVEL_1);
+            if (toUser.hasBuff(BuffType.INVISIBLE_LEVEL_1)) {
+                toUser.removeBuff(BuffType.INVISIBLE_LEVEL_1);
             }
-            toUser.addBuff(BuffConfig.INVISIBLE_LEVEL_2, (short)30, true);
+            toUser.addBuff(BuffType.INVISIBLE_LEVEL_2, (short)30, true);
             for (User gameUser: game.getUserMap().values()) {
                 if (toUser.equals(gameUser.getTargetObject())) {
                     gameUser.clearTarget();
@@ -301,7 +301,7 @@ public class PropConfig {
     public static class AntiInvisible extends PropOld {
 
         public AntiInvisible() {
-            allowTargetType = new Enums.TargetType[]{TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.PLAYER};
             propTypeId = ANTI_INVISIBLE;
         }
 
@@ -313,9 +313,9 @@ public class PropConfig {
                     continue;
                 }
 
-                if (!gameUser.hasBuff(BuffConfig.IMMUNITY) &&
-                        (gameUser.hasBuff(BuffConfig.INVISIBLE_LEVEL_1) ||
-                        gameUser.hasBuff(BuffConfig.INVISIBLE_LEVEL_2))) {
+                if (!gameUser.hasBuff(BuffType.IMMUNITY) &&
+                        (gameUser.hasBuff(BuffType.INVISIBLE_LEVEL_1) ||
+                        gameUser.hasBuff(BuffType.INVISIBLE_LEVEL_2))) {
                     userList.add(gameUser);
                 }
             }
@@ -326,8 +326,8 @@ public class PropConfig {
 
             Collections.shuffle(userList);
             User chosenUser = userList.get(0);
-            chosenUser.removeBuff(BuffConfig.INVISIBLE_LEVEL_1);
-            chosenUser.removeBuff(BuffConfig.INVISIBLE_LEVEL_2);
+            chosenUser.removeBuff(BuffType.INVISIBLE_LEVEL_1);
+            chosenUser.removeBuff(BuffType.INVISIBLE_LEVEL_2);
             return true;
         }
     }
@@ -360,13 +360,13 @@ public class PropConfig {
     public static class RandomPosition extends PropOld {
 
         public RandomPosition() {
-            allowTargetType = new Enums.TargetType[]{Enums.TargetType.SELF, TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{Enums.TargetType.SELF, TargetType.PLAYER};
             propTypeId = RANDOM_POSITION;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            RoadPoint roadPoint = game.gameMap.getRandomPoint(Enums.RoadPointType.CENTER);
+            RoadPoint roadPoint = game.gameMap.getRandomRoadPoint(Enums.RoadPointType.CENTER);
             toUser.resetPoint(new Point3(roadPoint.getPoint().x, 0, roadPoint.getPoint().y));
             return true;
         }
@@ -380,14 +380,14 @@ public class PropConfig {
     public static class FlashLevel1 extends PropOld {
 
         public FlashLevel1() {
-            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.PLAYER};
             propTypeId = FLASH_LEVEL_1;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
-            if (toUser.hasBuff(BuffConfig.FLASH_LEVEL_1) || (user.hasBuff(BuffConfig.FLASH_LEVEL_2))) {
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
+            if (toUser.hasBuff(BuffType.FLASH_LEVEL_1) || (user.hasBuff(BuffType.FLASH_LEVEL_2))) {
                 return false;
             }
             Object target = toUser.getTargetObject();
@@ -395,7 +395,7 @@ public class PropConfig {
                 return false;
             }
             // TODO 需要前进到目标对象20米距离
-            toUser.addBuff(BuffConfig.FLASH_LEVEL_1, (short)10, true);
+            toUser.addBuff(BuffType.FLASH_LEVEL_1, (short)10, true);
             return true;
         }
     }
@@ -408,14 +408,14 @@ public class PropConfig {
     public static class FlashLevel2 extends PropOld {
 
         public FlashLevel2() {
-            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.PLAYER};
             propTypeId = FLASH_LEVEL_2;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
-            if (toUser.hasBuff(BuffConfig.FLASH_LEVEL_2)) {
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
+            if (toUser.hasBuff(BuffType.FLASH_LEVEL_2)) {
                 return false;
             }
             Object target = toUser.getTargetObject();
@@ -423,11 +423,11 @@ public class PropConfig {
                 return false;
             }
 
-            if (toUser.hasBuff(BuffConfig.FLASH_LEVEL_1)) {
-                toUser.removeBuff(BuffConfig.FLASH_LEVEL_1);
+            if (toUser.hasBuff(BuffType.FLASH_LEVEL_1)) {
+                toUser.removeBuff(BuffType.FLASH_LEVEL_1);
             }
             // TODO 需要前进到目标对象20米距离
-            toUser.addBuff(BuffConfig.FLASH_LEVEL_2, (short)30, true);
+            toUser.addBuff(BuffType.FLASH_LEVEL_2, (short)30, true);
             return true;
         }
     }
@@ -440,22 +440,22 @@ public class PropConfig {
     public static class Follow extends PropOld {
 
         public Follow() {
-            allowTargetType = new Enums.TargetType[]{TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.PLAYER};
             propTypeId = FOLLOW;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser, Game game) {
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
-            if (user.hasBuff(BuffConfig.FOLLOW) || user.hasBuff(BuffConfig.FOLLOWED)) {
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
+            if (user.hasBuff(BuffType.FOLLOW) || user.hasBuff(BuffType.FOLLOWED)) {
                 return false;
             }
-            if (toUser.hasBuff(BuffConfig.FOLLOW) || toUser.hasBuff(BuffConfig.FOLLOWED)) {
+            if (toUser.hasBuff(BuffType.FOLLOW) || toUser.hasBuff(BuffType.FOLLOWED)) {
                 return false;
             }
 
-            toUser.addBuff(BuffConfig.FOLLOWED, (short)60, true, user.getId());
-            user.addBuff(BuffConfig.FOLLOW, (short)60, true, toUser.getId());
+            toUser.addBuff(BuffType.FOLLOWED, (short)60, true, user.getId());
+            user.addBuff(BuffType.FOLLOW, (short)60, true, toUser.getId());
             return true;
         }
     }
@@ -468,19 +468,19 @@ public class PropConfig {
     public static class SpeedUpLevel1 extends PropOld {
 
         public SpeedUpLevel1() {
-            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.PLAYER};
             propTypeId = SPEED_UP_LEVEL_1;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
-            if (toUser.hasBuff(BuffConfig.SPEED_UP_LEVEL_2)) {
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
+            if (toUser.hasBuff(BuffType.SPEED_UP_LEVEL_2)) {
                 return false;
             }
-            toUser.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_1);
-            toUser.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_2);
-            toUser.addBuff(BuffConfig.SPEED_UP_LEVEL_1, (short)20, true);
+            toUser.removeBuff(BuffType.SPEED_DOWN_LEVEL_1);
+            toUser.removeBuff(BuffType.SPEED_DOWN_LEVEL_2);
+            toUser.addBuff(BuffType.SPEED_UP_LEVEL_1, (short)20, true);
             return true;
         }
     }
@@ -493,17 +493,17 @@ public class PropConfig {
     public static class SpeedUpLevel2 extends PropOld {
 
         public SpeedUpLevel2() {
-            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.PLAYER};
             propTypeId = SPEED_UP_LEVEL_2;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
-            toUser.removeBuff(BuffConfig.SPEED_UP_LEVEL_1);
-            toUser.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_1);
-            toUser.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_2);
-            toUser.addBuff(BuffConfig.SPEED_UP_LEVEL_2, (short)20, true);
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
+            toUser.removeBuff(BuffType.SPEED_UP_LEVEL_1);
+            toUser.removeBuff(BuffType.SPEED_DOWN_LEVEL_1);
+            toUser.removeBuff(BuffType.SPEED_DOWN_LEVEL_2);
+            toUser.addBuff(BuffType.SPEED_UP_LEVEL_2, (short)20, true);
             return true;
         }
     }
@@ -516,24 +516,24 @@ public class PropConfig {
     public static class SpeedDownLevel1 extends PropOld {
 
         public SpeedDownLevel1() {
-            allowTargetType = new Enums.TargetType[]{TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.PLAYER};
             propTypeId = SPEED_DOWN_LEVEL_1;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            if (toUser.hasBuff(BuffConfig.REBOUND)) toUser = user;
+            if (toUser.hasBuff(BuffType.REBOUND)) toUser = user;
 
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
             if (toUser == null) return false;
 
-            if (toUser.hasBuff(BuffConfig.SPEED_DOWN_LEVEL_2)) {
+            if (toUser.hasBuff(BuffType.SPEED_DOWN_LEVEL_2)) {
                 return false;
             }
 
-            toUser.removeBuff(BuffConfig.SPEED_UP_LEVEL_1);
-            toUser.removeBuff(BuffConfig.SPEED_UP_LEVEL_2);
-            toUser.addBuff(BuffConfig.SPEED_DOWN_LEVEL_1, (short)20, true);
+            toUser.removeBuff(BuffType.SPEED_UP_LEVEL_1);
+            toUser.removeBuff(BuffType.SPEED_UP_LEVEL_2);
+            toUser.addBuff(BuffType.SPEED_DOWN_LEVEL_1, (short)20, true);
             return true;
         }
     }
@@ -546,18 +546,18 @@ public class PropConfig {
     public static class SpeedDownLevel2 extends PropOld {
 
         public SpeedDownLevel2() {
-            allowTargetType = new Enums.TargetType[]{TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.PLAYER};
             propTypeId = SPEED_DOWN_LEVEL_2;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            if (toUser.hasBuff(BuffConfig.REBOUND)) toUser = user;
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
-            toUser.removeBuff(BuffConfig.SPEED_DOWN_LEVEL_1);
-            toUser.removeBuff(BuffConfig.SPEED_UP_LEVEL_1);
-            toUser.removeBuff(BuffConfig.SPEED_UP_LEVEL_2);
-            toUser.addBuff(BuffConfig.SPEED_DOWN_LEVEL_2, (short)20, true);
+            if (toUser.hasBuff(BuffType.REBOUND)) toUser = user;
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
+            toUser.removeBuff(BuffType.SPEED_DOWN_LEVEL_1);
+            toUser.removeBuff(BuffType.SPEED_UP_LEVEL_1);
+            toUser.removeBuff(BuffType.SPEED_UP_LEVEL_2);
+            toUser.addBuff(BuffType.SPEED_DOWN_LEVEL_2, (short)20, true);
             return true;
         }
     }
@@ -570,15 +570,15 @@ public class PropConfig {
     public static class HoldPosition extends PropOld {
 
         public HoldPosition() {
-            allowTargetType = new Enums.TargetType[]{TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.PLAYER};
             propTypeId = HOLD_POSITION;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            if (toUser.hasBuff(BuffConfig.REBOUND)) toUser = user;
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
-            toUser.addBuff(BuffConfig.HOLD_POSITION, (short)20, true);
+            if (toUser.hasBuff(BuffType.REBOUND)) toUser = user;
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
+            toUser.addBuff(BuffType.HOLD_POSITION, (short)20, true);
             return true;
         }
     }
@@ -635,7 +635,7 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser, Game game) {
-            RoadPoint roadPoint = game.gameMap.getRandomPoint(Enums.RoadPointType.CENTER);
+            RoadPoint roadPoint = game.gameMap.getRandomRoadPoint(Enums.RoadPointType.CENTER);
             toUser.setPoint3(roadPoint.getPoint().toPoint3());
             return true;
         }
@@ -655,9 +655,9 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser, Game game) {
-            if (toUser.hasBuff(BuffConfig.REBOUND)) toUser = user;
-            if (toUser.hasBuff(BuffConfig.IMMUNITY)) return false;
-            toUser.addBuff(BuffConfig.DARK_VISION, (short)20, true);
+            if (toUser.hasBuff(BuffType.REBOUND)) toUser = user;
+            if (toUser.hasBuff(BuffType.IMMUNITY)) return false;
+            toUser.addBuff(BuffType.DARK_VISION, (short)20, true);
             return true;
         }
     }
@@ -677,7 +677,7 @@ public class PropConfig {
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
             toUser.clearBuff();
-            toUser.addBuff(BuffConfig.IMMUNITY, (short)30, true);
+            toUser.addBuff(BuffType.IMMUNITY, (short)30, true);
             return true;
         }
     }
@@ -690,13 +690,13 @@ public class PropConfig {
     public static class Rebound extends PropOld {
 
         public Rebound() {
-            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.PLAYER};
             propTypeId = REBOUND;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            toUser.addBuff(BuffConfig.REBOUND, (short)60, true);
+            toUser.addBuff(BuffType.REBOUND, (short)60, true);
             return true;
         }
     }
@@ -709,13 +709,13 @@ public class PropConfig {
     public static class NearEnemyRemind extends PropOld {
 
         public NearEnemyRemind() {
-            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.USER};
+            allowTargetType = new Enums.TargetType[]{TargetType.SELF, TargetType.PLAYER};
             propTypeId = NEAR_ENEMY_REMIND;
         }
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            toUser.addBuff(BuffConfig.NEAR_ENEMY_REMIND, (short)120, true);
+            toUser.addBuff(BuffType.NEAR_ENEMY_REMIND, (short)120, true);
             return true;
         }
     }
@@ -771,19 +771,12 @@ public class PropConfig {
 
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
-            GamePropConfigMap gamePropConfigMap = game.getGameConfig().getPropConfig();
-            int index = ThreadLocalRandom.current().nextInt(gamePropConfigMap.getConfigMap().size() - 1);
+            PropType propType = PropType.NONE;
+            int index = ThreadLocalRandom.current().nextInt(PropType.values().length);
             int i = 0;
-            short propTypeId = 0;
-            for (short typeId: gamePropConfigMap.getConfigMap().keySet()) {
-                if (index == i ++)  {
-                    propTypeId = typeId;
-                }
-            }
 
-            if (propTypeId != 0) {
-                toUser.increaseProp(propTypeId, (short) 1);
-            }
+            for (PropType type: PropType.values()) if (index == i++) propType = type;
+            if (propType != PropType.NONE) toUser.increaseProp(propType, (short) 1);
             return true;
         }
     }

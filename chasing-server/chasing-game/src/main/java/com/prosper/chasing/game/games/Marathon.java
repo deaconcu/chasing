@@ -4,19 +4,16 @@ import com.prosper.chasing.game.base.*;
 import com.prosper.chasing.game.base.Point3;
 import com.prosper.chasing.game.map.Hexagon;
 import com.prosper.chasing.game.map.RoadSection;
-import com.prosper.chasing.game.map.Segment;
-import com.prosper.chasing.game.map.SpecialSection;
-import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
-import com.prosper.chasing.game.util.Enums;
+import com.prosper.chasing.game.util.Enums.*;
 import com.prosper.chasing.game.base.InteractiveObjects.*;
+import static com.prosper.chasing.game.util.Enums.PropType.*;
 
 import com.prosper.chasing.game.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -27,35 +24,58 @@ public class Marathon extends GameBase {
 
     private static GameConfig gameConfig;
 
+    private AllAtOnce allAtOnce;
     private Point3 startPosition;
     private Point3 endPosition;
 
+    private Point3 specialSectionPosition;
+
+    private Stationary startFlag;
     private Stationary endFlag;
+
+    public Marathon() {
+        super();
+        allAtOnce = new AllAtOnce(this);
+        allAtOnce.set(FLASH_LEVEL_1, 10);
+        allAtOnce.set(FLASH_LEVEL_2, 10);
+        allAtOnce.set(SPEED_UP_LEVEL_1, 10);
+        allAtOnce.set(SPEED_UP_LEVEL_2, 10);
+        allAtOnce.set(SPEED_DOWN_LEVEL_1, 10);
+        allAtOnce.set(SPEED_DOWN_LEVEL_2, 10);
+        allAtOnce.set(BLOOD_PILL, 10);
+        allAtOnce.set(BLOOD_BAG, 10);
+        allAtOnce.set(MONEY, 10);
+        allAtOnce.set(GIFT_BOX, 10);
+    }
 
     static {
         gameConfig = new GameConfig(
-                "Finish Time", Enums.RankValueType.TIME_ASCEND,
-                "Remain Distance", Enums.RankValueType.INT_ASCEND,
+                "Finish Time", RankValueType.TIME_ASCEND,
+                "Remain Distance", RankValueType.INT_ASCEND,
                 new HashMap<>(),
-                new short[]{1,2,3,4,5,6,7,8,9,10},
-                new GamePropConfigMap(
-                        Integer.MAX_VALUE, 200)
-                        .add(PropConfig.SPEED_UP_LEVEL_1, (short)100, (short)60, false)
-                        .add(PropConfig.SPEED_UP_LEVEL_2, (short)100, (short)60, false)
-                        .add(PropConfig.SPEED_DOWN_LEVEL_1, (short)100, (short)60, false)
-                        .add(PropConfig.SPEED_DOWN_LEVEL_2, (short)100, (short)60, false)
-                        .add(PropConfig.BLOOD_PILL, (short)100, (short)60, false)
-                        .add(PropConfig.BLOOD_BAG, (short)100, (short)60, false)
-                        .add(PropConfig.FLASH_LEVEL_1, (short)100, (short)60, false)
-                        .add(PropConfig.FLASH_LEVEL_2, (short)100, (short)60, false)
-                        .add(PropConfig.MONEY, (short)100, (short)60, false)
-                        .add(PropConfig.GIFT_BOX, (short)100, (short)60, false)
+                new PropType[]{
+                        FLASH_LEVEL_1,
+                        FLASH_LEVEL_2,
+                        SPEED_UP_LEVEL_1,
+                        SPEED_UP_LEVEL_2,
+                        SPEED_DOWN_LEVEL_1,
+                        SPEED_DOWN_LEVEL_2,
+                        BLOOD_PILL,
+                        BLOOD_BAG,
+                        MONEY,
+                        GIFT_BOX
+                }
         );
     }
 
     @Override
     public GameConfig getGameConfig() {
         return gameConfig;
+    }
+
+    @Override
+    public PropGenerator getPropGenerator() {
+        return allAtOnce;
     }
 
     @Override
@@ -69,6 +89,9 @@ public class Marathon extends GameBase {
             startPosition = selected.getBetween()[RoadSection.SUB_SECTION_SIZE - 2].getPoint().toPoint3();
             endPosition = selected.getBetween()[1].getPoint().toPoint3();
         }
+        endPosition = gameMap.getEnd().toPoint3();
+
+        specialSectionPosition = gameMap.specialSectionMap.get((short)0).getRoadPoints()[0].getPoint().toPoint3();
         /*
         roadSections = gameMap.getNearestRoadSectioon(gameMap.getEnd());
         selected = roadSections[0];
@@ -141,88 +164,42 @@ public class Marathon extends GameBase {
                     distance = currDistance;
                 }
             }
-            addGameObject(new SignPost(farRoadPoint.getPoint().toPoint3(),
+            createGameObject(new SignPost(farRoadPoint.getPoint().toPoint3(),
                     - Util.getDegree(gameMap.getRoadDirectionToEnd(entry.getKey().getId()))));
         }
 
-        addGameObject(new Stationary(Enums.StationaryType.FLAG, new Point3(startPosition.x, 0, startPosition.z), 45));
-        addGameObject(new Stationary(Enums.StationaryType.FLAG, new Point3(endPosition.x, 0, endPosition.z), 45));
+        startFlag = new Stationary(StationaryType.FLAG, new Point3(startPosition.x, 0, startPosition.z), 45);
+        endFlag = new Stationary(StationaryType.FLAG, new Point3(endPosition.x, 0, endPosition.z), 45);
+
+        createGameObject(startFlag);
+        createGameObject(endFlag);
     }
 
     @Override
-    protected void doPropLogic() {
-        // 生成新的道具
-        int propRemained = getGameConfig().getPropConfig().getPropRemained((int)getGameTime() / 1000);
-        int count = propList.size() - propRemained;
-        if (count <= 0) return;
-
-        while (count > 0) {
-            EnvProp envProp = new EnvProp(this);
-
-            envProp.typeId = propList.removeFirst();
-            envProp.setId(nextPropSeqId ++);
-
-            Point2 point2 = gameMap.getRandomPoint(Enums.RoadPointType.CENTER).getPoint();
-            envProp.setPoint3(new Point3(point2.x, 100, point2.y));
-            envProp.createTime = System.currentTimeMillis();
-            envProp.vanishTime = envProp.createTime +
-                    getGameConfig().getPropConfig().getPropConfig(envProp.typeId).duration * 1000;
-            propMap.put(envProp.getId(), envProp);
-            getObjectChangedSet().add(envProp);
-
-            count --;
-
-            log.info("created prop: {}:{}-{}:{}:{}", gameInfo.getId(), envProp.getId(),
-                    envProp.getPoint3().x, envProp.getPoint3().y, envProp.getPoint3().z);
-        }
-    }
-
-    @Override
-    protected ByteBuilder createIntroductionMessage() {
-        String[] lines = new String[] {
-                "你被放置在无边的森林中",
-                "和大家一样，请保持冷静",
-                "这里是森林的终点",
-                "率先到达这里的人，我将给予他金币作为奖赏",
-                "所以",
-                "请赶快开始吧",
-        };
-
-        int index = 0;
-
-        ByteBuilder bb = new ByteBuilder();
-        bb.append(0);
-        bb.append(Constant.MessageType.INTRODUCTION);
-        bb.append((byte)3);
-
-        bb.append(Enums.TargetType.SELF.getValue());
-
-        bb.append((byte)2);
-        bb.append(lines[index].getBytes().length);
-        bb.append(lines[index ++].getBytes());
-
-        bb.append(lines[index].getBytes().length);
-        bb.append(lines[index ++].getBytes());
-
-        bb.append(Enums.TargetType.STATIONARY.getValue());
-        bb.append(endFlag.getId());
-
-        bb.append((byte)2);
-        bb.append(lines[index].getBytes().length);
-        bb.append(lines[index ++].getBytes());
-
-        bb.append(lines[index].getBytes().length);
-        bb.append(lines[index ++].getBytes());
-
-        bb.append(Enums.TargetType.SELF.getValue());
-
-        bb.append((byte)2);
-        bb.append(lines[index].getBytes().length);
-        bb.append(lines[index ++].getBytes());
-
-        bb.append(lines[index].getBytes().length);
-        bb.append(lines[index ++].getBytes());
-
-        return bb;
+    protected Prologue createPrologue() {
+        Prologue prologue = new Prologue(new Prologue.PrologueItem[] {
+                new Prologue.PrologueItem(TargetType.SELF, new String[] {
+                        "你现在是在一个无边的森林中",
+                        "身边有很多陌生人"
+                }),
+                new Prologue.PrologueItem(TargetType.STATIONARY, endFlag.getId(), new String[] {
+                        "这里是森林的终点",
+                        "率先到达这里的人，会得到金币作为奖赏"
+                }),
+                new Prologue.PrologueItem(TargetType.PROP, new String[] {
+                        "森林中有各种宝物来帮助你到达终点"
+                }),
+                new Prologue.PrologueItem(TargetType.INTERACTIVE, new String[] {
+                        "也有很多地方好像是不能通过的"
+                }),
+                new Prologue.PrologueItem(specialSectionPosition, new String[] {
+                        "还有很多地方不便通行"
+                }),
+                new Prologue.PrologueItem(TargetType.SELF, new String[] {
+                        "考验你的时候开始了",
+                        "所以，请开始吧"
+                }),
+        });
+        return prologue;
     }
 }

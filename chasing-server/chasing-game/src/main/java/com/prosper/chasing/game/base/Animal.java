@@ -1,6 +1,6 @@
 package com.prosper.chasing.game.base;
 
-import com.prosper.chasing.game.util.Enums;
+import com.prosper.chasing.game.util.Enums.*;
 
 /**
  * 动物有主动追逐玩家的特性
@@ -10,14 +10,14 @@ public class Animal extends NPC {
 
     private int blockGroupId;
 
-    private Enums.AnimalType animalType;
+    private AnimalType animalType;
 
     /**
      * 目标用户id
      */
     private User targetUser;
 
-    public Animal(int id, Enums.AnimalType  animalType, Point3 point3, int rotateY, int blockGroupId, User targetUser) {
+    public Animal(int id, AnimalType  animalType, Point3 point3, int rotateY, int blockGroupId, User targetUser) {
         super(id, point3, rotateY);
         this.animalType = animalType;
         this.blockGroupId = blockGroupId;
@@ -28,7 +28,7 @@ public class Animal extends NPC {
      */
     @Override
     public void logic(Game game) {
-        if (!getTargetUser().hasBuff(BuffConfig.ANIMAL)) {
+        if (!getTargetUser().hasBuff(BuffType.ANIMAL)) {
             setAlive(false);
         }
 
@@ -55,7 +55,7 @@ public class Animal extends NPC {
         this.targetUser = targetUser;
     }
 
-    public Enums.AnimalType getAnimalType() {
+    public AnimalType getAnimalType() {
         return animalType;
     }
 

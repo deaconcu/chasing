@@ -16,7 +16,10 @@ public class InteractiveObjects {
 
     public static abstract class Interactive extends GameObject {
 
-        private static int id = 0;
+        /**
+         * 生成对象的ID顺序号，从1开始，在有些场景中，定义0为随机id，-1为对象不存在
+         */
+        private static int id = 1;
 
         public static Map<Enums.InteractiveType, boolean[][]> transferMatrixMap = new HashMap<>();
 
@@ -196,8 +199,11 @@ public class InteractiveObjects {
 
     public static class Tent extends Interactive {
 
-        public Tent(Point3 position, int rotateY) {
+        private Point3 enterPosition;
+
+        public Tent(Point3 position, int rotateY, Point3 enterPosition) {
             super(position, rotateY);
+            this.enterPosition = enterPosition;
         }
 
         @Override
@@ -207,8 +213,15 @@ public class InteractiveObjects {
 
         @Override
         public void logic(Game game) {
+            // TODO 需要优化, 效率太低，每帧都需要遍历
+            for (User user: game.getUserMap().values()) {
+                if (!isNear(user, 500)) continue;
+                Interactive interactive = game.getRandomInteractive(Enums.InteractiveType.TENT, this);
+                if (interactive == null) continue;
 
-
+                Tent tent = (Tent)interactive;
+                user.resetPoint(tent.enterPosition);
+            }
         }
     }
 }

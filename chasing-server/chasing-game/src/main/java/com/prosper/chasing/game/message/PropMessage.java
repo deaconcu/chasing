@@ -2,16 +2,17 @@ package com.prosper.chasing.game.message;
 
 import com.prosper.chasing.game.base.Point3;
 import com.prosper.chasing.game.util.Enums;
+import com.prosper.chasing.game.util.Enums.*;
 
 import java.nio.ByteBuffer;
 
 public class PropMessage extends UserMessage {
     
-    // 道具id
-    private short propId;
+    // 道具类型
+    private PropType propType;
 
     // 使用类型 1：用户，2：道具，3：位置
-    private Enums.TargetType type;
+    private TargetType targetType;
 
     // 道具使用对象的用户id， -1表示用在自己身上
     private int toUserId;
@@ -25,23 +26,23 @@ public class PropMessage extends UserMessage {
     public PropMessage(UserMessage message) {
         super(message);
         ByteBuffer content = message.getContent();
-        this.propId = content.getShort();
-        this.type = Enums.TargetType.getTargetType(content.get());
-        if (type == Enums.TargetType.USER) {
+        this.propType = PropType.getPropType(content.getShort());
+        this.targetType = Enums.TargetType.getTargetType(content.get());
+        if (targetType == Enums.TargetType.PLAYER) {
             this.toUserId = content.getInt();
-        } else if (type == Enums.TargetType.PROP) {
+        } else if (targetType == Enums.TargetType.PROP) {
             this.toPropId = content.getInt();
-        } else if (type == Enums.TargetType.POSITION) {
+        } else if (targetType == Enums.TargetType.POSITION) {
             this.point3 = new Point3(content.getInt(), content.getInt(), content.getInt());
         }
     }
 
-    public short getPropTypeId() {
-        return propId;
+    public PropType getPropType() {
+        return propType;
     }
 
-    public Enums.TargetType getType() {
-        return type;
+    public Enums.TargetType getTargetType() {
+        return targetType;
     }
 
     public int getToUserId() {

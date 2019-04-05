@@ -7,16 +7,16 @@ public class RoadPoint {
 
     private Point2 point;
     private double deflection;
-    private boolean isQuarter;
+    private int divisionPos;
 
-    public RoadPoint(Point2 point, double deflection, boolean isQuarter) {
+    public RoadPoint(Point2 point, double deflection, int divisionPos) {
         this.point = point;
         this.deflection = deflection;
-        this.isQuarter = isQuarter;
+        this.divisionPos = divisionPos;
     }
 
     public RoadPoint(Point2 point, double deflection) {
-        this(point, deflection, false);
+        this(point, deflection, -1);
     }
 
     public int getDegree() {
@@ -56,7 +56,8 @@ public class RoadPoint {
         this.deflection = deflection;
     }
 
-    public boolean isQuarter() {
-        return isQuarter;
+    public int getDivisionPos() {
+        return divisionPos;
     }
+
 }

@@ -340,12 +340,11 @@ public class GameMap {
             else if (getTerrainType(block) == TerrainType.FOG) terrainBytes[x][y] = 'C';
             else if (getTerrainType(block) == TerrainType.RAIN) terrainBytes[x][y] = 'G';
             else if (getTerrainType(block) == TerrainType.SNOW) terrainBytes[x][y] = 'K';
-            else if (getTerrainType(block) == TerrainType.DREAM_L1) terrainBytes[x][y] = 'E';
-            else if (getTerrainType(block) == TerrainType.DREAM_L2) terrainBytes[x][y] = 'F';
+            else if (getTerrainType(block) == TerrainType.DREAM) terrainBytes[x][y] = 'E';
+            else if (getTerrainType(block) == TerrainType.WIND) terrainBytes[x][y] = 'F';
 
             else if (getTerrainType(block) == TerrainType.STONE) terrainBytes[x][y] = '.';
             else if (getTerrainType(block) == TerrainType.GATE) terrainBytes[x][y] = '.';
-            else if (getTerrainType(block) == TerrainType.WATER) terrainBytes[x][y] = '.';
             else if (getTerrainType(block) == TerrainType.RIVER) terrainBytes[x][y] = '.';
 
             else if (getTerrainType(block) == TerrainType.FOREST) terrainBytes[x][y] = 'D';
@@ -354,8 +353,7 @@ public class GameMap {
             else if (getTerrainType(block) == TerrainType.SAND) terrainBytes[x][y] = 'J';
             else if (getTerrainType(block) == TerrainType.SWAMP) terrainBytes[x][y] = 'L';
             else if (getTerrainType(block) == TerrainType.VEGETABLE) terrainBytes[x][y] = 'N';
-            else if (getTerrainType(block) == TerrainType.WATER) terrainBytes[x][y] = 'O';
-            else if (getTerrainType(block) == TerrainType.WIND) terrainBytes[x][y] = 'P';
+            else if (getTerrainType(block) == TerrainType.WIND_OLD) terrainBytes[x][y] = 'P';
             else if (getTerrainType(block) == TerrainType.WILD_WIND) terrainBytes[x][y] = 'Q';
             else if (getTerrainType(block) == TerrainType.WHEAT) terrainBytes[x][y] = 'R';
             else if (getTerrainType(block) == TerrainType.VIEW) terrainBytes[x][y] = 'S';

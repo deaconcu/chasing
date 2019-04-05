@@ -8,6 +8,9 @@ import com.prosper.chasing.game.util.Enums;
  */
 public class Stationary extends GameObject {
 
+    /**
+     * 生成对象的ID顺序号，从1开始，在有些场景中，定义0为随机id，-1为对象不存在
+     */
     public static int nextId = 1;
 
     // 位置相关
@@ -71,9 +74,9 @@ public class Stationary extends GameObject {
         return true;
     }
 
-    protected boolean consumeProp(User user, short propId, int count) {
-        if (user.getProp(propId) < count) return false;
-        user.reduceProp(propId, (short)count);
+    protected boolean consumeProp(User user, Enums.PropType propType, int count) {
+        if (user.getProp(propType) < count) return false;
+        user.reduceProp(propType, (short)count);
         return true;
     }
 

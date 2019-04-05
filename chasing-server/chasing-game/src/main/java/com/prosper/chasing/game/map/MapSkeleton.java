@@ -276,8 +276,8 @@ public class MapSkeleton {
                 RoadPoint[] roadPoints = getAllRoadPoint(branch);
                 Enums.TerrainType tType = null;
 
-                if (branch.getExtraDistanceRate() > 200) tType = Enums.TerrainType.DREAM_L2;
-                else if (branch.getExtraDistanceRate() > 150) tType = Enums.TerrainType.DREAM_L1;
+                if (branch.getExtraDistanceRate() > 200) tType = Enums.TerrainType.WIND;
+                else if (branch.getExtraDistanceRate() > 150) tType = Enums.TerrainType.DREAM;
                 else if (branch.getExtraDistanceRate() > 100) tType = Enums.TerrainType.SNOW;
                 else if (branch.getExtraDistanceRate() > 60) tType = Enums.TerrainType.RAIN;
                 else if (branch.getExtraDistanceRate() > 20) tType = Enums.TerrainType.FOG;
@@ -286,7 +286,7 @@ public class MapSkeleton {
                     specialSectionMap.put(specialSectionId, new SpecialSection(specialSectionId, tType, roadPoints));
                     for (int i = 5; i < roadPoints.length - 5; i ++) {
                         expandRoadPoints(roadPoints[i], specialSectionId);
-                        if (roadPoints[i].isQuarter()) {
+                        if (roadPoints[i].getDivisionPos() == 0) {
                             Enums.ViewType sType = getViewType(tType);
                             View view = new View(sType, roadPoints[i].getPoint().toPoint3(),
                                     (int)Math.toDegrees(roadPoints[i].getDeflection()) * 1000);
@@ -586,6 +586,11 @@ public class MapSkeleton {
         return roadPointList.toArray(new RoadPoint[]{});
     }
 
+    /**
+     * 把特殊路段的blockId和特殊路段Id的对应关系保存起来
+     * @param roadPoint
+     * @param specialSectionId
+     */
     private void expandRoadPoints(RoadPoint roadPoint, short specialSectionId) {
         int x = roadPoint.getPoint().x;
         int y = roadPoint.getPoint().y;
@@ -878,8 +883,8 @@ public class MapSkeleton {
         if (terrainType == Enums.TerrainType.FOG) return Enums.ViewType.FOG;
         if (terrainType == Enums.TerrainType.SNOW) return Enums.ViewType.SNOW;
         if (terrainType == Enums.TerrainType.RAIN) return Enums.ViewType.RAIN;
-        if (terrainType == Enums.TerrainType.DREAM_L1) return Enums.ViewType.DREAM_L1;
-        if (terrainType == Enums.TerrainType.DREAM_L2) return Enums.ViewType.DREAM_L2;
+        if (terrainType == Enums.TerrainType.DREAM) return Enums.ViewType.DREAM_L1;
+        if (terrainType == Enums.TerrainType.WIND) return Enums.ViewType.DREAM_L2;
         return null;
     }
 
@@ -936,7 +941,12 @@ public class MapSkeleton {
         else return null;
     }
 
-    public RoadPoint getRandomPoint(Enums.RoadPointType type) {
+    /**
+     * 获取一个随机的roadPoint, roadPoint是指生成在地图上生成各种游戏对象的固定位置
+     * @param type roadPoint类型, 路中央还是路旁边
+     * @return
+     */
+    public RoadPoint getRandomRoadPoint(Enums.RoadPointType type) {
         int index = ThreadLocalRandom.current().nextInt(segmentMap.size());
         Segment chosen = null;
         for (Segment segment: segmentMap.values()) {
@@ -1071,6 +1081,25 @@ public class MapSkeleton {
                     byteBuilder.append((short)ids[i - 1]);
                     byteBuilder.append((short)ids[i + 1]);
                 }
+            }
+        }
+
+        byteBuilder.append(specialSectionMap.size());
+        for (SpecialSection specialSection: specialSectionMap.values()) {
+            byteBuilder.append(specialSection.getId());
+            byteBuilder.append(specialSection.getTerrainType().getValue());
+            int size = 0;
+            for (RoadPoint roadPoint: specialSection.getRoadPoints()) {
+                //if (roadPoint.getDivisionPos() == RoadSection.SUB_SECTION_SIZE / 2 || roadPoint.getDivisionPos() == 0) {
+                    size ++;
+                //}
+            }
+            byteBuilder.append(size);
+            for (RoadPoint roadPoint: specialSection.getRoadPoints()) {
+                //if (roadPoint.getDivisionPos() == RoadSection.SUB_SECTION_SIZE / 2 || roadPoint.getDivisionPos() == 0) {
+                    byteBuilder.append(roadPoint.getPoint().x);
+                    byteBuilder.append(roadPoint.getPoint().y);
+                //}
             }
         }
 

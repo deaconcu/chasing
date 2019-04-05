@@ -9,7 +9,7 @@ public class Constant {
         public static byte PREPARE = 2;
         public static byte RESULT = 3;
         public static byte NO_GAME = 4;
-        public static byte INTRODUCTION = 5;
+        public static byte PROLOGUE = 5;
     }
 
     public static class UserState {

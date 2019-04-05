@@ -72,12 +72,9 @@ public class MarathonGameMapCreator {
         /**
          * 不能通过，需要找资源才能通过
          */
-        terrainConfigMap.put(TerrainType.DREAM_L2, new TerrainConfig(
+        terrainConfigMap.put(TerrainType.WIND, new TerrainConfig(
                 // 岩浆：存在于快速路，
-                TerrainType.DREAM_L2, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0));
-        terrainConfigMap.put(TerrainType.WATER, new TerrainConfig(
-                // 水面：存在于快速路，
-                TerrainType.WATER, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0, 0.05f));
+                TerrainType.WIND, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0));
         terrainConfigMap.put(TerrainType.FOREST, new TerrainConfig(
                 // 森林：存在于快速路
                 TerrainType.FOREST, new LocateType[]{LocateType.SHORTCUT}, 1, 1, 0, 0, 0.05f));
@@ -91,9 +88,9 @@ public class MarathonGameMapCreator {
         /**
          * 缓慢通过，可以停止运动休息，单纯增加运动距离
          */
-        terrainConfigMap.put(TerrainType.DREAM_L1, new TerrainConfig(
+        terrainConfigMap.put(TerrainType.DREAM, new TerrainConfig(
                 // 荒地：很多比较高的野草，存在于主路或者支路，速度降低30%，单段长度10-30
-                TerrainType.DREAM_L1, new LocateType[]{LocateType.ROAD, LocateType.SHORTCUT}, 2, 4, 0.9f, 0));
+                TerrainType.DREAM, new LocateType[]{LocateType.ROAD, LocateType.SHORTCUT}, 2, 4, 0.9f, 0));
         terrainConfigMap.put(TerrainType.WHEAT, new TerrainConfig(
                 // 麦田：存在于主路和快速路，速度降低30%，单端长度7-24
                 TerrainType.WHEAT, new LocateType[]{LocateType.ROAD, LocateType.SHORTCUT}, 2, 4, 0.7f, 0, 0.05f));
@@ -118,9 +115,9 @@ public class MarathonGameMapCreator {
         terrainConfigMap.put(TerrainType.SNOW, new TerrainConfig(
                 // 雪地；存在于快速路，速度降低50%，单端长度5-19，规定时间通过，否则返回墓地
                 TerrainType.SNOW, new LocateType[]{LocateType.SHORTCUT}, 2, 3, 0.5f, 0));
-        terrainConfigMap.put(TerrainType.WIND, new TerrainConfig(
+        terrainConfigMap.put(TerrainType.WIND_OLD, new TerrainConfig(
                 // 大风地带：存在于快速路，速度降低40%，单端长度5-19
-                TerrainType.WIND, new LocateType[]{LocateType.SHORTCUT}, 2, 3, 0.6f, 0.2f));
+                TerrainType.WIND_OLD, new LocateType[]{LocateType.SHORTCUT}, 2, 3, 0.6f, 0.2f));
         terrainConfigMap.put(TerrainType.WILD_WIND, new TerrainConfig(
                 // 飓风地带：存在于快速路，速度降低60%，单端长度5-19
                 TerrainType.WILD_WIND, new LocateType[]{LocateType.SHORTCUT}, 2, 3, 0.6f, 0.2f));
@@ -408,12 +405,12 @@ public class MarathonGameMapCreator {
                 if (segment.getExtraDistanceRate() > 200) {
                     gameMap.blockGroupMap.put(
                             groupId,
-                            new BlockGroup(groupId, TerrainType.DREAM_L2, head.blockId, tail.blockId,
+                            new BlockGroup(groupId, TerrainType.WIND, head.blockId, tail.blockId,
                                     segment.distance() - 10, segment.detourDistance));
                 } else if (segment.getExtraDistanceRate() > 150) {
                     gameMap.blockGroupMap.put(
                             groupId,
-                            new BlockGroup(groupId, TerrainType.DREAM_L1, head.blockId, tail.blockId,
+                            new BlockGroup(groupId, TerrainType.DREAM, head.blockId, tail.blockId,
                                     segment.distance() - 10, segment.detourDistance));
                 } else if (segment.getExtraDistanceRate() > 100) {
                     gameMap.blockGroupMap.put(

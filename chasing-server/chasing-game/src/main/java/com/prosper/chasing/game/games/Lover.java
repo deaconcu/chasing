@@ -1,7 +1,6 @@
 package com.prosper.chasing.game.games;
 
 import com.prosper.chasing.game.base.*;
-import com.prosper.chasing.game.util.ByteBuilder;
 import com.prosper.chasing.game.util.Constant;
 import com.prosper.chasing.game.util.Enums;
 
@@ -40,7 +39,7 @@ public class Lover extends GameBase {
         byte groupId = 1;
         int count = 1;
         for (User user: userMap.values()) {
-            Point3 point3 = gameMap.getRandomPoint(Enums.RoadPointType.CENTER).getPoint().toPoint3();
+            Point3 point3 = gameMap.getRandomRoadPoint(Enums.RoadPointType.CENTER).getPoint().toPoint3();
             user.setPoint3(point3);
             user.setRotateY(ThreadLocalRandom.current().nextInt(360));
             user.setMoveState(Constant.MoveState.IDLE);

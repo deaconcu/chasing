@@ -50,7 +50,7 @@ public class Abilitys {
 
         @Override
         public void apply(Game game, User user, User toUser) {
-            toUser.setSpeedRate((short)(user.getSpeedRate() + value));
+            toUser.buffSpeedRate += value;
         }
     }
 
@@ -72,14 +72,14 @@ public class Abilitys {
                 if ((singleUser.getState() == Constant.UserState.ACTIVE ||
                         singleUser.getState() == Constant.UserState.LOADED ||
                         singleUser.getState() == Constant.UserState.OFFLINE)
-                        && !singleUser.hasBuff(BuffConfig.INVISIBLE_LEVEL_1)
-                        && !singleUser.hasBuff(BuffConfig.INVISIBLE_LEVEL_2)) {
+                        && !singleUser.hasBuff(BuffType.INVISIBLE_LEVEL_1)
+                        && !singleUser.hasBuff(BuffType.INVISIBLE_LEVEL_2)) {
                     activeUserList.add(singleUser);
                 }
             }
             if (activeUserList.size() > 0) {
                 User targetUser = activeUserList.get(ThreadLocalRandom.current().nextInt(activeUserList.size()));
-                user.setTarget(Enums.TargetType.USER, targetUser.getId(), null);
+                user.setTarget(Enums.TargetType.PLAYER, targetUser.getId(), null);
             }
         }
     }
@@ -104,7 +104,7 @@ public class Abilitys {
 
         @Override
         public void apply(Game game, User user, User toUser) {
-            user.addBuff(type.getValue(), last, true);
+            user.addBuff(type, last, true);
         }
     }
 
@@ -126,7 +126,7 @@ public class Abilitys {
 
         @Override
         public void apply(Game game, User user, User toUser) {
-            user.removeBuff(type.getValue());
+            user.removeBuff(type);
         }
     }
 
@@ -142,7 +142,7 @@ public class Abilitys {
 
         @Override
         public void apply(Game game, User user, User toUser) {
-            RoadPoint roadPoint = game.gameMap.getRandomPoint(Enums.RoadPointType.CENTER);
+            RoadPoint roadPoint = game.gameMap.getRandomRoadPoint(Enums.RoadPointType.CENTER);
             user.resetPoint(new Point3(roadPoint.getPoint().x, 0, roadPoint.getPoint().y));
         }
     }
@@ -181,19 +181,12 @@ public class Abilitys {
 
         @Override
         public void apply(Game game, User user, User toUser) {
-            GamePropConfigMap gamePropConfigMap = game.getGameConfig().getPropConfig();
-            int index = ThreadLocalRandom.current().nextInt(gamePropConfigMap.getConfigMap().size() - 1);
+            PropType propType = PropType.NONE;
+            int index = ThreadLocalRandom.current().nextInt(PropType.values().length);
             int i = 0;
-            short propTypeId = 0;
-            for (short typeId: gamePropConfigMap.getConfigMap().keySet()) {
-                if (index == i ++)  {
-                    propTypeId = typeId;
-                }
-            }
 
-            if (propTypeId != 0) {
-                user.increaseProp(propTypeId, (short) 1);
-            }
+            for (PropType type: PropType.values()) if (index == i++) propType = type;
+            if (propType != PropType.NONE) toUser.increaseProp(propType, (short) 1);
         }
     }
 

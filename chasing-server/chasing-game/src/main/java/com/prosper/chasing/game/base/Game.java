@@ -2,6 +2,7 @@ package com.prosper.chasing.game.base;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import com.prosper.chasing.game.map.*;
 import com.prosper.chasing.game.message.*;
@@ -10,13 +11,15 @@ import com.prosper.chasing.game.util.Constant;
 import com.prosper.chasing.game.util.Enums;
 import com.prosper.chasing.game.util.Enums.*;
 import com.prosper.chasing.game.base.InteractiveObjects.*;
+import com.prosper.chasing.game.util.Util;
+import com.prosper.chasing.game.base.Abilitys.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.prosper.chasing.game.message.Message;
 import com.prosper.chasing.game.util.Constant.UserState;
 import com.prosper.chasing.common.util.CommonConstant.GameState;
-import com.prosper.chasing.common.util.JsonUtil;
 
 /**
  * 游戏主要逻辑对象
@@ -28,117 +31,104 @@ public abstract class Game {
 
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    public static final int FETCH_DISTANCE = 200;
-    public static final int FROZEN_TIME = 10000;
+    /**
+     * 游戏开始时间
+     */
+    public long startTime = System.currentTimeMillis();
 
-    // 游戏中的道具配置
-    public static Map<Short, Integer> propPriceMap = new HashMap<>();
-
-    // 游戏加载状态
+    /**
+     * 游戏的当前状态
+     */
     private int state;
 
-    // 游戏的阶段
-    private byte step;
-
-    // 游戏元信息
+    /**
+     * 游戏的基础信息
+     */
     protected GameInfo gameInfo;
 
-    // 参与的用户信息
-    private Map<Integer, User> userMap;
-
-    // 玩家消息队列
+    /**
+     * 游戏的消息队列
+     */
     private Queue<Message> messageQueue = new LinkedList<>();
 
-    private LinkedList<User> movedUserList = new LinkedList<>();
+    /**
+     * 游戏在运行时的分区信息，格式为:[分区Id => 分区内的所有对象]，对象位置有变化时需要更新其所属的分区
+     * 暂时不用
+     */
+    //private Map<Integer, List<User>> userPosGroupMap = new HashMap<>();
 
-    // 游戏内的全部道具
-    protected LinkedList<Short> propList;
+    /**
+     * 场景内的所有玩家
+     */
+    private Map<Integer, User> userMap;
 
-    // 游戏场景内的道具信息
+    /**
+     * 场景内的道具
+     */
     protected Map<Integer, EnvProp> propMap = new HashMap<>();
 
+    /**
+     * 场景内的固定游戏对象
+     */
     private Map<Integer, Stationary> stationaryMap = new HashMap<>();
 
+    /**
+     * 场景内的可交互对象
+     */
     private Map<Integer, Interactive> interactiveMap = new HashMap<>();
 
-    private List<Action> actionList = new LinkedList<>();
-
-    // 地图中的npc集合
-    private Map<Integer, NPC> npcMap = new HashMap<>();
-
+    /**
+     * 游戏的玩家排名
+     */
     protected Rank rank;
 
-    // npc的顺序id号
-    private int npcSequenceId = 1;
-    private int dynamicObjectSeqId = 1;
-    private int interObjectSeqId = 1;
-
-    // prop顺序号id
+    /**
+     * 生成道具时的顺序号
+     */
     protected int nextPropSeqId = 1;
-    // 静止NPC顺序号id
-    private int staticNPCSeqId = 1;
-    // 移动NPC顺序号id
-    private int movableNPCSeqId = 1;
 
-    // 处理游戏逻辑的管理器
+    /**
+     * 游戏管理器的引用
+     */
     private GameManage gameManage;
-    private JsonUtil jsonUtil = new JsonUtil();
 
-    // 一些外部依赖
-    //protected NavMeshGroup navimeshGroup;
-
-    //protected GameMap gameMap;
+    /**
+     * 地图, 创建游戏时放入
+     */
     protected MapSkeleton gameMap;
 
-    private Random random = new Random();
-
-    protected boolean isStepChanged = false;
-
-    // 每一次同步的时候有位置变化和buff变化的用户map
+    /**
+     * 每一次同步时变化了的数据
+     */
     Set<Integer> positionChangedSet = new HashSet<>();
     Set<Integer> buffChangedSet = new HashSet<>();
-
     Set<GameObject> objectChangedSet = new HashSet<>();
+    private List<Action> actionList = new LinkedList<>();
 
-    public long startTime = System.currentTimeMillis();
-    private long lastUpdateTime = System.currentTimeMillis();
-    private long currentUpdateTime = System.currentTimeMillis();
-
+    /**
+     * 默认的道具配置
+     */
     private Map<PropType, Prop> propConfig = DefaultPropConfig.getPropConfig();
+
+    /**
+     * 默认的buff配置
+     */
     private Map<BuffType, Abilitys.Ability[]> buffConfig = DefaultBuffConfig.getBuffConfig();
 
     public Game() {
         this.state = GameState.CREATE;
         userMap = new HashMap<>();
-
-        propPriceMap.put(PropConfig.MARK, 20);
-        propPriceMap.put(PropConfig.INVISIBLE_LEVEL_1, 20);
-        propPriceMap.put(PropConfig.INVISIBLE_LEVEL_2, 20);
-        propPriceMap.put(PropConfig.ANTI_INVISIBLE, 20);
-        propPriceMap.put(PropConfig.RETURN_TO_INIT_POSITION, 20);
-        propPriceMap.put(PropConfig.RANDOM_POSITION, 20);
-        propPriceMap.put(PropConfig.FLASH_LEVEL_1, 20);
-        propPriceMap.put(PropConfig.FLASH_LEVEL_2, 20);
-        propPriceMap.put(PropConfig.FOLLOW, 20);
-        propPriceMap.put(PropConfig.SPEED_UP_LEVEL_1, 20);
-        propPriceMap.put(PropConfig.SPEED_UP_LEVEL_2, 20);
-        propPriceMap.put(PropConfig.SPEED_DOWN_LEVEL_1, 20);
-        propPriceMap.put(PropConfig.SPEED_DOWN_LEVEL_2, 20);
-        propPriceMap.put(PropConfig.HOLD_POSITION, 20);
-        propPriceMap.put(PropConfig.BLOOD_PILL, 20);
-        propPriceMap.put(PropConfig.BLOOD_BAG, 20);
-        propPriceMap.put(PropConfig.REBIRTH, 20);
-        propPriceMap.put(PropConfig.DARK_VISION, 20);
-        //propPriceMap.put(PropConfig.IMMUNITY_LEVEL_1, 20);
-        propPriceMap.put(PropConfig.IMMUNITY, 20);
-        propPriceMap.put(PropConfig.REBOUND, 20);
-        propPriceMap.put(PropConfig.NEAR_ENEMY_REMIND, 20);
-        propPriceMap.put(PropConfig.PROP_BOMB, 20);
-        propPriceMap.put(PropConfig.MONEY, 20);
-        propPriceMap.put(PropConfig.GIFT_BOX, 20);
     }
 
+    /**
+     * 获取游戏配置信息
+     */
     public abstract GameConfig getGameConfig();
+
+    /**
+     * 获取道具生成器
+     */
+    public abstract PropGenerator getPropGenerator();
 
     /********************************
      * 游戏逻辑
@@ -149,23 +139,41 @@ public abstract class Game {
      */
     public void prepare() {
         initUser(userMap);
-        initProp();
         initGameObject();
     }
 
-    public void createIntroductionMessages() {
-        ByteBuilder bb = createIntroductionMessage();
+    /**
+     * 创建开场白消息
+     */
+    public void createPrologueMessages() {
+        ByteBuilder b = new ByteBuilder();
+        Prologue prologue = createPrologue();
+        for (Prologue.PrologueItem item : prologue.getPrologueItems()) {
+            if (item.getTargetId() != 0) continue;
+            GameObject gameObject = null;
+            if (item.getTarget() == TargetType.STATIONARY) {
+                gameObject = getRandomGameObject(GameObjectType.STATIONARY);
+            } else if (item.getTarget() == TargetType.INTERACTIVE) {
+                gameObject = getRandomGameObject(GameObjectType.INTERACTIVE);
+            } else if (item.getTarget() == TargetType.PROP) {
+                gameObject = getRandomGameObject(GameObjectType.PROP);
+            }
+            item.setTargetId(gameObject == null ? -1 : gameObject.getId());
+        }
+        prologue.appendBytes(b, 0);
         for (User user: userMap.values())  {
-            user.offerMessage(bb);
+            user.offerMessage(b);
         }
     }
 
-    protected abstract ByteBuilder createIntroductionMessage();
+    protected abstract Prologue createPrologue();
 
-    /**
-     * 初始化游戏场景中动态的游戏对象
-     */
-    //protected abstract void initDynamicObject();
+    public GameObject getRandomGameObject(GameObjectType type) {
+        if (type == GameObjectType.STATIONARY) return Util.getRandom(stationaryMap);
+        else if (type == GameObjectType.INTERACTIVE) return Util.getRandom(interactiveMap);
+        else if (type == GameObjectType.PROP) return Util.getRandom(propMap);
+        else return null;
+    }
 
     /**
      * 初始化可交互对象
@@ -181,13 +189,13 @@ public abstract class Game {
             if (!specialSection.isSingle()) continue;
             RoadPoint roadPoint = specialSection.getRoadPoints()[0];
             if (specialSection.getTerrainType() == Enums.TerrainType.RIVER)
-                addGameObject(new River(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
+                createGameObject(new River(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
             else if (specialSection.getTerrainType() == Enums.TerrainType.STONE)
-                addGameObject(new Stone(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
+                createGameObject(new Stone(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
             else if (specialSection.getTerrainType() == Enums.TerrainType.FIRE_FENCE)
-                addGameObject(new FireFence(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
+                createGameObject(new FireFence(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
             else if (specialSection.getTerrainType() == Enums.TerrainType.GATE)
-                addGameObject(new Gate(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
+                createGameObject(new Gate(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
             else continue;
         }
     }
@@ -196,7 +204,7 @@ public abstract class Game {
         List<Segment> segmentList = gameMap.getRandomEndpointSegment(0.5f);
         for (Segment segment : segmentList) {
             RoadPoint roadPoint = segment.getRandomLampPoint(Enums.RoadPointType.WAYSIDE);
-            addGameObject(new Stationary(
+            createGameObject(new Stationary(
                     Enums.StationaryType.STORE, roadPoint.getPoint().toPoint3(), - roadPoint.getStationaryDegree()));
         }
     }
@@ -205,18 +213,20 @@ public abstract class Game {
      * 添加场景中的游戏对象
      * @param gameObject
      */
-    public void addGameObject(GameObject gameObject) {
+    public void createGameObject(GameObject gameObject) {
         if (gameObject instanceof Stationary) {
             Stationary stationary = (Stationary) gameObject;
             stationaryMap.put(stationary.getId(), stationary);
             log.info("create stationary: " + stationary);
-        } else if (gameObject instanceof NPC) {
-            NPC npc = (NPC) gameObject;
-            npcMap.put(npc.getId(), npc);
         } else if (gameObject instanceof Interactive) {
             Interactive interactive = (Interactive) gameObject;
             interactiveMap.put(interactive.getId(), interactive);
             log.info("create interactive: " + interactive);
+        } else if (gameObject instanceof EnvProp) {
+            EnvProp envProp = (EnvProp) gameObject;
+            propMap.put(envProp.getId(), envProp);
+            objectChangedSet.add(envProp);
+            log.info("created prop: ", envProp);
         }
         objectChangedSet.add(gameObject);
     }
@@ -233,11 +243,6 @@ public abstract class Game {
             stationary.setSyncAction(SyncAction.DEAD);
             stationaryMap.remove(stationary.getId());
             objectChangedSet.add(stationary);
-        } else if (gameObject instanceof NPC) {
-            NPC npc = (NPC) gameObject;
-            npc.setSyncAction(SyncAction.DEAD);
-            npcMap.remove(npc.getId());
-            objectChangedSet.add(npc);
         } else if (gameObject instanceof EnvProp) {
             EnvProp prop = (EnvProp) gameObject;
             prop.setSyncAction(SyncAction.DEAD);
@@ -252,10 +257,6 @@ public abstract class Game {
      * 主要包括：处理用户消息，执行预定义游戏逻辑，检查连接等
      */
     public void executeLogic() {
-        // set time
-        lastUpdateTime = currentUpdateTime;
-        currentUpdateTime = System.currentTimeMillis();
-
         // 检查, 比如玩家是否掉线, 游戏是否结束
         check();
         // 执行玩家消息
@@ -295,16 +296,30 @@ public abstract class Game {
             user.countEnergy();
             //user.countSpeedRate();
 
-            // 用户身上存在buff时需要执行buff逻辑
-            for (Buff buff: user.getBuffList()) {
-                if (!buff.isValid()) continue;
-                for (Abilitys.Ability ability: buffConfig.get(buff.typeId)) {
-                    ability.apply(this, user, user);
+            // 用户身上存在buff时需要执行buff逻辑, 不存在buff时需要重设为初值
+            if (user.getBuffList().size() == 0) {
+                user.setSpeedRate((short)100);
+            } else {
+                for (Buff buff: user.getBuffList()) {
+                    if (!buff.isValid()) continue;
+                    for (Ability ability: buffConfig.get(buff.type)) {
+                        ability.apply(this, user, user);
+                    }
+                    user.setSpeedRate((short)(100 + user.buffSpeedRate));
+                    user.buffSpeedRate = 0;
                 }
             }
 
             // 持有BUFF_ON类型道具时需要添加buff, 比如权杖
-            for (short propType: user.getPropMap().keySet()) {
+            user.getPropMap().entrySet().stream()
+                    .filter(entry -> entry.getValue() > 0)
+                    .forEach(type -> {
+                        for (Ability ab: propConfig.get(type).getAbilities(PropUsageType.HOLD))
+                            ab.apply(this, user, user);
+                    });
+
+            /*
+            for (PropType propType: user.getPropMap().keySet()) {
                 if (user.getPropMap().get(propType) <= 0) continue;
 
                 Prop prop = propConfig.get(propType);
@@ -312,6 +327,7 @@ public abstract class Game {
                     ability.apply(this, user, user);
                 }
             }
+            */
 
             // 用户处在特殊路段的时候执行特殊路段逻辑
             SpecialSection specialSection = gameMap.getSpecialSection(user.getPoint3().x, user.getPoint3().z);
@@ -325,21 +341,21 @@ public abstract class Game {
     private void doSpecialSection(SpecialSection specialSection, User user) {
         if (specialSection.getTerrainType() == Enums.TerrainType.FOG) {
             if (!user.isCrossZone()) return;
-            user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_1_TERRAIN, specialSection.getId());
+            user.addBuff(BuffType.SPEED_DOWN_LEVEL_1_TERRAIN, specialSection.getId());
         } else if (specialSection.getTerrainType() == Enums.TerrainType.RAIN) {
             if (!user.isCrossZone()) return;
-            user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_2_TERRAIN, specialSection.getId());
+            user.addBuff(BuffType.SPEED_DOWN_LEVEL_2_TERRAIN, specialSection.getId());
         } else if (specialSection.getTerrainType() == Enums.TerrainType.SNOW) {
             if (!user.isCrossZone()) return;
-            user.addBuff(BuffConfig.SPEED_DOWN_LEVEL_3_TERRAIN, specialSection.getId());
-        } else if (specialSection.getTerrainType() == Enums.TerrainType.DREAM_L1) {
+            user.addBuff(BuffType.SPEED_DOWN_LEVEL_3_TERRAIN, specialSection.getId());
+        } else if (specialSection.getTerrainType() == Enums.TerrainType.DREAM) {
             if (!user.isCrossZone()) return;
-            if (user.addBuff(BuffConfig.SLEEPY_LEVEL_1, specialSection.getId())) {
+            if (user.addBuff(BuffType.SLEEPY_LEVEL_1, specialSection.getId())) {
                 user.setSystemTargetObject(user.getPoint3());
             }
-        } else if (specialSection.getTerrainType() == Enums.TerrainType.DREAM_L2) {
+        } else if (specialSection.getTerrainType() == Enums.TerrainType.WIND) {
             if (!user.isCrossZone()) return;
-            if (user.addBuff(BuffConfig.SLEEPY_LEVEL_2, specialSection.getId())) {
+            if (user.addBuff(BuffType.SLEEPY_LEVEL_2, specialSection.getId())) {
                 user.setSystemTargetObject(user.getPoint3());
             }
         } else if (specialSection.getTerrainType() == Enums.TerrainType.ANIMAL_OSTRICH) {
@@ -363,15 +379,15 @@ public abstract class Game {
                     animal.setTargetUser(user);
                     animal.setSpeed(500);
 
-                    addGameObject(animal);
+                    createGameObject(animal);
                     user.addBuff(BuffConfig.ANIMAL, (short)-1, specialSection.getId());
                 }
                 */
-        } else if (specialSection.getTerrainType() == Enums.TerrainType.WIND) {
+        } else if (specialSection.getTerrainType() == Enums.TerrainType.WIND_OLD) {
                 /*
                 if (!user.isCrossZone()) continue;
                 BlockGroup blockGroup = gameMap.getBlockGroup(block.blockGroupId);
-                user.addBuff(BuffConfig.WIND, (short)30, block.blockGroupId,
+                user.addBuff(BuffConfig.WIND_OLD, (short)30, block.blockGroupId,
                     gameMap.getPoint(blockGroup.getStartBlockId()));
                 */
         } else if (specialSection.getTerrainType() == Enums.TerrainType.WILD_FIRE) {
@@ -382,19 +398,19 @@ public abstract class Game {
                         new Point3(user.getPoint3().x, 0, user.getPoint3().z),
                         0,
                         (short)3);
-                addGameObject(fire);
+                createGameObject(fire);
             }
         } else {
             user.clearTerrainBuff();
         }
 
-        if (user.hasBuff(BuffConfig.SLEEPY_LEVEL_1) && !user.hasBuff(BuffConfig.DREAMING)
+        if (user.hasBuff(BuffType.SLEEPY_LEVEL_1) && !user.hasBuff(BuffType.DREAMING)
                 && user.getSpeed() < 2 && user.allowIntoDream()) {
-            user.addBuff(BuffConfig.DREAMING, (short) 15, true);
+            user.addBuff(BuffType.DREAMING, (short) 15, true);
             user.setLastDreamTime(System.currentTimeMillis());
-        } else if (user.hasBuff(BuffConfig.SLEEPY_LEVEL_2) && !user.hasBuff(BuffConfig.DREAMING)
+        } else if (user.hasBuff(BuffType.SLEEPY_LEVEL_2) && !user.hasBuff(BuffType.DREAMING)
                 && user.getSpeed() < 4 && user.allowIntoDream()) {
-            user.addBuff(BuffConfig.DREAMING, (short)15, true);
+            user.addBuff(BuffType.DREAMING, (short)15, true);
             user.setLastDreamTime(System.currentTimeMillis());
         }
     }
@@ -421,12 +437,26 @@ public abstract class Game {
     }
 
     /**
-     *
+     * 执行可交互对象的逻辑
      */
     private void doInteractiveLogic() {
         for (Interactive interactive: interactiveMap.values()) {
             interactive.logic(this);
         }
+    }
+
+    /**
+     * 获取一个随机的可交互对象
+     * @param type 可交互对象的类型
+     * @return
+     */
+    public Interactive getRandomInteractive(InteractiveType type, Interactive exclude) {
+        List<Interactive> objectList = new LinkedList<>();
+        for (Interactive interactive: interactiveMap.values()) {
+            if (interactive.getType() == type && interactive != exclude) objectList.add(interactive);
+        }
+        if (objectList.size() == 0) return null;
+        return objectList.get(ThreadLocalRandom.current().nextInt(objectList.size()));
     }
 
     /**
@@ -607,7 +637,7 @@ public abstract class Game {
             byteBuilder.append((short)actionList.size());
             for (Action action: actionList) {
                 Action.PropAction propAction = (Action.PropAction) action;
-                byteBuilder.append(propAction.propTypeId);
+                byteBuilder.append(propAction.propType.getValue());
                 byteBuilder.append(propAction.userId);
                 byteBuilder.append(propAction.targetType.getValue());
                 byteBuilder.append(propAction.targetId);
@@ -656,13 +686,6 @@ public abstract class Game {
     protected abstract void customInit();
 
     /**
-     * 初始化道具
-     */
-    private void initProp() {
-        propList = getGameConfig().getPropConfig().generatePropList();
-    }
-
-    /**
      * 同步游戏开始之后的一些数据，比如用户名, 游戏时间等，格式如下
      *
      * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]|propCount(2)|list<PropPrice>|Map
@@ -690,11 +713,11 @@ public abstract class Game {
             bb.append(user.getName().getBytes());
         }
 
-        short[] storePropIds = getGameConfig().getStorePropIds();
-        bb.append((short)storePropIds.length);
-        for (short storePropId: storePropIds) {
-            int price = getPropPrice(storePropId);
-            bb.append(storePropId);
+        PropType[] storePropTypes = getGameConfig().getStorePropTypes();
+        bb.append((short)storePropTypes.length);
+        for (PropType type: storePropTypes) {
+            int price = getPropPrice(type);
+            bb.append(type.getValue());
             bb.append(price);
         }
 
@@ -711,7 +734,7 @@ public abstract class Game {
         bb.append(stationaryMap.distance());
         for (Stationary interactiveObject: stationaryMap.values()) {
             bb.append(interactiveObject.getId());
-            bb.append(interactiveObject.getType());
+            bb.append(interactiveObject.getTargetType());
             bb.append(interactiveObject.getPoint3().x);
             bb.append(interactiveObject.getPoint3().y);
             bb.append(interactiveObject.getPoint3().z);
@@ -780,10 +803,8 @@ public abstract class Game {
         user.addSteps(message.steps);
         user.setSpeed(message.speed);
 
-        movedUserList.add(user);
-
-        if (user.hasBuff(BuffConfig.INVISIBLE_LEVEL_1)) {
-            user.removeBuff(BuffConfig.INVISIBLE_LEVEL_1);
+        if (user.hasBuff(BuffType.INVISIBLE_LEVEL_1)) {
+            user.removeBuff(BuffType.INVISIBLE_LEVEL_1);
         }
         doPositionChanged(user);
     }
@@ -828,11 +849,9 @@ public abstract class Game {
         if (toUser == null) return;
 
         // check if user prop is enough
-        short propTypeId = message.getPropTypeId();
-        if (user.checkProp(propTypeId, (byte)1)) {
-            //user.useProp(propTypeId, toUser);
-
-            Prop prop = propConfig.get(propTypeId);
+        PropType propType = message.getPropType();
+        if (user.checkProp(propType, (byte)1)) {
+            Prop prop = propConfig.get(propType);
             if (!prop.usable()) return;
 
             boolean testGood = true;
@@ -846,12 +865,12 @@ public abstract class Game {
                     ability.apply(this, user, toUser);
                 }
                 actionList.add(new Action.PropAction(
-                        propTypeId, user.getId(), message.getType(), message.getToUserId()));
+                        propType, user.getId(), message.getTargetType(), message.getToUserId()));
             }
 
             /*
             if(PropConfig.getProp(propTypeId).use(message, user, toUser, this)) {
-                actionList.add(new Action.PropAction(propTypeId, user.getId(), message.getType(), message.getToUserId()));
+                actionList.add(new Action.PropAction(propTypeId, user.getId(), message.getTargetType(), message.getToUserId()));
             }
             */
         }
@@ -878,11 +897,11 @@ public abstract class Game {
         User user = getUser(message.getUserId(), true);
         if (user.getState() == UserState.FINISHED) return;
 
-        int price = getPropPrice(message.itemId);
+        int price = getPropPrice(message.propType);
         if (price == -1) {
             return;
         }
-        user.purchaseProp(message.itemId, price);
+        user.purchaseProp(message.propType, price);
     }
 
     /**
@@ -903,7 +922,7 @@ public abstract class Game {
         } else if (message.objectType ==  GameObjectType.PROP) {
             EnvProp prop = propMap.get(message.objectId);
             if (prop != null && removeGameObject(prop)) {
-                user.increaseProp(prop.typeId, (short)1);
+                user.increaseProp(prop.type, (short)1);
             }
         }
     }
@@ -1053,7 +1072,7 @@ public abstract class Game {
                     if (chasingInfo.startTime != 0) chasingInfo.startTime = 0;
                 }
 
-                if (chasingInfo.chasingUser.hasBuff(BuffConfig.HOLD_SCEPTER) && chasingInfo.startTime != 0 &&
+                if (chasingInfo.chasingUser.hasBuff(BuffType.HOLD_SCEPTER) && chasingInfo.startTime != 0 &&
                         buffStartTime > chasingInfo.startTime) {
                     buffStartTime = chasingInfo.startTime;
                 }
@@ -1125,6 +1144,8 @@ public abstract class Game {
      * 执行转移道具
      */
     private void doTransferProp(User fromUser, User toUser, byte propId, short count) {
+        // TODO
+        /*
         // 检查源用户道具是否足够, 目标用户包是否已满
         if (!fromUser.checkProp(propId, count)) return;
         if (PropConfig.getProp(propId).isInPackage) {
@@ -1134,6 +1155,7 @@ public abstract class Game {
 
         fromUser.reduceProp(propId, count);
         toUser.increaseProp(propId, count);
+        */
     }
 
     /**
@@ -1171,10 +1193,17 @@ public abstract class Game {
     */
 
     /**
-     * 处理道具
+     * 处理道具，包括生成场景中的新道具和移除过期道具
      */
     protected void doPropLogic() {
+        Optional.ofNullable(getPropGenerator().getProp()).orElse(Collections.emptyList())
+                .forEach(e -> createGameObject(e));
+        propMap.values().stream().filter(e -> e.getRemainSecond() <= 0)
+                .collect(Collectors.toList()).forEach(e -> removeGameObject(e));
+
+
         // 生成新的道具
+        /*
         int propInStock = getGameConfig().getPropConfig().getPropRemained((int)getGameTime() / 1000);
         int count = propList.size() - propInStock;
         if (count <= 0) return;
@@ -1185,7 +1214,7 @@ public abstract class Game {
             envProp.typeId = propList.removeFirst();
             envProp.setId(nextPropSeqId ++);
 
-            RoadPoint roadPoint = gameMap.getRandomPoint(RoadPointType.CENTER);
+            RoadPoint roadPoint = gameMap.getRandomRoadPoint(RoadPointType.CENTER);
             envProp.setPoint3(new Point3(roadPoint.getPoint().x, 100, roadPoint.getPoint().y));
             envProp.createTime = System.currentTimeMillis();
             envProp.vanishTime = envProp.createTime +
@@ -1197,16 +1226,18 @@ public abstract class Game {
 
             count --;
         }
+        */
 
         // 为到期的道具生成新的位置
         /*
         ListIterator<EnvProp> iterator = propMap.listIterator();
         while(iterator.hasNext()) {
         */
+        /*
         for (EnvProp prop: propMap.values()) {
             // 如果道具到期，移除道具
             if (prop.vanishTime <= System.currentTimeMillis()) {
-                RoadPoint roadPoint = gameMap.getRandomPoint(RoadPointType.CENTER);
+                RoadPoint roadPoint = gameMap.getRandomRoadPoint(RoadPointType.CENTER);
                 // TODO 忘记了什么意思
                 prop.setPoint3(new Point3(roadPoint.getPoint().x, 1100, roadPoint.getPoint().y));
                 prop.createTime = System.currentTimeMillis();
@@ -1218,6 +1249,7 @@ public abstract class Game {
                 continue;
             }
         }
+        */
     }
 
     /**
@@ -1238,11 +1270,12 @@ public abstract class Game {
     /**
      * 获取道具价格
      */
-    public int getPropPrice(short propTypeId) {
-        if (getGameConfig().getPropPriceMap().containsKey(propTypeId))
-            return getGameConfig().getPropPriceMap().get(propTypeId);
-        return propPriceMap.get(propTypeId);
+    public int getPropPrice(PropType propType) {
+        if (getGameConfig().getPropPriceMap().containsKey(propType))
+            return getGameConfig().getPropPriceMap().get(propType);
+        return -1;
     }
+
 
     /********************************
      * NPC 相关

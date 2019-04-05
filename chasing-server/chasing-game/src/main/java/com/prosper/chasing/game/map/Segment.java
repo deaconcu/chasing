@@ -94,7 +94,8 @@ public class Segment {
                 wayPointList.add(wayPoints[i ++]);
                 continue;
             } else {
-                RoadSection newRoadSection = new RoadSection(previousRoadSection, previousPoint, lampPoints[j], wayPointList);
+                RoadSection newRoadSection = new RoadSection(
+                        previousRoadSection, previousPoint, lampPoints[j], wayPointList);
                 roadSections[j] = newRoadSection;
                 previousRoadSection = newRoadSection;
                 previousPoint = lampPoints[j ++];

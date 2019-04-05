@@ -66,7 +66,7 @@ public class BuffConfig {
         buffConfigMap.put(SPEED_DOWN_LEVEL_1_TERRAIN, new BuffConfig(SPEED_DOWN_LEVEL_1_TERRAIN, (short)-1));
         buffConfigMap.put(SPEED_DOWN_LEVEL_2_TERRAIN, new BuffConfig(SPEED_DOWN_LEVEL_2_TERRAIN, (short)-1));
         buffConfigMap.put(SPEED_DOWN_LEVEL_3_TERRAIN, new BuffConfig(SPEED_DOWN_LEVEL_3_TERRAIN, (short)-1));
-        buffConfigMap.put(WIND, new BuffConfig(WIND, (short)-1));
+        buffConfigMap.put(WIND_OLD, new BuffConfig(WIND_OLD, (short)-1));
         buffConfigMap.put(ANIMAL, new BuffConfig(ANIMAL, (short)-1));
     }
     */

@@ -8,26 +8,27 @@ public class Enums {
     public enum TerrainType {
         NONE(0),
 
-        RAIN(8),
-        SNOW(12),
+        FOG(1),
+        RAIN(2),
+        SNOW(3),
+        DREAM(4),
+        WIND(5),
+        GRAVEYARD(6),
+        LAKE(7),
 
         ANIMAL(1),
         BLANK(2),
         BUILDING(3),
-        FOG(4),
         FOREST(5),
-        DREAM_L1(6),
-        DREAM_L2(7),
         PAVEMENT(9),
         ANIMAL_OSTRICH(10),
         SAND(11),
         SWAMP(13),
         VEGETABLE(14),
         VIEW(15),
-        WATER(16),
         WHEAT(17),
         WILD_WIND(18),
-        WIND(19),
+        WIND_OLD(19),
         UPLAND(20),
         WALL(21),
         MOUNTAIN_L1(22),
@@ -251,7 +252,7 @@ public class Enums {
     public enum TargetType {
         NONE((byte)0),
         SELF((byte)1),
-        USER((byte)2),
+        PLAYER((byte)2),
         PROP((byte)3),
         STATIONARY((byte)4),
         INTERACTIVE((byte)5),
@@ -327,42 +328,50 @@ public class Enums {
     }
 
     public enum PropType {
-        MARK((byte)1), // 单人位置显示 标记一个离你位置最近的不同队伍的人，点亮离他最近的那一盏灯，方便在追踪的时候有一个目标
-        INVISIBLE_LEVEL_1((byte)2),   // 隐身30秒，不能被标记，不在地图和场景中显示，可以移动
-        INVISIBLE_LEVEL_2((byte)3),   // 隐身5分钟，不能被标记，不在地图和场景中显示，不能移动
-        ANTI_INVISIBLE((byte)4),  // 对玩家所在地点使用，以该地点为中心点的周围200米距离内，使用了隐形药水的玩家立即显形
-        RETURN_TO_INIT_POSITION((byte)5),  // 单人模式下使用，回到出发点
-        RANDOM_POSITION((byte)6), // 随机传送到一个位置
-        FLASH_LEVEL_1((byte)7),  // 立即传送到被标记目标2米范围内
-        FLASH_LEVEL_2((byte)8),  // 向被标记目标前进50米
-        FOLLOW((byte)9), // 跟随某一个目标移动，两人速度为正常值的一半
-        SPEED_UP_LEVEL_1((byte)10), // 加速道具 20%
-        SPEED_UP_LEVEL_2((byte)11), // 加速道具 40%
-        SPEED_DOWN_LEVEL_1((byte)12), // 减速道具 20%
-        SPEED_DOWN_LEVEL_2((byte)13), // 减速道具 20%
-        HOLD_POSITION((byte)14), // 停止移动
-        BLOOD_PILL((byte)15), // 加血一点
-        BLOOD_BAG((byte)16), // 加血到满
-        REBIRTH((byte)17), // 死亡后可以重生
-        DARK_VISION((byte)18), // 让目标视野变黑
-        IMMUNITY((byte)19), // 对所有道具免疫5分钟，不能移动
-        REBOUND((byte)21),            // 反弹，持续3分钟
-        NEAR_ENEMY_REMIND((byte)22),     // 100米接近提醒，正常为50米
-        PROP_BOMB((byte)23),  // 摧毁目标道具
-        MONEY((byte)24),  // 金钱
-        GIFT_BOX((byte)25),  // 未知道具礼盒
-        SCEPTER((byte)26), // 灵魂权杖
-        BRIDGE((byte)27), // 桥梁
-        RAIN_CLOUD((byte)28), // 云雨
-        WOOD((byte)29); // 云雨
+        NONE((short)0),
+        MARK((short)1), // 单人位置显示 标记一个离你位置最近的不同队伍的人，点亮离他最近的那一盏灯，方便在追踪的时候有一个目标
+        INVISIBLE_LEVEL_1((short)2),   // 隐身30秒，不能被标记，不在地图和场景中显示，可以移动
+        INVISIBLE_LEVEL_2((short)3),   // 隐身5分钟，不能被标记，不在地图和场景中显示，不能移动
+        ANTI_INVISIBLE((short)4),  // 对玩家所在地点使用，以该地点为中心点的周围200米距离内，使用了隐形药水的玩家立即显形
+        RETURN_TO_INIT_POSITION((short)5),  // 单人模式下使用，回到出发点
+        RANDOM_POSITION((short)6), // 随机传送到一个位置
+        FLASH_LEVEL_1((short)7),  // 立即传送到被标记目标2米范围内
+        FLASH_LEVEL_2((short)8),  // 向被标记目标前进50米
+        FOLLOW((short)9), // 跟随某一个目标移动，两人速度为正常值的一半
+        SPEED_UP_LEVEL_1((short)10), // 加速道具 20%
+        SPEED_UP_LEVEL_2((short)11), // 加速道具 40%
+        SPEED_DOWN_LEVEL_1((short)12), // 减速道具 20%
+        SPEED_DOWN_LEVEL_2((short)13), // 减速道具 20%
+        HOLD_POSITION((short)14), // 停止移动
+        BLOOD_PILL((short)15), // 加血一点
+        BLOOD_BAG((short)16), // 加血到满
+        REBIRTH((short)17), // 死亡后可以重生
+        DARK_VISION((short)18), // 让目标视野变黑
+        IMMUNITY((short)19), // 对所有道具免疫5分钟，不能移动
+        REBOUND((short)21),            // 反弹，持续3分钟
+        NEAR_ENEMY_REMIND((short)22),     // 100米接近提醒，正常为50米
+        PROP_BOMB((short)23),  // 摧毁目标道具
+        MONEY((short)24),  // 金钱
+        GIFT_BOX((short)25),  // 未知道具礼盒
+        SCEPTER((short)26), // 灵魂权杖
+        BRIDGE((short)27), // 桥梁
+        RAIN_CLOUD((short)28), // 云雨
+        WOOD((short)29); // 云雨
 
-        private byte value;
+        private short value;
 
-        PropType(byte value) {
+        PropType(short value) {
             this.value = value;
         }
 
-        public byte getValue() {
+        public static PropType getPropType(short value) {
+            for(PropType t: PropType.values()) {
+                if (t.value == value) return t;
+            }
+            return PropType.NONE;
+        }
+
+        public short getValue() {
             return value;
         }
     }
@@ -412,5 +421,15 @@ public class Enums {
      */
     public enum PropUsageType {
         HOLD, USE
+    }
+
+    /**
+     * 开场白跟踪目标的类型
+     * 1: 自己
+     * 2：
+     */
+    public enum PrologueTargetType {
+        SELF,
+
     }
 }

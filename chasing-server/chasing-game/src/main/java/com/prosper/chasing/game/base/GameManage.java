@@ -310,7 +310,7 @@ public class GameManage {
                                 game.prepare();
                                 game.generateUserMessage();
 
-                                game.createIntroductionMessages();
+                                game.createPrologueMessages();
                                 game.setState(GameState.PROCESSING);
                             } else if (game.getState() == GameState.PROCESSING) {
                                 game.executeLogic();

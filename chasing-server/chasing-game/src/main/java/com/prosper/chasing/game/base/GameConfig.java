@@ -21,26 +21,21 @@ public class GameConfig {
     // 排名第二字段类型
     private RankValueType secondRankValueType;
 
-    // 道具参数设置
-    private static GamePropConfigMap propConfig;
-
     // 自定义道具价格
-    private Map<Short, Integer> propPriceMap;
+    private Map<PropType, Integer> propPriceMap;
 
     // 商店出售的道具
-    private short[] storePropIds;
+    private PropType[] storePropTypes;
 
     public GameConfig(String firstRankName, RankValueType firstRankValueType,
                       String secondRankName, RankValueType secondRankValueType,
-                      Map<Short, Integer> propPriceMap, short[] storePropIds,
-                      GamePropConfigMap propConfig) {
+                      Map<PropType, Integer> propPriceMap, PropType[] storePropTypes) {
         this.firstRankName = firstRankName;
         this.secondRankName = secondRankName;
         this.firstRankValueType =  firstRankValueType;
         this.secondRankValueType = secondRankValueType;
-        this.propConfig = propConfig;
         this.propPriceMap = propPriceMap;
-        this.storePropIds = storePropIds;
+        this.storePropTypes = storePropTypes;
     }
 
     public String getFirstRankName() {
@@ -59,15 +54,11 @@ public class GameConfig {
         return secondRankValueType;
     }
 
-    public static GamePropConfigMap getPropConfig() {
-        return propConfig;
-    }
-
-    public Map<Short, Integer> getPropPriceMap() {
+    public Map<PropType, Integer> getPropPriceMap() {
         return propPriceMap;
     }
 
-    public short[] getStorePropIds() {
-        return storePropIds;
+    public PropType[] getStorePropTypes() {
+        return storePropTypes;
     }
 }

@@ -4,7 +4,9 @@ import com.prosper.chasing.game.base.Point2;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by deacon on 2018/5/11.
@@ -42,6 +44,12 @@ public class Util {
 
     public static int distance(long x1, long y1, long x2, long y2) {
         return (int)Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+    }
+
+    public static <K, V> V getRandom(Map<K, V> map) {
+        if (map.size() == 0) return null;
+        Object[] values = map.values().toArray();
+        return (V)values[ThreadLocalRandom.current().nextInt(values.length)];
     }
 
     public static void main(String... args) {
