@@ -820,7 +820,7 @@ public class PropConfig {
             for (List<Block> hexagonList: blockMap.values()) {
                 for (Block aroundBlock: hexagonList) {
                     BlockGroup blockGroup = game.gameMap.blockGroupMap.get(aroundBlock.blockGroupId);
-                    if (blockGroup != null && blockGroup.getTerrainType() == Enums.TerrainType.RIVER) {
+                    if (blockGroup != null && blockGroup.getType() == Enums.TerrainType.RIVER) {
                         blockGroup.setTerrainType(Enums.TerrainType.RIVER_WITH_BRIDGE);
                         game.terrainChangedSet.add(blockGroup.getId());
                         return true;

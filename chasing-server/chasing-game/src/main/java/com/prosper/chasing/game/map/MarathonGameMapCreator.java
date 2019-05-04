@@ -1428,23 +1428,22 @@ public class MarathonGameMapCreator {
             if (!gameMap.lampMap.containsKey(segment.head.blockId)) {
                 gameMap.lampMap.put(
                         segment.head.blockId,
-                        new Lamp(segment.head.blockId,
+                        new Lamp(segment.head.blockId, LampType.NORMAL,
                                 new Point3(segment.head.position.x, segment.head.position.y, 0), 0));
             }
 
             if (!gameMap.lampMap.containsKey(segment.tail.blockId)) {
                 gameMap.lampMap.put(
                         segment.tail.blockId,
-                        new Lamp(segment.tail.blockId,
+                        new Lamp(segment.tail.blockId, LampType.NORMAL,
                                 new Point3(segment.tail.position.x, segment.tail.position.y, 0), 0));
             }
 
             prevId = segment.head.blockId;
             for (Block block: segment.blockList) {
                 if (block.distanceAwayFromRoadCrossPoint != 0 && block.distanceAwayFromRoadCrossPoint != 25) continue;
-                gameMap.lampMap.put(
-                        block.blockId,
-                        new Lamp(block.blockId, new Point3(block.position.x, block.position.y, 0), 0));
+                gameMap.lampMap.put(block.blockId, new Lamp(
+                        block.blockId, LampType.NORMAL, new Point3(block.position.x, block.position.y, 0), 0));
                 if (prevId != 0) {
                     gameMap.lampMap.get(prevId).addSiblings(block.blockId);
                     gameMap.lampMap.get(block.blockId).addSiblings(prevId);
@@ -1465,7 +1464,7 @@ public class MarathonGameMapCreator {
             if (block.distanceAwayFromRoadCrossPoint != 0 && block.distanceAwayFromRoadCrossPoint != 25) continue;
             gameMap.lampMap.put(
                     block.blockId,
-                    new Lamp(block.blockId, new Point3(block.position.x, block.position.y, 0), 0));
+                    new Lamp(block.blockId, LampType.NORMAL, new Point3(block.position.x, block.position.y, 0), 0));
             if (prevId != 0) {
                 gameMap.lampMap.get(prevId).addSiblings(block.blockId);
                 gameMap.lampMap.get(block.blockId).addSiblings(prevId);
@@ -1479,7 +1478,7 @@ public class MarathonGameMapCreator {
                 if (block.distanceAwayFromRoadCrossPoint != 0 && block.distanceAwayFromRoadCrossPoint != 25) continue;
                 gameMap.lampMap.put(
                         block.blockId,
-                        new Lamp(block.blockId, new Point3(block.position.x, block.position.y, 0), 0));
+                        new Lamp(block.blockId, LampType.NORMAL, new Point3(block.position.x, block.position.y, 0), 0));
                 gameMap.lampMap.get(prevId).addSiblings(block.blockId);
                 gameMap.lampMap.get(block.blockId).addSiblings(prevId);
                 prevId = block.blockId;

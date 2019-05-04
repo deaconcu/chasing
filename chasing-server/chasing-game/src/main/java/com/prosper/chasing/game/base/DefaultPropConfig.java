@@ -1,7 +1,7 @@
 package com.prosper.chasing.game.base;
 
 import com.prosper.chasing.game.util.Enums.*;
-import com.prosper.chasing.game.base.Abilitys.*;
+import com.prosper.chasing.game.base.Abilities.*;
 
 import java.util.HashMap;
 import java.util.Map;

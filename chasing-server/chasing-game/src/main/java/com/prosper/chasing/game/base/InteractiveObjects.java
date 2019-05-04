@@ -84,6 +84,31 @@ public class InteractiveObjects {
         }
     }
 
+    public static class InteractiveInfo extends GameObject {
+        private Enums.InteractiveType type;
+        // 所属的特殊地段id，0表示不属于任何地段
+        private int specialSectionId;
+
+        public InteractiveInfo(Enums.InteractiveType type, Point3 position, int rotateY) {
+            this(type, position, rotateY, 0);
+        }
+
+        public InteractiveInfo(Enums.InteractiveType type, Point3 position, int rotateY, int specialSectionId) {
+            this.type = type;
+            this.specialSectionId = specialSectionId;
+            this.setPoint3(position);
+            this.setRotateY(rotateY);
+        }
+
+        public Enums.InteractiveType getType() {
+            return type;
+        }
+
+        public int getSpecialSectionId() {
+            return specialSectionId;
+        }
+    }
+
     public static class River extends Interactive {
 
         public static byte NO_BRIDGE = 0;

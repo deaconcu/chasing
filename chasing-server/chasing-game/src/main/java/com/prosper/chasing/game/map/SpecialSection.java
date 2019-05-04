@@ -13,12 +13,12 @@ public class SpecialSection {
     public static int MIN_SIZE = 4;
 
     private short id;
-    private Enums.TerrainType terrainType;
+    private Enums.SpecialSectionType type;
     private RoadPoint[] roadPoints;
 
-    public SpecialSection(short id, Enums.TerrainType terrainType, RoadPoint[] roadPoints) {
+    public SpecialSection(short id, Enums.SpecialSectionType type, RoadPoint[] roadPoints) {
         this.id = id;
-        this.terrainType = terrainType;
+        this.type = type;
         this.roadPoints = roadPoints;
     }
 
@@ -26,8 +26,8 @@ public class SpecialSection {
         return id;
     }
 
-    public Enums.TerrainType getTerrainType() {
-        return terrainType;
+    public Enums.SpecialSectionType getType() {
+        return type;
     }
 
     public RoadPoint[] getRoadPoints() {

@@ -57,6 +57,51 @@ public class Enums {
         }
     }
 
+    public enum SpecialSectionType {
+        NONE(0),
+        RAIN(1),
+        SNOW(2),
+        DREAM(3),
+        WIND(4),
+        GRAVEYARD(5),
+        FOG(6),
+        LAKE(7),
+        SLEEPING_MONSTER(8),
+        TIGER(9),
+        WOLF(10),
+        DARK(11),
+        OPEN_LAND(12),
+        GATES(13),
+        WILD_FIRE(14),
+        LIGHTING(15);
+
+        private int value;
+
+        SpecialSectionType(int value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return (byte)value;
+        }
+    }
+
+    public enum LampType {
+        NORMAL(0),
+        TORCH(1),
+        INVISIBLE(2);
+
+        private int value;
+
+        LampType(int value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return (byte)value;
+        }
+    }
+
     public enum StationaryType {
         FLAG(1),
         STORE(2),
@@ -80,7 +125,10 @@ public class Enums {
         STONES(4), // 石墙
         SIGNPOST(5), // 路标
         TENT(6), // 帐篷
-        HOUSE(7); // 房子
+        HOUSE(7), // 房子
+        CAMP_FIRE(8), // 营火
+        WOLF(9),
+        TIGER(10);
 
         private int value;
 
@@ -94,11 +142,10 @@ public class Enums {
     }
 
     public enum ViewType {
-        FOG(6),
-        RAIN(7),
-        SNOW(8),
-        DREAM_L1(9),
-        DREAM_L2(10);
+        FOG(8),
+        RAIN(9),
+        SNOW(10),
+        DREAM(11);
 
         private int value;
 
@@ -241,6 +288,22 @@ public class Enums {
         private byte value;
 
         HexagonDirection(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
+    public enum HexagonOccupiedType {
+        FREE((byte)0),
+        ROAD((byte)1),
+        OPEN_AREA((byte)2);
+
+        private byte value;
+
+        HexagonOccupiedType(byte value) {
             this.value = value;
         }
 

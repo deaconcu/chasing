@@ -10,7 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Created by deacon on 2019/3/28.
  */
-public class Abilitys {
+public class Abilities {
 
     public interface Ability {
 

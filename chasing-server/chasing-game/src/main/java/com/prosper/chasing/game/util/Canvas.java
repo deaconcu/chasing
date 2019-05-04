@@ -12,7 +12,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by deacon on 2019/3/5.
@@ -29,6 +29,8 @@ public class Canvas {
         graph2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         graph2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         graph2.setStroke(new BasicStroke(8));
+
+        paintOpenArea(graph2, mapSkeleton.openArea);
 
         // 画边
         for (Hexagon hexagon: mapSkeleton.occupiedMap.values()) {
@@ -107,7 +109,7 @@ public class Canvas {
             fillCenteredCircle(graph2, farRoadPoint.getPoint().getXInFloat(), farRoadPoint.getPoint().getYInFloat(), 15);
 
             Enums.HexagonDirection direction = mapSkeleton.getRoadDirectionToEnd(entry.getKey().getId());
-            int degree = Util.getDegree(direction);
+            int degree = Util.getDegree(direction) / 1000;
 
             graph2.setColor(Color.green);
             fillCenteredCircle(graph2, Math.round(entry.getKey().coordinateXInFloat() + 50 * (float)Math.cos(Math.toRadians(degree))),
@@ -127,6 +129,18 @@ public class Canvas {
         }
         */
 
+    }
+
+    private void paintOpenArea(Graphics2D g, java.util.List<Hexagon[]> openAreas) {
+        g.setColor(Color.orange);
+
+        for (Hexagon[] openArea: openAreas) {
+            for (Hexagon hexagon: openArea) {
+                if (hexagon == null) continue;
+                fillCenteredHexagon(g, hexagon.originXInFloat(), hexagon.originYInFloat(),
+                        Hexagon.OUTER_RADIUS, Hexagon.INNER_RADIUS);
+            }
+        }
     }
 
     private void paintBranch(Graphics2D g, Branch branch) {
@@ -167,10 +181,13 @@ public class Canvas {
 
     private void paintRoadSection(Graphics2D g, RoadSection roadSection) {
         g.setColor(Color.green);
-        fillCenteredCircle(g, roadSection.getStart().getPoint().getXInFloat(),
-                roadSection.getStart().getPoint().getYInFloat(), 1);
-        fillCenteredCircle(g, roadSection.getEnd().getPoint().getXInFloat(),
-                roadSection.getEnd().getPoint().getYInFloat(), 1);
+        RoadPoint start = roadSection.getStart();
+        fillCenteredCircle(g, start.getPoint().getXInFloat(), start.getPoint().getYInFloat(), 1);
+        drawCenteredString(g, Integer.toString(roadSection.getStart().getDegree() / 1000), new Rectangle(
+                Math.round(start.getPoint().getXInFloat()), Math.round(start.getPoint().getYInFloat()), 0, 2), 15);
+
+        RoadPoint end = roadSection.getStart();
+        fillCenteredCircle(g, end.getPoint().getXInFloat(), end.getPoint().getYInFloat(), 1);
 
         for (int i = 0; i < roadSection.getBetween().length; i ++) {
             fillCenteredCircle(g, roadSection.getBetween()[i].getPoint().getXInFloat(),
@@ -228,7 +245,7 @@ public class Canvas {
                 Math.round(hexagon.coordinateXInFloat()), Math.round(hexagon.coordinateYInFloat() + 18), 0, 2), 30);
 
         Enums.HexagonDirection direction = mapSkeleton.getRoadDirectionToEnd(hexagon.getId());
-        int degree2 = Util.getDegree(direction);
+        int degree2 = Util.getDegree(direction) / 1000;
 
         g.setColor(Color.orange);
         fillCenteredCircle(g, Math.round(hexagon.coordinateXInFloat() + 50 * (float)Math.cos(Math.toRadians(degree2))),
@@ -267,6 +284,17 @@ public class Canvas {
         g.fillOval(positionX, positionY, (int)r, (int)r);
     }
 
+    public void fillCenteredHexagon(Graphics2D g, float x, float y, float r1, float r2) {
+        int[] xs = new int[] {(int)(x - r2), (int)x, (int)(x + r2), (int)(x + r2), (int)x, (int)(x -r2)};
+        int[] ys = new int[] {
+                (int)(y + r1 * Math.sin(Util.getRadians(30))), (int)(y + r1),
+                (int)(y + r1 * Math.sin(Util.getRadians(30))), (int)(y - r1 * Math.sin(Util.getRadians(30))),
+                (int)(y - r1), (int)(y - r1 * Math.sin(Util.getRadians(30)))
+        };
+
+        g.fillPolygon(xs, ys, 6);
+    }
+
     public void fillCenteredRect(Graphics2D g, int x, int y, int r) {
         int positionX = (int)(x-(r/2));
         int positionY = (int)(y-(r/2));
@@ -289,7 +317,7 @@ public class Canvas {
             ImageIO.write(bi, "png", new File("/Users/deacon/Desktop/table.png"));
             System.out.println("print map done!");
         } catch(Exception e) {
-            throw new RuntimeException();
+            throw new RuntimeException(e);
         }
     }
 

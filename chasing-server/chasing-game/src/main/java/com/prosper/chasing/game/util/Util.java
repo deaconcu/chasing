@@ -42,6 +42,10 @@ public class Util {
         else return -1;
     }
 
+    public static double getRadians(int degree) {
+        return degree % 360 * Math.PI / 180;
+    }
+
     public static int distance(long x1, long y1, long x2, long y2) {
         return (int)Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
     }

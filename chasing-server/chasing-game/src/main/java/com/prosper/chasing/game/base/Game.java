@@ -12,7 +12,7 @@ import com.prosper.chasing.game.util.Enums;
 import com.prosper.chasing.game.util.Enums.*;
 import com.prosper.chasing.game.base.InteractiveObjects.*;
 import com.prosper.chasing.game.util.Util;
-import com.prosper.chasing.game.base.Abilitys.*;
+import com.prosper.chasing.game.base.Abilities.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +113,7 @@ public abstract class Game {
     /**
      * 默认的buff配置
      */
-    private Map<BuffType, Abilitys.Ability[]> buffConfig = DefaultBuffConfig.getBuffConfig();
+    private Map<BuffType, Abilities.Ability[]> buffConfig = DefaultBuffConfig.getBuffConfig();
 
     public Game() {
         this.state = GameState.CREATE;
@@ -185,17 +185,15 @@ public abstract class Game {
     }
 
     protected void initSingleSSObbject() {
-        for (SpecialSection specialSection: gameMap.specialSectionMap.values()) {
-            if (!specialSection.isSingle()) continue;
-            RoadPoint roadPoint = specialSection.getRoadPoints()[0];
-            if (specialSection.getTerrainType() == Enums.TerrainType.RIVER)
-                createGameObject(new River(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
-            else if (specialSection.getTerrainType() == Enums.TerrainType.STONE)
-                createGameObject(new Stone(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
-            else if (specialSection.getTerrainType() == Enums.TerrainType.FIRE_FENCE)
-                createGameObject(new FireFence(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
-            else if (specialSection.getTerrainType() == Enums.TerrainType.GATE)
-                createGameObject(new Gate(roadPoint.getPoint().toPoint3(), 90 * 1000 - roadPoint.getDegree()));
+        for (InteractiveInfo interactiveInfo: gameMap.interactiveSet) {
+            if (interactiveInfo.getType() == InteractiveType.RIVER)
+                createGameObject(new River(interactiveInfo.getPoint3(), 90 * 1000 - interactiveInfo.getRotateY()));
+            else if (interactiveInfo.getType() == InteractiveType.STONES)
+                createGameObject(new Stone(interactiveInfo.getPoint3(), 90 * 1000 - interactiveInfo.getRotateY()));
+            else if (interactiveInfo.getType() == InteractiveType.FIRE_FENCE)
+                createGameObject(new FireFence(interactiveInfo.getPoint3(), 90 * 1000 - interactiveInfo.getRotateY()));
+            else if (interactiveInfo.getType() == InteractiveType.GATE)
+                createGameObject(new Gate(interactiveInfo.getPoint3(), 90 * 1000 - interactiveInfo.getRotateY()));
             else continue;
         }
     }
@@ -323,14 +321,14 @@ public abstract class Game {
                 if (user.getPropMap().get(propType) <= 0) continue;
 
                 Prop prop = propConfig.get(propType);
-                for (Abilitys.Ability ability: prop.getAbilities(PropUsageType.HOLD)) {
+                for (Abilities.Ability ability: prop.getAbilities(PropUsageType.HOLD)) {
                     ability.apply(this, user, user);
                 }
             }
             */
 
             // 用户处在特殊路段的时候执行特殊路段逻辑
-            SpecialSection specialSection = gameMap.getSpecialSection(user.getPoint3().x, user.getPoint3().z);
+            SpecialSection specialSection = gameMap.getSpecialSection(user.getPoint3());
             if (specialSection == null) user.clearTerrainBuff();
             else doSpecialSection(specialSection, user);
 
@@ -339,58 +337,26 @@ public abstract class Game {
     }
 
     private void doSpecialSection(SpecialSection specialSection, User user) {
-        if (specialSection.getTerrainType() == Enums.TerrainType.FOG) {
+        if (specialSection.getType() == SpecialSectionType.FOG) {
             if (!user.isCrossZone()) return;
             user.addBuff(BuffType.SPEED_DOWN_LEVEL_1_TERRAIN, specialSection.getId());
-        } else if (specialSection.getTerrainType() == Enums.TerrainType.RAIN) {
+        } else if (specialSection.getType() == SpecialSectionType.RAIN) {
             if (!user.isCrossZone()) return;
             user.addBuff(BuffType.SPEED_DOWN_LEVEL_2_TERRAIN, specialSection.getId());
-        } else if (specialSection.getTerrainType() == Enums.TerrainType.SNOW) {
+        } else if (specialSection.getType() == SpecialSectionType.SNOW) {
             if (!user.isCrossZone()) return;
             user.addBuff(BuffType.SPEED_DOWN_LEVEL_3_TERRAIN, specialSection.getId());
-        } else if (specialSection.getTerrainType() == Enums.TerrainType.DREAM) {
+        } else if (specialSection.getType() == SpecialSectionType.DREAM) {
             if (!user.isCrossZone()) return;
             if (user.addBuff(BuffType.SLEEPY_LEVEL_1, specialSection.getId())) {
                 user.setSystemTargetObject(user.getPoint3());
             }
-        } else if (specialSection.getTerrainType() == Enums.TerrainType.WIND) {
+        } else if (specialSection.getType() == SpecialSectionType.WIND) {
             if (!user.isCrossZone()) return;
             if (user.addBuff(BuffType.SLEEPY_LEVEL_2, specialSection.getId())) {
                 user.setSystemTargetObject(user.getPoint3());
             }
-        } else if (specialSection.getTerrainType() == Enums.TerrainType.ANIMAL_OSTRICH) {
-                /*
-                if (!user.isCrossZone()) continue;
-                if (!user.hasBuff(BuffConfig.ANIMAL)) {
-                    int blockId = gameMap.getNearestEndPoint(user.getPoint3(), blockGroup);
-
-                    List<Integer> blockList = gameMap.getUnoccupiedBlocksInDistance(blockId, 8);
-                    int chosenBlockId = blockList.get(ThreadLocalRandom.current().nextInt(blockList.size()));
-                    Point3 point3 = gameMap.getPoint(chosenBlockId);
-
-                    Animal animal = new Animal(
-                            getNextNpcId(),
-                            Enums.AnimalType.TIGER,
-                            new Point3(point3.x * 1000, 0, point3.z * 1000),
-                            0,
-                            blockGroup.getId(),
-                            user);
-
-                    animal.setTargetUser(user);
-                    animal.setSpeed(500);
-
-                    createGameObject(animal);
-                    user.addBuff(BuffConfig.ANIMAL, (short)-1, specialSection.getId());
-                }
-                */
-        } else if (specialSection.getTerrainType() == Enums.TerrainType.WIND_OLD) {
-                /*
-                if (!user.isCrossZone()) continue;
-                BlockGroup blockGroup = gameMap.getBlockGroup(block.blockGroupId);
-                user.addBuff(BuffConfig.WIND_OLD, (short)30, block.blockGroupId,
-                    gameMap.getPoint(blockGroup.getStartBlockId()));
-                */
-        } else if (specialSection.getTerrainType() == Enums.TerrainType.WILD_FIRE) {
+        } else if (specialSection.getType() == SpecialSectionType.WILD_FIRE) {
             if  (ThreadLocalRandom.current().nextInt(10000) < 3) {
                 user.setGhost(true);
                 Stationary fire = new Stationary(
@@ -855,12 +821,12 @@ public abstract class Game {
             if (!prop.usable()) return;
 
             boolean testGood = true;
-            for (Abilitys.Ability ability: prop.getAbilities(PropUsageType.USE)) {
+            for (Abilities.Ability ability: prop.getAbilities(PropUsageType.USE)) {
                 if (!ability.test(this, user, toUser)) testGood = false;
             }
 
             if (testGood) {
-                for (Abilitys.Ability ability: prop.getAbilities(PropUsageType.USE)) {
+                for (Abilities.Ability ability: prop.getAbilities(PropUsageType.USE)) {
                     ability.test(this, user, toUser);
                     ability.apply(this, user, toUser);
                 }

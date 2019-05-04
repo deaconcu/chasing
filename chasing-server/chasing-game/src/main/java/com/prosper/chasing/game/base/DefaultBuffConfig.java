@@ -1,7 +1,7 @@
 package com.prosper.chasing.game.base;
 
 import com.prosper.chasing.game.util.Enums.*;
-import com.prosper.chasing.game.base.Abilitys.*;
+import com.prosper.chasing.game.base.Abilities.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,8 +11,8 @@ import java.util.Map;
  */
 public class DefaultBuffConfig {
 
-    public static Map<BuffType, Abilitys.Ability[]> getBuffConfig() {
-        Map<BuffType, Abilitys.Ability[]> buffConfigMap = new HashMap<>();
+    public static Map<BuffType, Abilities.Ability[]> getBuffConfig() {
+        Map<BuffType, Abilities.Ability[]> buffConfigMap = new HashMap<>();
         buffConfigMap.put(BuffType.FLASH_LEVEL_1, new Ability[]{});
         buffConfigMap.put(BuffType.FLASH_LEVEL_2, new Ability[]{});
         buffConfigMap.put(BuffType.SPEED_UP_LEVEL_1, new Ability[]{new SpeedRateAddOn((short)20)});

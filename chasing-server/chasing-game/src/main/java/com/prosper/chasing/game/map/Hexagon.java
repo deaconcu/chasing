@@ -1,6 +1,7 @@
 package com.prosper.chasing.game.map;
 
 import com.prosper.chasing.game.base.Point2;
+import com.prosper.chasing.game.util.Enums;
 import com.prosper.chasing.game.util.Enums.HexagonDirection;
 
 import java.util.Arrays;
@@ -35,6 +36,8 @@ public class Hexagon {
 
     private float randomY;
 
+    private int openAreaId;
+
     public Hexagon(int id, int x, int  y) {
         this.id = id;
         this.x = x;
@@ -67,6 +70,14 @@ public class Hexagon {
 
     public float coordinateYInFloat() {
         return y * (OUTER_RADIUS * 1.5f) + randomY;
+    }
+
+    public float originXInFloat() {
+        return (x + (y + 1) * 0.5f - (y + 1) / 2) * (INNER_RADIUS * 2f);
+    }
+
+    public float originYInFloat() {
+        return y * (OUTER_RADIUS * 1.5f);
     }
 
     @Override
@@ -208,7 +219,20 @@ public class Hexagon {
         }
     }
 
+    public Enums.HexagonOccupiedType getType() {
+        if (getOpenAreaId() == 0) return Enums.HexagonOccupiedType.ROAD;
+        else return Enums.HexagonOccupiedType.OPEN_AREA;
+    }
+
     public static void main(String... args) {
         System.out.println((-5) % 6);
+    }
+
+    public int getOpenAreaId() {
+        return openAreaId;
+    }
+
+    public void setOpenAreaId(int openAreaId) {
+        this.openAreaId = openAreaId;
     }
 }
