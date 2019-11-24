@@ -499,13 +499,13 @@ public class GameMap {
         for (int i = -1; i <= 1; i = i + 2) {
             if (isInBound(x + i, y)) {
                 Block block = occupiedBlockMap.get(getBlockId(x + i, y));
-                if (block != null && Util.arrayContains(blockTypes, block.type)) blockList.add(block);
+                if (block != null && Util.contains(blockTypes, block.type)) blockList.add(block);
             }
         }
         for (int i = -1; i <= 1; i = i + 2) {
             if (isInBound(x, y + i)) {
                 Block block = occupiedBlockMap.get(getBlockId(x, y + i));
-                if (block != null && Util.arrayContains(blockTypes, block.type)) blockList.add(block);
+                if (block != null && Util.contains(blockTypes, block.type)) blockList.add(block);
             }
         }
 
@@ -554,7 +554,7 @@ public class GameMap {
         List<Block> blockList = new LinkedList<>();
         for (int borderBlockId: borderBlockIdList) {
             Block block = occupiedBlockMap.get(borderBlockId);
-            if (block != null && Util.arrayContains(blockTypes, block.type)) {
+            if (block != null && Util.contains(blockTypes, block.type)) {
                 blockList.add(block);
             }
         }
@@ -619,7 +619,7 @@ public class GameMap {
             for (int j = -distance; j <= distance; j ++) {
                 if (isInBound(x + i, y + j)) {
                     Block block = occupiedBlockMap.get(getBlockId(x + i, y + j));
-                    if (block != null && Util.arrayContains(blockTypes, block.type)) {
+                    if (block != null && Util.contains(blockTypes, block.type)) {
                         blockList.add(block);
                     }
                 }
@@ -630,7 +630,7 @@ public class GameMap {
             for (int i = -distance + 1; i <= distance - 1; i++) {
                 if (isInBound(x + i, y + j)) {
                     Block block = occupiedBlockMap.get(getBlockId(x + i, y + j));
-                    if (block != null && Util.arrayContains(blockTypes, block.type)) {
+                    if (block != null && Util.contains(blockTypes, block.type)) {
                         blockList.add(block);
                     }
                 }

@@ -93,7 +93,7 @@ public class User extends GameObject {
     // 所拥有的道具
     private Map<PropType, Short> propMap = new HashMap<>();
 
-    // Buff Map
+    // Buff GameMap
     private List<Buff> buffList = new LinkedList<>();
 
     private List<UsePropAction> usePropList = new LinkedList<>();

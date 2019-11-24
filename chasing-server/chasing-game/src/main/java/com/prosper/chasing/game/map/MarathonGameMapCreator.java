@@ -653,7 +653,7 @@ public class MarathonGameMapCreator {
     /*
     private void expandRoadV2(GameMap gameMap, int width) {
         // 扩展道路
-        Map<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
+        GameMap<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
         for (int hexagonId: gameMap.unoccupiedBlockSet) {
             Pair<Integer, Block> result = gameMap.getNearestBlockOfCross(
                     hexagonId, width, BlockType.MAIN_ROAD, BlockType.SHORTCUT, BlockType.BRANCH);
@@ -663,7 +663,7 @@ public class MarathonGameMapCreator {
             }
         }
 
-        for (Map.Entry<Integer, Pair<Integer, Short>> entry: addBlockMap.entrySet()) {
+        for (GameMap.Entry<Integer, Pair<Integer, Short>> entry: addBlockMap.entrySet()) {
             gameMap.addBlock(entry.getKey(), BlockType.ROAD_EXTENSION, TerrainType.PAVEMENT, RoadDirection.NONE,
                     entry.getValue().getY(), entry.getValue().getX(), -1);
         }
@@ -946,7 +946,7 @@ public class MarathonGameMapCreator {
 
     /*
     private void expandRoad(GameMap gameMap, int width) {
-        Map<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
+        GameMap<Integer, Pair<Integer, Short>> addBlockMap= new HashMap<>();
         for (int hexagonId: gameMap.unoccupiedBlockSet) {
             Pair<Integer, Block> result = gameMap.getNearestBlockOfCross(
                     hexagonId, width, BlockType.MAIN_ROAD, BlockType.SHORTCUT, BlockType.BRANCH);
@@ -956,7 +956,7 @@ public class MarathonGameMapCreator {
             }
         }
 
-        for (Map.Entry<Integer, Pair<Integer, Short>> entry: addBlockMap.entrySet()) {
+        for (GameMap.Entry<Integer, Pair<Integer, Short>> entry: addBlockMap.entrySet()) {
             gameMap.addBlock(entry.getKey(), BlockType.ROAD_EXTENSION, TerrainType.PAVEMENT, RoadDirection.NONE,
                     entry.getValue().getY(), entry.getValue().getX(), -1);
         }
@@ -1491,8 +1491,8 @@ public class MarathonGameMapCreator {
 
     /*
     private void generateBuildings(GameMap gameMap) {
-        Map<Block, Direction> possiblePositionMap1 = new HashMap<>();
-        Map<Block, Direction> possiblePositionMap2 = new HashMap<>();
+        GameMap<Block, Direction> possiblePositionMap1 = new HashMap<>();
+        GameMap<Block, Direction> possiblePositionMap2 = new HashMap<>();
         for (Block block: gameMap.occupiedBlockMap.values()) {
             if (block.type == BlockType.MOUNTAIN_L3 ||
                     block.type == BlockType.MOUNTAIN_L2 ||
@@ -1502,7 +1502,7 @@ public class MarathonGameMapCreator {
                     block.type == BlockType.SEA_L1 ||
                     block.type == BlockType.SEA_L2 ||
                     block.type == BlockType.SEA_L3) {
-                Map<Block, Direction> adjacentBlockMap =
+                GameMap<Block, Direction> adjacentBlockMap =
                         gameMap.getAdjacentWithDirInDistance(block.hexagonId, 2, BlockType.ROAD_EXTENSION);
                 if (adjacentBlockMap.size() > 0) {
                     for (Direction direction: adjacentBlockMap.values()) {
@@ -1522,11 +1522,11 @@ public class MarathonGameMapCreator {
         List<Block> key1Array = new ArrayList<>(possiblePositionMap1.keySet());
         List<Block> key2Array = new ArrayList<>(possiblePositionMap2.keySet());
         int objectId = 1;
-        for (Map.Entry<BuildingType, Byte> buildingConfig : buildingConfigMap.entrySet()) {
+        for (GameMap.Entry<BuildingType, Byte> buildingConfig : buildingConfigMap.entrySet()) {
             BuildingType buildingType = buildingConfig.getKey();
             int count = buildingConfig.getValue();
 
-            Map<Block, Direction> chosenMap ;
+            GameMap<Block, Direction> chosenMap ;
             List<Block> chosenKeyArray;
             if (buildingSizeConfigMap.get(buildingType) == 5) {
                 chosenMap = possiblePositionMap1;
@@ -1576,7 +1576,7 @@ public class MarathonGameMapCreator {
                 continue;
             }
 
-            Map<Integer, List<Block>> adjacentBlockMap = gameMap.getBlocksInDistances(buildingBlock.hexagonId, expandSize,
+            GameMap<Integer, List<Block>> adjacentBlockMap = gameMap.getBlocksInDistances(buildingBlock.hexagonId, expandSize,
                     BlockType.MOUNTAIN_L1, BlockType.MOUNTAIN_L2, BlockType.MOUNTAIN_L3,
                     BlockType.MOUNTAIN_SLOP, BlockType.MOUNTAIN_ROCK,
                     BlockType.ROAD_EXTENSION,

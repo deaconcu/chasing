@@ -1,11 +1,10 @@
-package com.prosper.chasing.game.map;
+package com.prosper.chasing.game.mapV3;
 
 import com.prosper.chasing.game.base.Point2;
 import com.prosper.chasing.game.base.RoadPoint;
 import com.prosper.chasing.game.util.Enums;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -15,12 +14,13 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class Segment {
 
-    private static final int LAMP_DISTANCE_MAX = 60 * 1000;
+    //private static final int LAMP_DISTANCE_MAX = 60 * 1000;
 
     private Hexagon h1;
 
     private Hexagon h2;
 
+    /*
     private Point2[] wayPoints;
 
     private Point2[] terrainPoints;
@@ -30,18 +30,41 @@ public class Segment {
     private RoadSection[] roadSections;
 
     private int lampDistance;
-
-    private Enums.SpecialSectionType ssType;
+    */
 
     public Segment(Hexagon h1, Hexagon h2) {
         this.h1 = h1;
         this.h2 = h2;
 
-        generateRoadPoints();
-        generateLampPoints();
-        generateLampSections();
+        //generateRoadPoints();
+        //generateLampPoints();
+        //generateLampSections();
     }
 
+
+    public Hexagon getH1() {
+        return h1;
+    }
+
+    public Hexagon getH2() {
+        return h2;
+    }
+
+    public int getId() {
+        if (h1.getId() <= h2.getId()) return h1.getId() * 10000 + h2.getId();
+        else return h2.getId() * 10000 + h1.getId();
+    }
+
+    public static int getId(Hexagon h1, Hexagon h2) {
+        return getId(h1.getId(), h2.getId());
+    }
+
+    public static int getId(int id1, int id2) {
+        if (id1 <= id2) return id1 * 10000 + id2;
+        else return id2 * 10000 + id1;
+    }
+
+    /*
     private void generateRoadPoints() {
         wayPoints = Point2.getPointInSegment(h1.coordinatePoint(), h2.coordinatePoint(), 5, 1000);
     }
@@ -130,19 +153,9 @@ public class Segment {
         return -1;
     }
 
-    public int getId() {
-        if (h1.getId() <= h2.getId()) return h1.getId() * 10000 + h2.getId();
-        else return h2.getId() * 10000 + h1.getId();
-    }
 
-    public static int getId(Hexagon h1, Hexagon h2) {
-        return getId(h1.getId(), h2.getId());
-    }
 
-    public static int getId(int id1, int id2) {
-        if (id1 <= id2) return id1 * 10000 + id2;
-        else return id2 * 10000 + id1;
-    }
+
 
     public Point2[] getWayPoints() {
         return wayPoints;
@@ -199,12 +212,6 @@ public class Segment {
                 ThreadLocalRandom.current().nextInt(getRoadSections().length)];
         return roadSection.getRandomLightPoint(type);
     }
+    */
 
-    public Enums.SpecialSectionType getSsType() {
-        return ssType;
-    }
-
-    public void setSsType(Enums.SpecialSectionType ssType) {
-        this.ssType = ssType;
-    }
 }

@@ -1,4 +1,4 @@
-package com.prosper.chasing.game.map;
+package com.prosper.chasing.game.mapV3;
 
 import com.prosper.chasing.common.util.Pair;
 import com.prosper.chasing.game.base.Point2;

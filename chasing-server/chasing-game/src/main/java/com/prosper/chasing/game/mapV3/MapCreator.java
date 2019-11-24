@@ -1,13 +1,12 @@
-package com.prosper.chasing.game.map;
+package com.prosper.chasing.game.mapV3;
 
-import com.prosper.chasing.game.util.Canvas;
+import com.prosper.chasing.game.util.CanvasV3;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import redis.clients.jedis.Jedis;
 
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,7 +30,7 @@ public class MapCreator {
 
         mapSkeleton.optimize();
         mapSkeleton.generateTerrainV2();
-        Canvas.createAndShowGUI(mapSkeleton);
+        CanvasV3.print(mapSkeleton);
 
         System.out.println("start: " + mapSkeleton.getStart());
         System.out.println("end: " + mapSkeleton.getEnd());

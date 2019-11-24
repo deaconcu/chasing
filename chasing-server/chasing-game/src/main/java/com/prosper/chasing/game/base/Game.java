@@ -55,7 +55,7 @@ public abstract class Game {
      * 游戏在运行时的分区信息，格式为:[分区Id => 分区内的所有对象]，对象位置有变化时需要更新其所属的分区
      * 暂时不用
      */
-    //private Map<Integer, List<User>> userPosGroupMap = new HashMap<>();
+    //private GameMap<Integer, List<User>> userPosGroupMap = new HashMap<>();
 
     /**
      * 场景内的所有玩家
@@ -169,9 +169,9 @@ public abstract class Game {
     protected abstract Prologue createPrologue();
 
     public GameObject getRandomGameObject(GameObjectType type) {
-        if (type == GameObjectType.STATIONARY) return Util.getRandom(stationaryMap);
-        else if (type == GameObjectType.INTERACTIVE) return Util.getRandom(interactiveMap);
-        else if (type == GameObjectType.PROP) return Util.getRandom(propMap);
+        if (type == GameObjectType.STATIONARY) return Util.randomValue(stationaryMap);
+        else if (type == GameObjectType.INTERACTIVE) return Util.randomValue(interactiveMap);
+        else if (type == GameObjectType.PROP) return Util.randomValue(propMap);
         else return null;
     }
 
@@ -654,11 +654,11 @@ public abstract class Game {
     /**
      * 同步游戏开始之后的一些数据，比如用户名, 游戏时间等，格式如下
      *
-     * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]|propCount(2)|list<PropPrice>|Map
+     * seqId(4)|messageType(1)|remainTime(4)|UserCount(1)|UserList[]|propCount(2)|list<PropPrice>|GameMap
      *
      * User: userId(4)|nameLength(1)|name
      * PropPrice: objectId(2)|price(4)
-     * //Map: boundX(4)|boundY(4)|mapByteCount|List<byte>
+     * //GameMap: boundX(4)|boundY(4)|mapByteCount|List<byte>
      * Building: objectId(4)|type(1)|positionX(4)|positionY(4)|orientation(1)
      */
     public void generatePrepareMessage() {

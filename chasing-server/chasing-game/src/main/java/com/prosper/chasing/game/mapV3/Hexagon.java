@@ -1,11 +1,11 @@
-package com.prosper.chasing.game.map;
+package com.prosper.chasing.game.mapV3;
 
 import com.prosper.chasing.game.base.Point2;
-import com.prosper.chasing.game.util.Enums;
+import com.prosper.chasing.game.util.Enums.*;
 import com.prosper.chasing.game.util.Enums.HexagonDirection;
+import com.prosper.chasing.game.util.Util;
 
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by deacon on 2019/3/5.
@@ -30,15 +30,11 @@ public class Hexagon {
 
     boolean[] bridges;
 
-    Map<HexagonDirection, Hexagon> branchEnds = new HashMap<>();
-
-    private float randomX;
-
-    private float randomY;
-
-    private Enums.SpecialSectionType specialSectionType;
-
     private int openAreaId;
+
+    private SpecialSectionType  specialSectionType;
+
+    private HexTerrainType terrainType;
 
     private boolean[] openAreaSiblings = new boolean[6];
 
@@ -48,8 +44,8 @@ public class Hexagon {
         this.y = y;
         this.bridges = new boolean[]{false, false, false, false, false, false};
 
-        randomX = ThreadLocalRandom.current().nextFloat() * 50 - 25;
-        randomY = ThreadLocalRandom.current().nextFloat() * 50 - 25;
+        //randomX = ThreadLocalRandom.current().nextFloat() * 50 - 25;
+        //randomY = ThreadLocalRandom.current().nextFloat() * 50 - 25;
     }
 
     public void clear() {
@@ -61,35 +57,23 @@ public class Hexagon {
     }
 
     public int coordinateX() {
-        return (int)(((x + (y + 1) * 0.5f - (y + 1) / 2) * (INNER_RADIUS * 2f) + randomX) * 1000);
-    }
-
-    public int coordinateY() {
-        return (int)((y * (OUTER_RADIUS * 1.5f) + randomY) * 1000);
-    }
-
-    public float coordinateXInFloat() {
-        return (x + (y + 1) * 0.5f - (y + 1) / 2) * (INNER_RADIUS * 2f) + randomX;
-    }
-
-    public float coordinateYInFloat() {
-        return y * (OUTER_RADIUS * 1.5f) + randomY;
-    }
-
-    public int originX() {
         return (int)((x + (y + 1) * 0.5f - (y + 1) / 2) * (INNER_RADIUS * 2f) * 1000);
     }
 
-    public int originY() {
+    public int coordinateY() {
         return (int)(y * (OUTER_RADIUS * 1.5f) * 1000);
     }
 
-    public float originXInFloat() {
+    public float coordinateXInFloat() {
         return (x + (y + 1) * 0.5f - (y + 1) / 2) * (INNER_RADIUS * 2f);
     }
 
-    public float originYInFloat() {
+    public float coordinateYInFloat() {
         return y * (OUTER_RADIUS * 1.5f);
+    }
+
+    public Point2 position() {
+        return new Point2(coordinateX(), coordinateY());
     }
 
     @Override
@@ -132,6 +116,16 @@ public class Hexagon {
             if (hasBridge) count ++;
         }
         return count;
+    }
+
+    public byte getBridgeByte() {
+        byte value = 0;
+        for (int i = 0; i < 6; i ++) {
+            if (bridges[i]) {
+                value = (byte)(value | (0x1 << i));
+            }
+        }
+        return value;
     }
 
     public boolean getBridge(HexagonDirection direction) {
@@ -196,11 +190,11 @@ public class Hexagon {
         int start = 0;
         for (int i = 0; i < 6; i ++) {
             if (occupiedDirections[i] == true) {
-                start = i + 2;
+                //if (ThreadLocalRandom.current().nextBoolean()) start = (i + 3) % 6;
+                start = (i + 2) % 6;
                 break;
             }
         }
-        if (start > 5) start = start - 6;
 
         for (int i = start; i < start + 6; i ++) {
             if (!occupiedDirections[i % 6]) {
@@ -225,15 +219,9 @@ public class Hexagon {
         return validDirectionList;
     }
 
-    public byte getBridgeByte() {
-        int value = 0;
-        value = value | (bridges[0] ? 1 : 0);
-        value = value | ((bridges[1] ? 1 : 0) << 1);
-        value = value | ((bridges[2] ? 1 : 0) << 2);
-        value = value | ((bridges[3] ? 1 : 0) << 3);
-        value = value | ((bridges[4] ? 1 : 0) << 4);
-        value = value | ((bridges[5] ? 1 : 0) << 5);
-        return (byte) value;
+    public boolean isAround(Hexagon hexagon) {
+        if (getDirection(hexagon) != null) return true;
+        return false;
     }
 
     public void merge(Hexagon hexagon) {
@@ -242,9 +230,9 @@ public class Hexagon {
         }
     }
 
-    public Enums.HexagonOccupiedType getType() {
-        if (getOpenAreaId() == 0) return Enums.HexagonOccupiedType.ROAD;
-        else return Enums.HexagonOccupiedType.OPEN_AREA;
+    public HexagonOccupiedType getType() {
+        if (getOpenAreaId() == 0) return HexagonOccupiedType.ROAD;
+        else return HexagonOccupiedType.OPEN_AREA;
     }
 
     public static void main(String... args) {
@@ -271,11 +259,25 @@ public class Hexagon {
         this.openAreaSiblings = openAreaSiblings;
     }
 
-    public Enums.SpecialSectionType getSpecialSectionType() {
+    public SpecialSectionType getSpecialSectionType() {
         return specialSectionType;
     }
 
-    public void setSpecialSectionType(Enums.SpecialSectionType specialSectionType) {
+    public void setSpecialSectionType(SpecialSectionType specialSectionType) {
         this.specialSectionType = specialSectionType;
     }
+
+    public HexTerrainType getTerrainType() {
+        return terrainType;
+    }
+
+    public boolean setTerrainType(HexTerrainType terrainType) {
+        if (this.terrainType != terrainType) {
+            this.terrainType = terrainType;
+            return true;
+        }
+        return false;
+    }
+
+
 }

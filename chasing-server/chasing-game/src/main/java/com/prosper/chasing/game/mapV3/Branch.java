@@ -1,8 +1,6 @@
-package com.prosper.chasing.game.map;
+package com.prosper.chasing.game.mapV3;
 
 import com.prosper.chasing.game.base.Point2;
-import com.prosper.chasing.game.util.Enums;
-import com.prosper.chasing.game.util.Util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,36 +18,14 @@ public class Branch implements Comparable<Branch> {
     //public boolean repeated;
 
     public Branch(Hexagon head) {
+        hexagonList = new ArrayList<>();
         this.head = head;
         tail = null;
-        hexagonList = new ArrayList<>();
     }
 
     public Branch(Hexagon head, Hexagon tail) {
         this(head);
         this.tail = tail;
-
-        Enums.HexagonDirection direction = head.getDirection(tail);
-        head.branchEnds.put(direction, tail);
-        tail.branchEnds.put(Util.getOppositeDirection(direction), head);
-    }
-
-    public Branch(Hexagon head, Hexagon tail, List<Hexagon> hexagonList) {
-        this.head = head;
-        this.tail = tail;
-        this.hexagonList = hexagonList;
-
-        Hexagon previous = head;
-        for (Hexagon hexagon: hexagonList) {
-            Enums.HexagonDirection direction = previous.getDirection(hexagon);
-            previous.branchEnds.put(direction, tail);
-            hexagon.branchEnds.put(Util.getOppositeDirection(direction), head);
-            previous = hexagon;
-        }
-
-        Enums.HexagonDirection direction = previous.getDirection(tail);
-        previous.branchEnds.put(direction, tail);
-        tail.branchEnds.put(Util.getOppositeDirection(direction), head);
     }
 
     public int distance() {

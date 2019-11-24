@@ -1,4 +1,4 @@
-package com.prosper.chasing.game.map;
+package com.prosper.chasing.game.mapV3;
 
 import com.prosper.chasing.game.base.Point2;
 import com.prosper.chasing.game.util.ByteBuilder;
@@ -87,8 +87,8 @@ public class OpenArea {
         byteBuilder.append((byte)id);
         byteBuilder.append((byte)area.size());
         for (Hexagon hexagon: area) {
-            byteBuilder.append(hexagon.originX());
-            byteBuilder.append(hexagon.originY());
+            byteBuilder.append(hexagon.coordinateX());
+            byteBuilder.append(hexagon.coordinateY());
             byteBuilder.append(hexagon.getOpenAreaSiblingsByte());
         }
         byteBuilder.append(connectPoints.size());

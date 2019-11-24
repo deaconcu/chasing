@@ -59,13 +59,13 @@ public class Enums {
 
     public enum SpecialSectionType {
         NONE(0),
-        RAIN(1),
+        DEFAULT(1),
         SNOW(2),
         DREAM(3),
         WIND(4),
         GRAVEYARD(5),
         FOG(6),
-        LAKE(7),
+        WATER(7),
         SLEEPING_MONSTER(8),
         TIGER(9),
         WOLF(10),
@@ -73,7 +73,8 @@ public class Enums {
         OPEN_LAND(12),
         GATES(13),
         WILD_FIRE(14),
-        LIGHTING(15);
+        LIGHTING(15),
+        RAIN(16);
 
         private int value;
 
@@ -86,10 +87,44 @@ public class Enums {
         }
     }
 
+    public enum HexTerrainType {
+        NONE(0),
+
+        FOREST_ROAD(1),
+        FOREST(2),
+        FOREST_MOUNTAIN_L1(3),
+        FOREST_MOUNTAIN_L2(4),
+
+        DARK_FOREST(13),
+        DARK_FOREST_ROAD(14),
+
+        SNOW_ROAD(5),
+        SNOW_FOREST(6),
+        SNOW_MOUNTAIN_L1(7),
+        SNOW_MOUNTAIN_L2(8),
+
+        OCEAN(9),
+        SHORE(10),
+
+        LAKE(11),
+        LAKE_SHORE(12);
+
+        private int value;
+
+        HexTerrainType(int value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return (byte)value;
+        }
+    }
+
     public enum LampType {
         NORMAL(0),
-        TORCH(1),
-        INVISIBLE(2);
+        NORMAL_SMALL(1),
+        TORCH(2),
+        INVISIBLE(3);
 
         private int value;
 
@@ -139,6 +174,10 @@ public class Enums {
         public byte getValue() {
             return (byte)value;
         }
+    }
+
+    public enum ViewTypeV2 {
+
     }
 
     public enum ViewType {
@@ -276,14 +315,60 @@ public class Enums {
         }
     }
 
+    public enum BlockDirection {
+        //FREE((byte)0),
+        RIGHT((byte)1),
+        DOWN((byte)4),
+        LEFT((byte)2),
+        UP((byte)3);
+
+        private byte value;
+
+        BlockDirection(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
+    public enum HexagonRoadType {
+        NONE((byte)0),
+        RIGHT_DOWN_LEFT_UP_LEFT((byte)1),
+        LEFT_DOWN_RIGHT_UP_RIGHT((byte)2),
+        RIGHT_DOWN_LEFT((byte)5),
+        RIGHT_UP_LEFT((byte)3),
+        LEFT_DOWN_RIGHT((byte)6),
+        LEFT_UP_RIGHT((byte)8),
+        UP_RIGHT_DOWN_RIGHT((byte)4),
+        UP_LEFT_DOWN_LEFT((byte)7),
+        RIGHT((byte)9),
+        LEFT((byte)10),
+        UP_LEFT((byte)11),
+        UP_RIGHT((byte)12),
+        DOWN_LEFT((byte)13),
+        DOWN_RIGHT((byte)14);
+
+        private byte value;
+
+        HexagonRoadType(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
     public enum HexagonDirection {
         FREE((byte)0),
         RIGHT((byte)1),
         LEFT((byte)2),
-        UP_LEFT((byte)5),
-        UP_RIGHT((byte)6),
-        DOWN_LEFT((byte)7),
-        DOWN_RIGHT((byte)8);
+        UP_LEFT((byte)3),
+        UP_RIGHT((byte)4),
+        DOWN_LEFT((byte)5),
+        DOWN_RIGHT((byte)6);
 
         private byte value;
 

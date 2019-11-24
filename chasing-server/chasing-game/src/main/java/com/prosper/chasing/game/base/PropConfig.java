@@ -814,7 +814,7 @@ public class PropConfig {
         @Override
         public boolean doUse(PropMessage message, User user, User toUser,  Game game) {
             Block block = game.gameMap.getBlock(user.getPoint3().x, user.getPoint3().y);
-            Map<Integer, List<Block>> blockMap = game.gameMap.getBlocksInDistances(block.blockId, 2,
+            GameMap<Integer, List<Block>> blockMap = game.gameMap.getBlocksInDistances(block.blockId, 2,
                     Enums.BlockType.MAIN_ROAD, Enums.BlockType.BRANCH, Enums.BlockType.SHORTCUT);
 
             for (List<Block> hexagonList: blockMap.values()) {

@@ -405,9 +405,9 @@ public class GameManage {
 
                         // TODO 不需要了，删除，然后需要更新用户的钱
                         /*
-                        Map<Short, Short> propMap = user.getPropMap();
+                        GameMap<Short, Short> propMap = user.getPropMap();
                         List<UserPropTr> propList = new LinkedList<>();
-                        for (Map.Entry<Short, Short> entry: propMap.entrySet()) {
+                        for (GameMap.Entry<Short, Short> entry: propMap.entrySet()) {
                             UserPropTr userPropTr = new UserPropTr();
                             userPropTr.setPropId(entry.getKey());
                             userPropTr.setCount(entry.getValue());

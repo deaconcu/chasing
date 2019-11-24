@@ -281,7 +281,7 @@ public class GameMapCreator {
             graph.setEdge(segment.head.hexagonId, segment.tail.hexagonId, segment.hexagonList.size() + 1);
         }
 
-        Map<Integer, Map<Integer, List<Integer>>> pathMap = graph.countPath();
+        GameMap<Integer, GameMap<Integer, List<Integer>>> pathMap = graph.countPath();
         for (SegmentOld segment : branchSet) {
             int detourDistance = graph.countDetourDistance(segment.head.hexagonId, segment.tail.hexagonId);
             segment.detourDistance = detourDistance;

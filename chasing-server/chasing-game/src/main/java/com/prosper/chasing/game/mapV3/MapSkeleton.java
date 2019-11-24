@@ -1,23 +1,18 @@
-package com.prosper.chasing.game.map;
+package com.prosper.chasing.game.mapV3;
 
 import com.prosper.chasing.game.base.*;
+import com.prosper.chasing.game.base.InteractiveObjects.InteractiveInfo;
 import com.prosper.chasing.game.util.ByteBuilder;
-import static com.prosper.chasing.game.util.Enums.*;
-import static com.prosper.chasing.game.util.Enums.HexTerrainType.DARK_FOREST_ROAD;
-import static com.prosper.chasing.game.util.Enums.HexTerrainType.FOREST_ROAD;
-import static com.prosper.chasing.game.util.Enums.HexTerrainType.SNOW_ROAD;
-
-import com.prosper.chasing.game.util.Enums;
-import com.prosper.chasing.game.util.Enums.HexagonDirection;
+import com.prosper.chasing.game.util.Enums.*;
 import com.prosper.chasing.game.util.Graph;
-import com.prosper.chasing.game.base.InteractiveObjects.*;
 import com.prosper.chasing.game.util.Util;
 
 import java.io.ByteArrayOutputStream;
 import java.util.*;
-import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.zip.GZIPOutputStream;
+
+import static com.prosper.chasing.game.util.Enums.HexTerrainType.*;
 
 /**
  * Created by deacon on 2019/3/5.
@@ -43,13 +38,13 @@ public class MapSkeleton {
     public Map<Integer, Integer> distancesToEnd = new HashMap<>();
     public Map<Integer, Map<Integer, List<Integer>>> pathMap;
     public Map<Integer, Segment> segmentMap = new HashMap<>();
-    public Map<Integer, Lamp> lampMap = new HashMap<>();
     public Map<Short, SpecialSection> specialSectionMap = new HashMap<>();
     public Map<Point2, Short> pointMap = new HashMap<>();
     public Map<Integer, Short> pointIdMap = new HashMap<>();
     public Map<Integer, View> viewMap = new HashMap<>();
     public Set<InteractiveInfo> interactiveSet = new HashSet<>();
     public List<OpenArea> openAreaList = new LinkedList<>();
+    public HashMap<Point2, ViewV2> viewV2Map = new HashMap<>();
 
     private short nextGroupId = 1;
     private short nextLampId = 1;
@@ -82,7 +77,7 @@ public class MapSkeleton {
         }
     }
 
-    private MapSkeleton(int bound) {
+    public MapSkeleton(int bound) {
         if (bound % 2 != 0) throw new RuntimeException("map bound must be even");
         this.bound = bound;
         this.start = 1;
@@ -94,8 +89,10 @@ public class MapSkeleton {
     public MapSkeleton(int bound, int length) {
         if (bound % 2 != 0) throw new RuntimeException("map bound must be even");
         this.bound = bound;
-        this.start = 1;
-        this.end = bound * bound;
+        //this.start = 1;
+        //this.end = bound * bound;
+        this.start = getHexagonId(11, 11);
+        this.end = getHexagonId(bound - 10, bound - 10);
 
         int fillCount = 1;
         int pruningCount = 1;
@@ -201,10 +198,9 @@ public class MapSkeleton {
 
     public MapSkeleton merge(MapSkeleton mapSkeleton) {
         for (Hexagon hexagon: mapSkeleton.occupiedMap.values()) {
-            if (occupiedMap.containsKey(hexagon.getId())) {
-                occupiedMap.get(hexagon.getId()).merge(hexagon);
-            } else {
-                occupiedMap.put(hexagon.getId(), hexagon);
+            getHexagon(hexagon.getId()).merge(hexagon);
+            if (!occupiedMap.containsKey(hexagon.getId())) {
+                occupiedMap.put(hexagon.getId(), getHexagon(hexagon.getId()));
             }
             freeMap.remove(hexagon.getId());
         }
@@ -214,7 +210,7 @@ public class MapSkeleton {
     private void removeBranch(Branch branch) {
         if (branch.distance() > 1) {
             for (Hexagon hexagon: branch.hexagonList) {
-                removeBlock(hexagon, false);
+                removeBlock(hexagon);
             }
         } else {
             branch.head.setBridges(branch.head.getDirection(branch.tail), false);
@@ -222,14 +218,10 @@ public class MapSkeleton {
         }
     }
 
-    protected void removeBlock(Hexagon hexagon, boolean partlyBridge) {
+    protected void removeBlock(Hexagon hexagon) {
         if (hexagon == null) return;
-        if (partlyBridge) {
-            // TODO
-        } else {
-            for (Hexagon sibling: getRoadSibling(hexagon)) {
-                sibling.setBridges(sibling.getDirection(hexagon), false);
-            }
+        for (Hexagon sibling: getRoadSibling(hexagon)) {
+            sibling.setBridges(sibling.getDirection(hexagon), false);
         }
 
         occupiedMap.remove(hexagon.getId());
@@ -240,7 +232,8 @@ public class MapSkeleton {
     public void optimize() {
         while (true) {
             boolean branchRemoved = false;
-            build();
+            trimAndCalculate(1);
+            trimAndCalculate(2);
 
             for (Branch branch: branchSet) {
                 if (branch.head.bridgeCount() < 3 || branch.tail.bridgeCount() < 3) continue;
@@ -254,10 +247,24 @@ public class MapSkeleton {
             }
             if (!branchRemoved) break;
         }
-
         doSegment();
     }
 
+    private Hexagon getFreeCenterHexagon(Hexagon... hexagons) {
+        if (hexagons == null || hexagons.length < 3) return null;
+        List<Hexagon> listA = getAroundHexagon(hexagons[0], HexagonOccupiedType.FREE);
+        int size = hexagons.length;
+        for (Hexagon aroundHexagon: listA) {
+            boolean isCenter = true;
+            for (int i = 1; i < size; i ++) {
+                if (!aroundHexagon.isAround(hexagons[i])) isCenter = false;
+            }
+            if (isCenter) return aroundHexagon;
+        }
+        return null;
+    }
+
+    /*
     private int addLamp(Map<String, Integer> pointPressMap, LampType type, Point2 position)
     {
         String pointPress = pointPress(position);
@@ -271,6 +278,7 @@ public class MapSkeleton {
             return pointPressMap.get(pointPress);
         }
     }
+    */
 
     private List<Hexagon> getAroundHexagon(Hexagon hexagon, HexagonOccupiedType type) {
         List<Hexagon> hexagonList = new LinkedList<>();
@@ -321,6 +329,7 @@ public class MapSkeleton {
         return false;
     }
 
+    /*
     public Point2 getNearestRoadPoint(Point2 point, List<Segment> segments) {
         int distance = Integer.MAX_VALUE;
         Point2 nearestPoint = null;
@@ -336,6 +345,7 @@ public class MapSkeleton {
         }
         return nearestPoint;
     }
+    */
 
     /**
      * 创建开阔地带，分为两种类型
@@ -343,6 +353,7 @@ public class MapSkeleton {
      * 2. 多个六边形，六边形总数不超过最大值
      */
     public void generateOpenArea() {
+        /*
         List<Hexagon> hexagonList = new LinkedList<>();
         hexagonList.addAll(freeMap.values());
         Collections.shuffle(hexagonList);
@@ -371,13 +382,6 @@ public class MapSkeleton {
 
             List<Segment> segments = getSegments(connectHexagon);
             Point2 connectPoint = getNearestRoadPoint(hexagon.coordinatePoint(), segments);
-
-            /*
-            if (segments == null || segments.size() == 0) continue;
-            Segment segment = Util.random(segments);
-
-            RoadPoint roadPoint = segment.getRandomRoadPoint(RoadPointType.CENTER);
-            */
 
             // 创建single hexagon openArea
             OpenArea openArea = new OpenArea(hexagon);
@@ -490,11 +494,6 @@ public class MapSkeleton {
 
                 Point2 connectPoint = getNearestRoadPoint(
                         roadSiblingMap.get(roadHexagon).coordinatePoint(), segments);
-                /*
-                Segment segment = Util.random(segments);
-
-                RoadPoint roadPoint = segment.getRandomRoadPoint(RoadPointType.CENTER);
-                */
                 openArea.addConnectPoint(new Point2[] {
                         connectPoint, roadSiblingMap.get(roadHexagon).coordinatePoint()});
                 roadSiblingMap.remove(roadHexagon);
@@ -510,67 +509,267 @@ public class MapSkeleton {
             multiHexagonAreaCount --;
             System.out.println("generate open area");
         }
+        */
+    }
+
+    public void generateTerrainV2() {
+        for (Branch branch: branchSet) {
+            System.out.println("distance:" + branch.distance() + " edr:" + branch.getExtraDistanceRate());
+
+            SpecialSectionType sSectionType = null;
+            HexTerrainType hexTerrainType = FOREST_ROAD;
+            // 获取当前branch的特殊地段类型
+            if (branch.distance() >= SpecialSection.MIN_SIZE && branch.getExtraDistanceRate() > 20) {
+                if (branch.getExtraDistanceRate() > 200) {
+                    sSectionType = SpecialSectionType.WIND;
+                }
+                else if (branch.getExtraDistanceRate() > 150) {
+                    sSectionType = SpecialSectionType.DREAM;
+                }
+                else if (branch.getExtraDistanceRate() > 100) {
+                    sSectionType = SpecialSectionType.SNOW;
+                    hexTerrainType = SNOW_ROAD;
+                }
+                else if (branch.getExtraDistanceRate() > 60) {
+                    //sSectionType = SpecialSectionType.RAIN;
+                    sSectionType = SpecialSectionType.WOLF;
+                    hexTerrainType = DARK_FOREST_ROAD;
+                }
+                else if (branch.getExtraDistanceRate() > 20) {
+                    sSectionType = SpecialSectionType.FOG;
+                }
+            }
+
+            branch.head.setTerrainType(FOREST_ROAD);
+            branch.tail.setTerrainType(FOREST_ROAD);
+            for (Hexagon hexagon: branch.hexagonList) {
+                hexagon.setSpecialSectionType(sSectionType);
+                hexagon.setTerrainType(hexTerrainType);
+            }
+        }
+
+        boolean isChanged;
+        int step = 1;
+        Set<Integer> hexagonSet = new HashSet();
+        while (step <= 4) {
+            isChanged = false;
+            for (Hexagon hexagon : hexagonMap.values()) {
+                if (step == 1) {
+                    if (hexagon.getTerrainType() != null) continue;
+                } else if (step == 4) {
+                    //if (hexagonSet.contains(hexagon.getId())) continue;
+                }
+
+                Hexagon[] siblings = getSibling(hexagon);
+                if (setTerrainType(hexagon, siblings, step)) isChanged = true;
+                hexagonSet.add(hexagon.getId());
+            }
+            if (isChanged == false) {
+                step ++;
+                hexagonSet.clear();
+            }
+        }
     }
 
     /**
-     * 创建开阔地带，定义为一个六边形及周围的六个六边形，其中不能包含有交叉点，并且所有包含的点在区域内连通
+     * 根据周围的hexagon设置当前块的地形
+     * 规则(优先级从上到下):
+     * * 和道路相邻的空白块设置为对应的路旁地形, 如果空白块和多个不同地形相邻，按如下规则
+     * * * 选择临近块中地形占比最多的那个
+     * * * 如果存在多个地形占比相同，在特殊地形中随机选择一个
+     * *
+     *
+     *
+     * * 雪地
+     * * *
+     * * *
+     * @param siblings
      */
-    public void generateOpenAreaOld() {
-        //int count = 4;
-        List<Hexagon> hexagonList = new LinkedList<>();
-        //hexagonList.addAll(occupiedMap.values());
-        hexagonList.addAll(freeMap.values());
-        Collections.shuffle(hexagonList);
+    public boolean setTerrainType(Hexagon hexagon, Hexagon[] siblings, int step) {
+        boolean isChanged = false;
+        if (step <= 1) {
+            HexTerrainType[] terrainTypes = getLargestTerrainType(siblings);
+            if (terrainTypes == null || terrainTypes.length == 0) return false;
 
-        int index = 0;
-        //while (count > 0 && index < hexagonList.size()) {
-        while (index < hexagonList.size()) {
-            Hexagon hexagon = hexagonList.get(index ++);
-            //if (isCrossPoint(hexagon.getId())) continue;
-            if (occupiedMap.containsKey(hexagon.getId())) continue;
-
-            int x = hexagon.getX();
-            int y = hexagon.getY();
-            if (x == 1 || y == 1 || x == bound ||  y == bound) continue;
-
-            boolean isValid = true;
-            Hexagon[] hexagons = new Hexagon[HexagonDirection.values().length];
-            int j = 0;
-            for (HexagonDirection direction: HexagonDirection.values()) {
-                if (direction == HexagonDirection.FREE) continue;
-                int aroundHexagonId = getHexagonIdByDirection(hexagon, direction);
-
-                if (occupiedMap.containsKey(aroundHexagonId)) {
-                    isValid = false;
-                    break;
-                }
-
-                hexagons[j++] = freeMap.get(aroundHexagonId);
-
-                /*
-                if (isCrossPoint(aroundHexagonId) ||
-                        (!hexagon.getBridge(direction) && occupiedMap.containsKey(aroundHexagonId))) {
-                    isValid = false;
-                    break;
-                }
-
-                if (occupiedMap.containsKey(aroundHexagonId)) hexagons[j ++] = occupiedMap.get(aroundHexagonId);
-                else hexagons[j ++] = freeMap.get(aroundHexagonId);
-                */
+            HexTerrainType terrainType;
+            if (terrainTypes.length == 1) {
+                terrainType = terrainTypes[0];
+            } else {
+                terrainType = Util.random(terrainTypes);
             }
 
-            if (!isValid) continue;
-            hexagons[j ++] = hexagon;
-            //openArea.add(hexagons);
-            //count --;
-
-            for (Hexagon h: hexagons) {
-                freeMap.remove(h.getId());
-                occupiedMap.put(h.getId(), h);
+            if (terrainType == FOREST_ROAD || terrainType == FOREST
+                    || terrainType == FOREST_MOUNTAIN_L1) {
+                isChanged = hexagon.setTerrainType(Util.random(
+                        FOREST, FOREST, FOREST, FOREST_MOUNTAIN_L1));
+            } else if (terrainType == SNOW_ROAD || terrainType == SNOW_FOREST
+                    || terrainType == SNOW_MOUNTAIN_L1) {
+                isChanged = hexagon.setTerrainType(Util.random(
+                        SNOW_FOREST, SNOW_FOREST, SNOW_MOUNTAIN_L1));
+            } else if (terrainType == DARK_FOREST_ROAD) {
+                isChanged = hexagon.setTerrainType(Util.random(
+                        DARK_FOREST, DARK_FOREST, DARK_FOREST, DARK_FOREST, FOREST_MOUNTAIN_L1));
             }
-
-            System.out.println("generate open area");
+        } else if (step == 2) {
+            if (!occupiedAny(siblings)) {
+                if (isBorder(hexagon) || hasTerrain(siblings, OCEAN)) {
+                    isChanged = hexagon.setTerrainType(OCEAN);
+                }
+            }
+        } else if (step == 3) {
+            if (isGroundForest(hexagon.getTerrainType()) &&  hasTerrain(siblings, OCEAN)) {
+                isChanged = hexagon.setTerrainType(SHORE);
+            }
+        } else if (step == 4) {
+            if (inTerrain(siblings, FOREST, FOREST_MOUNTAIN_L1)){
+                HexTerrainType terrainType = Util.random(LAKE, FOREST_MOUNTAIN_L2);
+                if (terrainType == FOREST_MOUNTAIN_L2) {
+                    isChanged = hexagon.setTerrainType(FOREST_MOUNTAIN_L2);
+                    for (Hexagon sibling: siblings) {
+                        if (sibling.getTerrainType() == FOREST)
+                            isChanged = sibling.setTerrainType(NONE);
+                    }
+                } else if (terrainType == LAKE) {
+                    isChanged = hexagon.setTerrainType(LAKE);
+                }
+            } else if (inTerrain(siblings, SNOW_FOREST, SNOW_MOUNTAIN_L1)) {
+                isChanged = hexagon.setTerrainType(SNOW_MOUNTAIN_L2);
+                for (Hexagon sibling: siblings) {
+                    if (sibling.getTerrainType() == SNOW_FOREST)
+                        isChanged = sibling.setTerrainType(NONE);
+                }
+            } else if (isGroundForest(hexagon.getTerrainType()) && !occupiedAny(siblings) && hasTerrain(siblings, LAKE)) {
+                isChanged = hexagon.setTerrainType(LAKE);
+            } else if (isGroundForest(hexagon.getTerrainType()) && occupiedAny(siblings) && hasTerrain(siblings, LAKE)) {
+                isChanged = hexagon.setTerrainType(LAKE_SHORE);
+            }
         }
+        return isChanged;
+    }
+
+    private HexTerrainType[] getLargestTerrainType(Hexagon[] hexagons) {
+        if (hexagons.length == 0) return null;
+        int size = hexagons.length;
+
+        int[] counts = new int[size];
+        for (int i = 0; i < size; i ++) {
+            for (int j = 0; j < size; j ++) {
+                if (i == j || hexagons[i] == null || hexagons[j] == null) continue;
+                if (hexagons[j].getTerrainType() == hexagons[i].getTerrainType());
+                counts[i] ++;
+            }
+        }
+
+        int maxCount = 0;
+        for (int i = 0; i < size; i ++) {
+            if (counts[i] > maxCount) maxCount = counts[i];
+        }
+        if (maxCount == 0) return null;
+
+        Set<HexTerrainType> hexTerrainTypes = new HashSet<>();
+        for (int i = 0; i < size; i ++) {
+            if (counts[i] == maxCount) hexTerrainTypes.add(hexagons[i].getTerrainType());
+        }
+
+        return hexTerrainTypes.toArray(new HexTerrainType[]{});
+    }
+
+    /**
+     * 判断地形是否为地面森林区
+     */
+    private boolean isGroundForest(HexTerrainType terrainType) {
+        if (terrainType == FOREST) return true;
+        return false;
+    }
+
+    /**
+     * 判断地形是否为道路
+     */
+    private boolean isRoad(HexTerrainType terrainType) {
+        if (terrainType == DARK_FOREST_ROAD || terrainType == FOREST_ROAD || terrainType == SNOW_ROAD) return true;
+        return false;
+    }
+
+    /**
+     * 判断六边形是否位于地图边界上
+     */
+    private boolean isBorder(Hexagon hexagon) {
+        if (hexagon.getX() == 0 || hexagon.getY() == 0 || hexagon.getX() == bound || hexagon.getY() == bound )
+            return true;
+        return false;
+    }
+
+    /**
+     * 判断多个六边形中是否含有某一个地形
+     */
+    private boolean hasTerrain(Hexagon[] hexagons, HexTerrainType terrainType) {
+        for (Hexagon hexagon: hexagons) {
+            if (hexagon.getTerrainType() == terrainType) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 判断多个六边形的地形是否都在给定的地形中
+     */
+    private boolean inTerrain(Hexagon[] hexagons, HexTerrainType... terrainTypes) {
+        for (Hexagon hexagon: hexagons) {
+            if (!Util.contains(terrainTypes, hexagon.getTerrainType())) return false;
+        }
+        return true;
+    }
+
+    private boolean occupiedAny(Hexagon... hexagons) {
+        for (Hexagon hexagon: hexagons) {
+            if (occupiedMap.containsKey(hexagon.getId())) return true;
+        }
+        return false;
+    }
+
+    private void addView(ViewV2 view) {
+        viewV2Map.put(view.getPosition(), view);
+    }
+
+    public MapSkeleton expandBorder() {
+        MapSkeleton newMapSkeleton = new MapSkeleton(bound + 4);
+        for (Hexagon hexagon: occupiedMap.values()) {
+            Hexagon newHexagon;
+            newHexagon = newMapSkeleton.getHexagon(hexagon.getX() + 2, hexagon.getY() + 2);
+
+            if (hexagon.getId() == start) newMapSkeleton.start = newHexagon.getId();
+            if (hexagon.getId() == end) newMapSkeleton.end = newHexagon.getId();
+            for (HexagonDirection roadDirection: hexagon.getRoadDirection()) {
+                Hexagon newSibling1 = newMapSkeleton.getHexagonByDirection(newHexagon, roadDirection);
+                newMapSkeleton.addBlock(newHexagon, newSibling1);
+                newMapSkeleton.addBlock(newSibling1, newHexagon);
+            }
+        }
+        return newMapSkeleton;
+    }
+
+    public MapSkeleton expand()
+    {
+        MapSkeleton newMapSkeleton = new MapSkeleton(bound * 3 + 4);
+        for (Hexagon hexagon: occupiedMap.values()) {
+            Hexagon newHexagon;
+            if (hexagon.getY() % 2 == 1)
+                newHexagon = newMapSkeleton.getHexagon(hexagon.getX() * 3, hexagon.getY() * 3);
+            else
+                newHexagon = newMapSkeleton.getHexagon(hexagon.getX() * 3 + 1, hexagon.getY() * 3);
+
+            if (hexagon.getId() == start) newMapSkeleton.start = newHexagon.getId();
+            if (hexagon.getId() == end) newMapSkeleton.end = newHexagon.getId();
+            for (HexagonDirection roadDirection: hexagon.getRoadDirection()) {
+                Hexagon newSibling1 = newMapSkeleton.getHexagonByDirection(newHexagon, roadDirection);
+                newMapSkeleton.addBlock(newHexagon, newSibling1);
+                newMapSkeleton.addBlock(newSibling1, newHexagon);
+
+                Hexagon newSibling2 = newMapSkeleton.getHexagonByDirection(newSibling1, roadDirection);
+                newMapSkeleton.addBlock(newSibling1, newSibling2);
+                newMapSkeleton.addBlock(newSibling2, newSibling1);
+            }
+        }
+        return newMapSkeleton;
     }
 
     /**
@@ -606,7 +805,9 @@ public class MapSkeleton {
                 tType = SpecialSectionType.TIGER;
             }
 
-            RoadPoint[] roadPoints = getAllRoadPoint(branch);
+            // TODO
+            RoadPoint[] roadPoints = null;
+            //RoadPoint[] roadPoints = getAllRoadPoint(branch);
             if (tType != null) {
                 short specialSectionId = getNextSpecialSectionId();
                 if (tType == SpecialSectionType.TIGER) interactiveSet.add(
@@ -631,6 +832,7 @@ public class MapSkeleton {
                         viewMap.put(view.getId(), view);
                     }
 
+                    /*
                     // create lamp
                     int currLampId = 0;
                     Point3 position = new Point3(roadPoints[i].getPoint().x, 0, roadPoints[i].getPoint().y);
@@ -660,13 +862,17 @@ public class MapSkeleton {
                         lampMap.get(currLampId).addSiblings(prevId);
                     }
                     prevId = currLampId;
+                    */
                 }
             } else {
                 // 不满足特殊地形的条件下
                 if (branch.distance() < SpecialSection.MIN_SIZE && branch.getExtraDistanceRate() > 50) {
                     Hexagon[] hexagons = branch.getCenterHexagons();
                     Segment segment = getSegment(hexagons[0], hexagons[1]);
-                    RoadPoint roadPoint = segment.getMiddleRoadSection().getMiddleRPoint();
+
+                    //RoadPoint roadPoint = segment.getMiddleRoadSection().getMiddleRPoint();
+                    // TODO
+                    RoadPoint roadPoint = null;
 
                     InteractiveType itrType = singleInteractiveType[
                             ThreadLocalRandom.current().nextInt(singleInteractiveType.length)];
@@ -674,6 +880,7 @@ public class MapSkeleton {
                             itrType, roadPoint.getPoint().toPoint3(), - roadPoint.getDegree()));
                 }
 
+                /*
                 int prevId = 0;
                 for (RoadPoint roadPoint: roadPoints) {
                     if (roadPoint.getDivisionPos() != 0 && roadPoint.getDivisionPos() != RoadSection.SUB_SECTION_SIZE / 2) continue;
@@ -691,43 +898,8 @@ public class MapSkeleton {
                     }
                     prevId = currLampId;
                 }
+                */
             }
-        }
-    }
-
-    public void generateTerrainV2() {
-        for (Branch branch: branchSet) {
-            System.out.println("distance:" + branch.distance() + " edr:" + branch.getExtraDistanceRate());
-
-            SpecialSectionType sSectionType = SpecialSectionType.DEFAULT;
-            // 获取当前branch的特殊地段类型
-            if (branch.distance() >= com.prosper.chasing.game.mapV3.SpecialSection.MIN_SIZE && branch.getExtraDistanceRate() > 20) {
-                if (branch.getExtraDistanceRate() > 200) {
-                    sSectionType = SpecialSectionType.WATER;
-                }
-                else if (branch.getExtraDistanceRate() > 150) {
-                    sSectionType = SpecialSectionType.DREAM;
-                }
-                else if (branch.getExtraDistanceRate() > 100) {
-                    sSectionType = SpecialSectionType.SNOW;
-                }
-                else if (branch.getExtraDistanceRate() > 60) {
-                    //sSectionType = SpecialSectionType.RAIN;
-                    sSectionType = SpecialSectionType.WOLF;
-                }
-                else if (branch.getExtraDistanceRate() > 20) {
-                    sSectionType = SpecialSectionType.RAIN;
-                }
-            }
-
-            Hexagon currentHexagon = branch.head;
-            for (Hexagon hexagon: branch.hexagonList) {
-                Segment segment = getSegment(currentHexagon, hexagon);
-                segment.setSsType(sSectionType);
-                currentHexagon = hexagon;
-            }
-            Segment segment = getSegment(currentHexagon, branch.tail);
-            segment.setSsType(sSectionType);
         }
     }
 
@@ -741,6 +913,7 @@ public class MapSkeleton {
             }
         }
 
+        /*
         Map<Hexagon, List<Segment>> forkMap = new HashMap<>();
         for (Segment segment1: segmentMap.values()) {
             for (Segment segment2: segmentMap.values()) {
@@ -819,6 +992,7 @@ public class MapSkeleton {
                 else segment.getLastRoadSection().setEdgeOfEnd(roadPoints);
             }
         }
+        */
     }
 
     protected void addBlock(Hexagon hexagon, Hexagon fromHexagon) {
@@ -839,11 +1013,6 @@ public class MapSkeleton {
         } else {
             //System.out.println("add Block: [" + hexagon.getId() + ", null]");
         }
-    }
-
-    public void build() {
-        trimAndCalculate(1);
-        trimAndCalculate(2);
     }
 
     /**
@@ -872,7 +1041,7 @@ public class MapSkeleton {
             System.out.println("vertex - " + hexagon.getId() + ": [" + hexagon.getX() + "," + hexagon.getY() + "]");
         }
 
-        // get edge set
+        // get branch set
         for (Hexagon hexagon: vertexSet) {
             for (Hexagon current : getOccupiedSibling(hexagon)) {
                 if (vertexSet.contains(current)) {
@@ -885,6 +1054,7 @@ public class MapSkeleton {
 
                     boolean reachEnd = false;
                     while (!reachEnd) {
+                        boolean isAdd = false;
                         for (Hexagon sibling : getOccupiedSibling(current)) {
                             if (blockList.contains(sibling)) {
                                 continue;
@@ -894,27 +1064,86 @@ public class MapSkeleton {
                             }
                             else if (vertexSet.contains(sibling)) {
                                 if (hexagon.getId() <= sibling.getId()) {
-                                    addBranch(new Branch(hexagon, sibling, blockList));
+                                    Branch branch = new Branch(hexagon, sibling);
+                                    branch.hexagonList = blockList;
+                                    addBranch(branch);
                                 }
                                 reachEnd = true;
+                                break;
                             } else {
                                 blockList.add(sibling);
                                 current = sibling;
+                                isAdd = true;
                                 break;
                             }
                         }
+
+                        if (!isAdd) reachEnd = true;
                     }
                 }
             }
         }
 
-        int[] blockIds = new int[vertexSet.size()];
-        int index = 0;
-        for (Hexagon hexagon: vertexSet) {
-            blockIds[index++] = hexagon.getId();
+        // 把曲折的道路变直
+        /*
+        for (Branch branch: branchSet) {
+            for (int i = 0; i <= branch.hexagonList.size() - 4; i ++) {
+                Hexagon center1 = getFreeCenterHexagon(
+                        branch.hexagonList.get(i), branch.hexagonList.get(i + 1),
+                        branch.hexagonList.get(i + 2), branch.hexagonList.get(i + 3));
+
+                Hexagon center2 = null;
+                if (i < branch.hexagonList.size() - 4) {
+                    center2 = getFreeCenterHexagon(
+                            branch.hexagonList.get(i), branch.hexagonList.get(i + 1), branch.hexagonList.get(i + 2),
+                            branch.hexagonList.get(i + 3), branch.hexagonList.get(i + 4));
+                } else {
+                    center2 = getFreeCenterHexagon(
+                            branch.hexagonList.get(i), branch.hexagonList.get(i + 1), branch.hexagonList.get(i + 2),
+                            branch.hexagonList.get(i + 3), branch.tail);
+                }
+
+                Hexagon center3 = null;
+                if (i > 0) {
+                     center3 = getFreeCenterHexagon(
+                            branch.hexagonList.get(i - 1), branch.hexagonList.get(i), branch.hexagonList.get(i + 1),
+                            branch.hexagonList.get(i + 2), branch.hexagonList.get(i + 3));
+                } else {
+                    center3 = getFreeCenterHexagon(
+                            branch.head, branch.hexagonList.get(i), branch.hexagonList.get(i + 1),
+                            branch.hexagonList.get(i + 2), branch.hexagonList.get(i + 3));
+                }
+
+                if (center1 == null || (center1 != null && center2 != null) || (center1 != null && center3 != null))
+                    continue;
+
+                if (ThreadLocalRandom.current().nextBoolean()) continue;
+
+                Hexagon h1 = branch.hexagonList.get(i + 1);
+                Hexagon h2 = branch.hexagonList.get(i + 2);
+                Hexagon h3 = branch.hexagonList.get(i + 3);
+
+                branch.hexagonList.remove(h1);
+                branch.hexagonList.remove(h2);
+                branch.hexagonList.add(i + 1, center1);
+
+                removeBlock(h1);
+                removeBlock(h2);
+                addBlock(center1, branch.hexagonList.get(i));
+                addBlock(h3, center1);
+
+                i = i + 3;
+            }
         }
+        */
 
         if (step > 1) {
+            int[] blockIds = new int[vertexSet.size()];
+            int index = 0;
+            for (Hexagon hexagon: vertexSet) {
+                blockIds[index++] = hexagon.getId();
+            }
+
             Graph graph = new Graph(blockIds);
             for (Branch branch : branchSet) {
                 graph.setEdge(branch.head.getId(), branch.tail.getId(), branch.hexagonList.size() + 1);
@@ -953,6 +1182,7 @@ public class MapSkeleton {
         }
     }
 
+    /*
     private RoadPoint[] getAllRoadPoint(Branch branch) {
         List<RoadPoint> roadPointList = new LinkedList<>();
         Hexagon h1, h2;
@@ -972,6 +1202,7 @@ public class MapSkeleton {
         }
         return roadPointList.toArray(new RoadPoint[]{});
     }
+    */
 
     /**
      * 把特殊路段的blockId和特殊路段Id的对应关系保存起来
@@ -1055,6 +1286,21 @@ public class MapSkeleton {
         return -1;
     }
 
+    private Hexagon[] getSibling(Hexagon hexagon) {
+        Hexagon[] hexagons = new Hexagon[6];
+        int index = 0;
+        for (HexagonDirection direction: HexagonDirection.values()) {
+            if (direction == HexagonDirection.FREE) continue;
+            int hexagonId = getHexagonIdByDirection(hexagon, direction);
+            if (hexagonId > 0) {
+                hexagons[index ++] = hexagonMap.get(hexagonId);
+            }
+        }
+
+        if (index == 6) return hexagons;
+        else return Arrays.copyOf(hexagons, index);
+    }
+
     private Hexagon getOccupiedSibling(Hexagon hexagon, HexagonDirection direction) {
         int hexagonId = getHexagonIdByDirection(hexagon, direction);
         return occupiedMap.get(hexagonId);
@@ -1127,36 +1373,6 @@ public class MapSkeleton {
         return segmentMap.get(getSegmentId(id1, id2));
     }
 
-    public int getLightSectionSize(Branch branch) {
-        int size = 0;
-        Hexagon previous;
-        Hexagon curr = branch.head;
-
-        for (Hexagon hexagon: branch.hexagonList) {
-            previous = curr;
-            curr = hexagon;
-
-            Segment segment = getSegment(previous, curr);
-            size += segment.lampSize() + 1;
-        }
-        return size;
-    }
-
-    public void getLightSection(Branch branch, int index) {
-        Segment segment;
-        int size = 0;
-        Hexagon previous;
-        Hexagon curr = branch.head;
-        for (Hexagon hexagon: branch.hexagonList) {
-            previous = curr;
-            curr = hexagon;
-
-            Segment currSegment = getSegment(previous, curr);
-            size += currSegment.lampSize() + 1;
-            if (size >= index) segment = currSegment;
-        }
-    }
-
     /**
      * 返回一个随机的空白点
      * @return
@@ -1191,12 +1407,12 @@ public class MapSkeleton {
 
     }
 
-    public int getHexagonId(int width, int height) {
-        return (height - 1) * bound + width;
+    public int getHexagonId(int x, int y) {
+        return (y - 1) * bound + x;
     }
 
-    private boolean isInBound(int width, int height) {
-        if (width < 1 || height < 1 || width > bound || height > bound) return false;
+    private boolean isInBound(int x, int y) {
+        if (x < 1 || y < 1 || x > bound || y > bound) return false;
         return true;
     }
 
@@ -1248,6 +1464,15 @@ public class MapSkeleton {
         return occupiedMap.get(id);
     }
 
+    public Hexagon getHexagon(int x, int y) {
+        if (!isInBound(x, y)) return null;
+        return hexagonMap.get(getHexagonId(x, y));
+    }
+
+    public Hexagon getHexagon(int id) {
+        return hexagonMap.get(id);
+    }
+
     /**
      * 获取从节点a到节点b的所有crossPoint的list集合
      */
@@ -1292,52 +1517,6 @@ public class MapSkeleton {
         return null;
     }
 
-    public MapSkeleton expand() {
-        MapSkeleton expandedMap = new MapSkeleton(bound * 2);
-        for (Hexagon hexagon: occupiedMap.values()) {
-            System.out.println("old hexagon:" + hexagon);
-            int hexagonId;
-            hexagonId = expandedMap.getHexagonId((hexagon.getX() - 1) * 2 + 1, (hexagon.getY() - 1) * 2 + 1);
-            /*
-            if (hexagon.getY() % 2 == 1) {
-            } else {
-                hexagonId = expandedMap.getHexagonId(hexagon.getX() * 2, (hexagon.getY() - 1) * 2 + 1);
-            }
-            */
-            Hexagon newHexagon = expandedMap.freeMap.get(hexagonId);
-            newHexagon.bridges = hexagon.bridges;
-
-            expandedMap.occupiedMap.put(hexagonId, newHexagon);
-            expandedMap.freeMap.remove(hexagonId);
-            System.out.println("new hexagon:" + expandedMap.occupiedMap.get(hexagonId));
-        }
-
-        List<Hexagon> occupiedList = new LinkedList<>();
-        for (Hexagon hexagon: expandedMap.occupiedMap.values()) {
-            occupiedList.add(hexagon);
-        }
-
-        for (Hexagon current: occupiedList) {
-            System.out.println("o current:" + current);
-            for (HexagonDirection direction: current.getRoadDirection()) {
-                System.out.println("o direction:" + direction);
-                int hexagonId = expandedMap.getHexagonIdByDirection(current, direction);
-                expandedMap.addBlock(expandedMap.freeMap.get(hexagonId), current);
-                expandedMap.addBlock(expandedMap.freeMap.get(hexagonId), current);
-
-                System.out.println("o hexagon objectId:" + hexagonId);
-                while (!expandedMap.occupiedMap.containsKey(hexagonId)) {
-                    current = expandedMap.getOccupiedHexagon(hexagonId);
-                    System.out.println("current:" + current);
-                    hexagonId = expandedMap.getHexagonIdByDirection(current, direction);
-                    System.out.println("hexagon objectId:" + hexagonId);
-                }
-            }
-        }
-        expandedMap.build();
-        return expandedMap;
-    }
-
     public SpecialSection getSpecialSection(Point3 p) {
         int pointId = getPointId(p.x / 1000, p.z / 1000);
         if (pointIdMap.containsKey(pointId) && specialSectionMap.containsKey(pointIdMap.get(pointId)))
@@ -1351,6 +1530,8 @@ public class MapSkeleton {
      * @return
      */
     public RoadPoint getRandomRoadPoint(RoadPointType type) {
+        return  null;
+        /*
         int index = ThreadLocalRandom.current().nextInt(segmentMap.size());
         Segment chosen = null;
         for (Segment segment: segmentMap.values()) {
@@ -1359,6 +1540,7 @@ public class MapSkeleton {
 
         // TODO if position is taken by others
         return chosen.getRandomRoadPoint(type);
+        */
     }
 
     public List<Segment> getRandomEndpointSegment(float percent) {
@@ -1382,22 +1564,6 @@ public class MapSkeleton {
                 segmentList.add(segment);
         }
         return segmentList;
-    }
-
-    /**
-     * 根据一个RoadSection的起点或者终点坐标，返回与之相关的roadSection
-     * @return
-     */
-    public RoadSection[] getNearestRoadSectioon(Point2 p) {
-        RoadSection[] roadSections = new RoadSection[3];
-        int index = 0;
-        for (Segment segment: segmentMap.values()) {
-            for (RoadSection roadSection: segment.getRoadSections()) {
-                if (roadSection.getStart().getPoint().equals(p))
-                    roadSections[index ++] = roadSection;
-            }
-        }
-        return Arrays.copyOf(roadSections, index);
     }
 
     /**
@@ -1433,53 +1599,18 @@ public class MapSkeleton {
         return subCrossPointMap;
     }
 
-    public byte[] toBytesV2() {
+    public  byte[] toBytesV2() {
         ByteBuilder byteBuilder = new ByteBuilder();
         byteBuilder.append(bound);
-        for (int y = 1; y <= bound; y ++) {
-            for (int x = 1; x <= bound; x ++) {
-                Hexagon hexagon = occupiedMap.get(getHexagonId(x, y));
-                if (hexagon == null || hexagon.getOpenAreaId() > 0) {
-                    byteBuilder.append((byte)0);
-                } else {
-                    byte[] roads = new byte[hexagon.bridgeCount()];
-                    int index = 0;
-
-                    for (int i = 0; i < hexagon.bridges.length; i ++) {
-                        if  (!hexagon.bridges[i]) continue;
-                        HexagonDirection direction = hexagon.getDirection(i);
-
-                        Hexagon adjacentHexagon = getHexagonByDirection(hexagon, direction);
-                        Segment segment = getSegment(hexagon, adjacentHexagon);
-                        roads[index ++] = segment.getSsType().getValue();
-                    }
-
-                    //byteBuilder.append(getHexagonRoadType(hexagon).getValue());
+        for (int x = 1; x <= bound; x ++) {
+            for (int y = 1; y <= bound; y ++) {
+                Hexagon hexagon = hexagonMap.get(getHexagonId(x, y));
+                byteBuilder.append(hexagon.getTerrainType().getValue());
+                if (isRoad(hexagon.getTerrainType())) {
                     byteBuilder.append(hexagon.getBridgeByte());
-                    byteBuilder.append(roads);
-
-                    /*
-                    byteBuilder.append((byte)hexagon.branchEnds.size());
-                    for (HexagonDirection direction: hexagon.branchEnds.keySet()) {
-                        byteBuilder.append(direction.getValue());
-                        byteBuilder.append(hexagon.branchEnds.get(direction).getId());
-                    }
-                    */
                 }
             }
         }
-
-        System.out.println("bytes: " + byteBuilder.getBytes().length);
-        int line = 1;
-        for (byte blockByte: byteBuilder.getBytes()) {
-            System.out.print(blockByte & 0xFF);
-            System.out.print(",");
-
-            if (line ++ % 100 == 0) {
-                System.out.print("\n");
-            }
-        }
-        System.out.print("\n");
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         GZIPOutputStream gzip;
@@ -1493,7 +1624,7 @@ public class MapSkeleton {
         byte[] mapBytes = out.toByteArray();
 
         System.out.println("bytes: " + mapBytes.length);
-        line = 1;
+        int line = 1;
         for (byte blockByte: mapBytes) {
             System.out.print(blockByte & 0xFF);
             System.out.print(",");
@@ -1503,50 +1634,8 @@ public class MapSkeleton {
             }
         }
         System.out.print("\n");
-        return byteBuilder.getBytes();
-    }
 
-    public HexagonRoadType getHexagonRoadType(Hexagon hexagon) {
-        List<HexagonDirection> directions = Arrays.asList(hexagon.getRoadDirection());
-        if (directions.contains(HexagonDirection.RIGHT) &&
-                directions.contains(HexagonDirection.DOWN_LEFT) &&
-                directions.contains(HexagonDirection.UP_LEFT))
-            return HexagonRoadType.RIGHT_DOWN_LEFT_UP_LEFT;
-        else if (directions.contains(HexagonDirection.LEFT) &&
-                directions.contains(HexagonDirection.DOWN_RIGHT) &&
-                directions.contains(HexagonDirection.UP_RIGHT))
-            return HexagonRoadType.LEFT_DOWN_RIGHT_UP_RIGHT;
-        else if (directions.contains(HexagonDirection.RIGHT) &&
-                directions.contains(HexagonDirection.DOWN_LEFT))
-            return HexagonRoadType.RIGHT_DOWN_LEFT;
-        else if (directions.contains(HexagonDirection.RIGHT) &&
-                directions.contains(HexagonDirection.UP_LEFT))
-            return HexagonRoadType.RIGHT_UP_LEFT;
-        else if (directions.contains(HexagonDirection.LEFT) &&
-                directions.contains(HexagonDirection.DOWN_RIGHT))
-            return HexagonRoadType.LEFT_DOWN_RIGHT;
-        else if (directions.contains(HexagonDirection.LEFT) &&
-                directions.contains(HexagonDirection.UP_RIGHT))
-            return HexagonRoadType.LEFT_UP_RIGHT;
-        else if (directions.contains(HexagonDirection.UP_RIGHT) &&
-                directions.contains(HexagonDirection.DOWN_RIGHT))
-            return HexagonRoadType.UP_RIGHT_DOWN_RIGHT;
-        else if (directions.contains(HexagonDirection.UP_LEFT) &&
-                directions.contains(HexagonDirection.DOWN_LEFT))
-            return HexagonRoadType.UP_LEFT_DOWN_LEFT;
-        else if (directions.contains(HexagonDirection.RIGHT))
-            return HexagonRoadType.RIGHT;
-        else if (directions.contains(HexagonDirection.LEFT))
-            return HexagonRoadType.LEFT;
-        else if (directions.contains(HexagonDirection.DOWN_LEFT))
-            return HexagonRoadType.DOWN_LEFT;
-        else if (directions.contains(HexagonDirection.DOWN_RIGHT))
-            return HexagonRoadType.DOWN_RIGHT;
-        else if (directions.contains(HexagonDirection.UP_LEFT))
-            return HexagonRoadType.UP_LEFT;
-        else if (directions.contains(HexagonDirection.UP_RIGHT))
-            return HexagonRoadType.UP_RIGHT;
-        return HexagonRoadType.NONE;
+        return mapBytes;
     }
 
     public byte[] toBytes() {
@@ -1560,10 +1649,12 @@ public class MapSkeleton {
         System.out.println("current index: " + currentIndex);
 
         for (Segment segment: segmentMap.values()) {
+            /*
             segmentIndexIdMap.put(segment.getId(), new int[segment.getWayPoints().length]);
             for (int i = 0; i < segment.getWayPoints().length; i ++) {
                 segmentIndexIdMap.get(segment.getId())[i] = currentIndex ++;
             }
+            */
         }
         System.out.println("current index: " + currentIndex);
 
@@ -1585,36 +1676,18 @@ public class MapSkeleton {
             for (HexagonDirection direction: hexagon.getRoadDirection()) {
                 //byteBuilder.append((short)getHexagonIdByDirection(hexagon, direction));
 
+                /*
                 int siblingId = getHexagonIdByDirection(hexagon, direction);
                 Segment segment = segmentMap.get(Segment.getId(hexagon.getId(), siblingId));
                 int index = segment.getAdjacentPointIndex(hexagon.getId());
                 int id = segmentIndexIdMap.get(segment.getId())[index];
                 byteBuilder.append((short)id);
+                */
             }
         }
 
         byteBuilder.append(segmentMap.size());
         for (Segment segment: segmentMap.values()) {
-            //byteBuilder.append(segment.getId());
-            byteBuilder.append(segment.getWayPoints().length);
-
-            int[] ids = segmentIndexIdMap.get(segment.getId());
-            for (int i = 0; i < segment.getWayPoints().length; i ++) {
-                byteBuilder.append((short)ids[i]);
-                byteBuilder.append(segment.getWayPoints()[i].x);
-                byteBuilder.append(segment.getWayPoints()[i].y);
-                byteBuilder.append((byte) 2);
-                if (i == 0) {
-                    byteBuilder.append((short)segment.getH1().getId());
-                    byteBuilder.append((short)ids[i + 1]);
-                } else if (i == segment.getWayPoints().length - 1) {
-                    byteBuilder.append((short)ids[i - 1]);
-                    byteBuilder.append((short)segment.getH2().getId());
-                } else {
-                    byteBuilder.append((short)ids[i - 1]);
-                    byteBuilder.append((short)ids[i + 1]);
-                }
-            }
         }
 
         byteBuilder.append(openAreaList.size());
@@ -1649,10 +1722,12 @@ public class MapSkeleton {
             }
         }
 
+        /*
         byteBuilder.append(lampMap.size());
         for (Lamp lamp: lampMap.values()) {
             lamp.getBytes(byteBuilder);
         }
+        */
 
         byteBuilder.append(viewMap.size());
         for (View view: viewMap.values()) {
@@ -1697,5 +1772,4 @@ public class MapSkeleton {
 
         return mapBytes;
     }
-
 }

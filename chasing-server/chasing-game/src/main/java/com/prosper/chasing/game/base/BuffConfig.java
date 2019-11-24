@@ -14,7 +14,7 @@ public class BuffConfig {
 
     private static Logger log = LoggerFactory.getLogger(PropConfig.class);
 
-    //public static Map<Byte, BuffConfig> buffConfigMap = new HashMap<>();
+    //public static GameMap<Byte, BuffConfig> buffConfigMap = new HashMap<>();
 
     public static final byte FLASH_LEVEL_1 = 1;
     public static final byte FLASH_LEVEL_2 = 2;
