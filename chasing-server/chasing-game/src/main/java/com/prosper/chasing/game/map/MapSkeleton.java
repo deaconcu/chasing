@@ -45,6 +45,7 @@ public class MapSkeleton {
     public Map<Integer, Segment> segmentMap = new HashMap<>();
     public Map<Integer, Lamp> lampMap = new HashMap<>();
     public Map<Short, SpecialSection> specialSectionMap = new HashMap<>();
+    public List<SpecialSectionV2> specialSectionList = new LinkedList<>();
     public Map<Point2, Short> pointMap = new HashMap<>();
     public Map<Integer, Short> pointIdMap = new HashMap<>();
     public Map<Integer, View> viewMap = new HashMap<>();
@@ -696,6 +697,7 @@ public class MapSkeleton {
     }
 
     public void generateTerrainV2() {
+        byte id = 1;
         for (Branch branch: branchSet) {
             System.out.println("distance:" + branch.distance() + " edr:" + branch.getExtraDistanceRate());
 
@@ -718,6 +720,16 @@ public class MapSkeleton {
                 else if (branch.getExtraDistanceRate() > 20) {
                     sSectionType = SpecialSectionType.RAIN;
                 }
+            }
+
+            if (sSectionType != SpecialSectionType.DEFAULT) {
+                List<Hexagon> hexagonList = new LinkedList<>();
+                hexagonList.add(branch.head);
+                hexagonList.addAll(branch.hexagonList);
+                hexagonList.add(branch.tail);
+
+                SpecialSectionV2 specialSection = new SpecialSectionV2(id ++, sSectionType, hexagonList);
+                specialSectionList.add(specialSection);
             }
 
             Hexagon currentHexagon = branch.head;
@@ -1443,6 +1455,7 @@ public class MapSkeleton {
                     byteBuilder.append((byte)0);
                 } else {
                     byte[] roads = new byte[hexagon.bridgeCount()];
+                    byte[] specialSectionIds = new byte[hexagon.bridgeCount()];
                     int index = 0;
 
                     for (int i = 0; i < hexagon.bridges.length; i ++) {
@@ -1451,12 +1464,25 @@ public class MapSkeleton {
 
                         Hexagon adjacentHexagon = getHexagonByDirection(hexagon, direction);
                         Segment segment = getSegment(hexagon, adjacentHexagon);
-                        roads[index ++] = segment.getSsType().getValue();
+
+                        int currIndex = index ++;
+                        for (SpecialSectionV2 specialSection: specialSectionList) {
+                            if (specialSection.hasSegment(segment)) {
+                                specialSectionIds[currIndex] = (byte) specialSection.getId();
+                            }
+                        }
+
+                        roads[currIndex] = segment.getSsType().getValue();
                     }
 
                     //byteBuilder.append(getHexagonRoadType(hexagon).getValue());
                     byteBuilder.append(hexagon.getBridgeByte());
-                    byteBuilder.append(roads);
+                    for (int i = 0; i < roads.length; i ++) {
+                        byteBuilder.append(roads[i]);
+                        byteBuilder.append(specialSectionIds[i]);
+                    }
+
+                    //byteBuilder.append(roads);
 
                     /*
                     byteBuilder.append((byte)hexagon.branchEnds.size());
@@ -1466,6 +1492,16 @@ public class MapSkeleton {
                     }
                     */
                 }
+            }
+        }
+
+        byteBuilder.append(specialSectionList.size());
+        for (SpecialSectionV2 specialSection: specialSectionList) {
+            byteBuilder.append(specialSection.getId());
+            byteBuilder.append(specialSection.getType().getValue());
+            byteBuilder.append(specialSection.getHexagonList().size());
+            for (Hexagon hexagon: specialSection.getHexagonList()) {
+                byteBuilder.append(hexagon.getId());
             }
         }
 
@@ -1504,6 +1540,13 @@ public class MapSkeleton {
         }
         System.out.print("\n");
         return byteBuilder.getBytes();
+    }
+
+    public Branch getBranch(Segment segment) {
+        for (Branch branch: branchSet) {
+            if (branch.hasSegment(segment)) return branch;
+        }
+        return null;
     }
 
     public HexagonRoadType getHexagonRoadType(Hexagon hexagon) {

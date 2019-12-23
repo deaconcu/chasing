@@ -52,6 +52,17 @@ public class Branch implements Comparable<Branch> {
         tail.branchEnds.put(Util.getOppositeDirection(direction), head);
     }
 
+    public boolean hasSegment(Segment segment)
+    {
+        if (head != segment.getH1() && tail != segment.getH1() && hexagonList.contains(segment.getH1()))
+            return false;
+
+        if (head != segment.getH2() && tail != segment.getH2() && hexagonList.contains(segment.getH2()))
+            return false;
+
+        return true;
+    }
+
     public int distance() {
         return hexagonList.size() + 1;
     }

@@ -244,7 +244,7 @@ public class Canvas {
             if (sibling == null || hexagon.getId() > sibling.getId()) continue;
             int segmentId = Segment.getId(hexagon, sibling);
             Segment segment = mapSkeleton.segmentMap.get(segmentId);
-            if  (segment.getSsType() == Enums.SpecialSectionType.WIND) {
+            if  (segment.getSsType() == Enums.SpecialSectionType.WATER) {
                 g.setColor(Color.YELLOW);
             } else if  (segment.getSsType() == Enums.SpecialSectionType.DREAM) {
                 g.setColor(Color.blue);
@@ -252,7 +252,7 @@ public class Canvas {
                 g.setColor(Color.cyan);
             } else if  (segment.getSsType() == Enums.SpecialSectionType.WOLF) {
                 g.setColor(Color.GREEN);
-            } else if  (segment.getSsType() == Enums.SpecialSectionType.FOG) {
+            } else if  (segment.getSsType() == Enums.SpecialSectionType.RAIN) {
                 g.setColor(Color.RED);
             }
 
