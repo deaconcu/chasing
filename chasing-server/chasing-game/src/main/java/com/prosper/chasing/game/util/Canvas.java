@@ -10,7 +10,6 @@ import com.prosper.chasing.game.map.MapSkeleton;
 import com.prosper.chasing.game.map.OpenArea;
 import com.prosper.chasing.game.map.RoadSection;
 import com.prosper.chasing.game.map.Segment;
-import com.prosper.chasing.game.mapV3.*;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -42,6 +41,8 @@ public class Canvas {
                     Hexagon.OUTER_RADIUS, Hexagon.INNER_RADIUS);
         }
 
+        printFixture(graph2);
+
         paintOpenArea(graph2, mapSkeleton.openAreaList);
         //paintFreeHexgon(graph2, mapSkeleton.freeMap);
 
@@ -62,7 +63,7 @@ public class Canvas {
 
         // 画支路的信息：长度和绕路距离
         for (Branch branch: mapSkeleton.branchSet) {
-            paintBranch(graph2, branch);
+            //paintBranch(graph2, branch);
         }
 
         /*
@@ -142,6 +143,29 @@ public class Canvas {
         }
         */
 
+
+
+    }
+
+    private void printFixture(Graphics2D g) {
+        for (MapSkeleton.Fixture fixture: mapSkeleton.fixtureList) {
+            Hexagon hexagon1 = mapSkeleton.hexagonMap.get(fixture.id1);
+            Hexagon hexagon2 = mapSkeleton.hexagonMap.get(fixture.id2);
+
+            if (fixture.fixtureType == Enums.FixtureType.GATE) g.setColor(Color.red);
+            else if (fixture.fixtureType == Enums.FixtureType.GRASS) g.setColor(Color.yellow);
+            else if (fixture.fixtureType == Enums.FixtureType.WHEEL) g.setColor(Color.green);
+            else if (fixture.fixtureType == Enums.FixtureType.STORE) g.setColor(Color.blue);
+            else if (fixture.fixtureType == Enums.FixtureType.PORTAL) g.setColor(Color.cyan);
+            if (hexagon1 != null) {
+                fillCenteredHexagon(g, hexagon1.originXInFloat(), hexagon1.originYInFloat(),
+                        Hexagon.OUTER_RADIUS, Hexagon.INNER_RADIUS);
+            }
+            if (hexagon2 != null) {
+                fillCenteredHexagon(g, hexagon2.originXInFloat(), hexagon2.originYInFloat(),
+                        Hexagon.OUTER_RADIUS, Hexagon.INNER_RADIUS);
+            }
+        }
     }
 
     private void paintOpenArea(Graphics2D g, java.util.List<OpenArea> openAreas) {
@@ -244,16 +268,20 @@ public class Canvas {
             if (sibling == null || hexagon.getId() > sibling.getId()) continue;
             int segmentId = Segment.getId(hexagon, sibling);
             Segment segment = mapSkeleton.segmentMap.get(segmentId);
-            if  (segment.getSsType() == Enums.SpecialSectionType.WATER) {
+            if  (segment.getSsType() == Enums.SpecialSectionType.RAIN) {
                 g.setColor(Color.YELLOW);
-            } else if  (segment.getSsType() == Enums.SpecialSectionType.DREAM) {
-                g.setColor(Color.blue);
             } else if  (segment.getSsType() == Enums.SpecialSectionType.SNOW) {
+                g.setColor(Color.blue);
+            } else if  (segment.getSsType() == Enums.SpecialSectionType.DREAM) {
                 g.setColor(Color.cyan);
-            } else if  (segment.getSsType() == Enums.SpecialSectionType.WOLF) {
+            } else if  (segment.getSsType() == Enums.SpecialSectionType.WATER) {
                 g.setColor(Color.GREEN);
-            } else if  (segment.getSsType() == Enums.SpecialSectionType.RAIN) {
+            } else if  (segment.getSsType() == Enums.SpecialSectionType.GRAVEYARD) {
                 g.setColor(Color.RED);
+            } else if  (segment.getSsType() == Enums.SpecialSectionType.INVISIBLE) {
+                g.setColor(Color.ORANGE);
+            } else if  (segment.getSsType() == Enums.SpecialSectionType.GATES) {
+                g.setColor(Color.pink);
             }
 
             for (int i = 0; i <= segment.getWayPoints().length; i ++) {
@@ -337,6 +365,17 @@ public class Canvas {
         g.fillPolygon(xs, ys, 6);
     }
 
+    public void drawCenteredHexagon(Graphics2D g, float x, float y, float r1, float r2) {
+        int[] xs = new int[] {(int)(x - r2), (int)x, (int)(x + r2), (int)(x + r2), (int)x, (int)(x -r2)};
+        int[] ys = new int[] {
+                (int)(y + r1 * Math.sin(Util.getRadians(30))), (int)(y + r1),
+                (int)(y + r1 * Math.sin(Util.getRadians(30))), (int)(y - r1 * Math.sin(Util.getRadians(30))),
+                (int)(y - r1), (int)(y - r1 * Math.sin(Util.getRadians(30)))
+        };
+
+        g.drawPolygon(xs, ys, 6);
+    }
+
     public void fillCenteredRect(Graphics2D g, int x, int y, int r) {
         int positionX = (int)(x-(r/2));
         int positionY = (int)(y-(r/2));
@@ -364,14 +403,15 @@ public class Canvas {
     }
 
     public static void main(String[] args) throws IOException {
-        MapSkeleton mapSkeleton = new MapSkeleton(30, 100)
-                .merge(new MapSkeleton(30, 100))
-                .merge(new MapSkeleton(30, 100))
-                .merge(new MapSkeleton(30, 100))
-                .merge(new MapSkeleton(30, 100));
+        MapSkeleton mapSkeleton = new MapSkeleton(60, 100)
+                .merge(new MapSkeleton(60, 100))
+                .merge(new MapSkeleton(60, 100))
+                .merge(new MapSkeleton(60, 100))
+                .merge(new MapSkeleton(60, 100));
 
         mapSkeleton.optimize();
-        mapSkeleton.generateTerrainV2();
+        mapSkeleton.generateTerrainV3();
+        mapSkeleton.generateFixture();
         mapSkeleton.toBytesV2();
         //mapSkeleton.toBytes();
 

@@ -3,11 +3,7 @@ package com.prosper.chasing.game.map;
 import com.prosper.chasing.game.base.*;
 import com.prosper.chasing.game.util.ByteBuilder;
 import static com.prosper.chasing.game.util.Enums.*;
-import static com.prosper.chasing.game.util.Enums.HexTerrainType.DARK_FOREST_ROAD;
-import static com.prosper.chasing.game.util.Enums.HexTerrainType.FOREST_ROAD;
-import static com.prosper.chasing.game.util.Enums.HexTerrainType.SNOW_ROAD;
 
-import com.prosper.chasing.game.util.Enums;
 import com.prosper.chasing.game.util.Enums.HexagonDirection;
 import com.prosper.chasing.game.util.Graph;
 import com.prosper.chasing.game.base.InteractiveObjects.*;
@@ -23,6 +19,21 @@ import java.util.zip.GZIPOutputStream;
  * Created by deacon on 2019/3/5.
  */
 public class MapSkeleton {
+
+    private static float SPECIAL_SECTION_RATE = 0.5f;
+
+    private static SpecialSectionType[] validSSType = new SpecialSectionType[]{
+            SpecialSectionType.RAIN,
+            SpecialSectionType.SNOW,
+            SpecialSectionType.DREAM,
+            SpecialSectionType.WATER,
+            SpecialSectionType.GRAVEYARD,
+            SpecialSectionType.INVISIBLE,
+            SpecialSectionType.GATES
+    };
+
+    private static int[] MIN_LENGTH = new int[]{4, 4, 4, 3, 4, 3, 1};
+    private static int[] MAX_LENGTH = new int[]{8, 8, 8, 9, 5, 7, 1};
 
     // 地图上的全部块
     public Map<Integer, Hexagon> hexagonMap;
@@ -51,9 +62,27 @@ public class MapSkeleton {
     public Map<Integer, View> viewMap = new HashMap<>();
     public Set<InteractiveInfo> interactiveSet = new HashSet<>();
     public List<OpenArea> openAreaList = new LinkedList<>();
+    //public Map<Integer, FixtureType> fixtureMap = new HashMap<>();
+    public List<Fixture> fixtureList = new LinkedList<>();
 
     private short nextGroupId = 1;
     private short nextLampId = 1;
+
+    public static class Fixture {
+        public int id1;
+        public int id2;
+        public FixtureType fixtureType;
+
+        public Fixture(int id, FixtureType fixtureType) {
+            this(id, -1, fixtureType);
+        }
+
+        public Fixture(int id1, int id2, FixtureType fixtureType) {
+            this.id1 = id1;
+            this.id2 = id2;
+            this.fixtureType = fixtureType;
+        }
+    }
 
     public static class TreeNode {
         int hexagonId;
@@ -336,6 +365,10 @@ public class MapSkeleton {
             }
         }
         return nearestPoint;
+    }
+
+    public void generateOpenSpace() {
+
     }
 
     /**
@@ -692,6 +725,219 @@ public class MapSkeleton {
                     }
                     prevId = currLampId;
                 }
+            }
+        }
+    }
+
+    public void generateFixture() {
+        Set<Integer> exists = new HashSet<>();
+        for (SpecialSectionV2 specialSection: specialSectionList) {
+            if (specialSection.getType() != SpecialSectionType.GATES) continue;
+            if (specialSection.getHexagonList().size() != 2) continue;
+            int id1 = specialSection.getHexagonList().get(0).getId();
+            int id2 = specialSection.getHexagonList().get(1).getId();
+            fixtureList.add(new Fixture(id1, id2, FixtureType.GATE));
+            exists.add(id1);
+            exists.add(id2);
+        }
+
+        //  0.02 to config
+        int grassCount = (int) (occupiedMap.size() * 0.02f);
+        LinkedList<Integer> ids = new LinkedList<>();
+        for (Integer id : occupiedMap.keySet()) {
+            ids.add(id);
+        }
+        Collections.shuffle(ids);
+
+        for (int i = 0; i < grassCount; i ++)  {
+            int hid = ids.pollFirst();
+            fixtureList.add(new Fixture(hid, FixtureType.GRASS));
+            exists.add(hid);
+        }
+
+        // config
+        int wheelCount = 4;
+        List<Integer> dHexagonIds = getDistributedHexagon(wheelCount, exists);
+        for (int dId: dHexagonIds)  {
+            fixtureList.add(new Fixture(dId, FixtureType.WHEEL));
+            exists.add(dId);
+        }
+        // config
+        int storeCount = 4;
+        dHexagonIds = getDistributedHexagon(storeCount, exists);
+        for (int dId: dHexagonIds)  {
+            fixtureList.add(new Fixture(dId, FixtureType.STORE));
+            exists.add(dId);
+        }
+        // config
+        int portalCount = 10;
+        dHexagonIds = getDistributedHexagon(portalCount, exists);
+        for (int dId: dHexagonIds)  {
+            fixtureList.add(new Fixture(dId, FixtureType.PORTAL));
+            exists.add(dId);
+        }
+    }
+
+    private List<Integer> getDistributedHexagon(int count, Set<Integer> excludes) {
+        int row = (int)Math.sqrt(count);
+        if (row < 2 || row > bound) throw new RuntimeException("");
+
+        int average = bound / row;
+        List<Integer> blockSize = new LinkedList<>();
+
+        for (int i = 0; i < row; i ++) {
+            blockSize.add(average);
+        }
+        for (int i = 0; i < bound - average * row; i ++) {
+            blockSize.set(i, blockSize.get(i) + 1);
+        }
+
+        Collections.shuffle(blockSize);
+
+        List<List<Integer>> blocks = new LinkedList<>();
+        int m = 0, n = 0;
+        for (int i = 0; i < bound; ) {
+            int height = blockSize.get(m);
+            for (int j = 0; j < bound; ) {
+                int width = blockSize.get(n);
+                List<Integer> list = new LinkedList<>();
+                for (int t = j; t < j + width; t ++) {
+                    for (int s = i; s < i + height; s ++) {
+                        int hexagonId = getHexagonId(t, s);
+                        if (occupiedMap.containsKey(hexagonId) && !excludes.contains(hexagonId)) {
+                            list.add(hexagonId);
+                        }
+                    }
+                }
+                if (list.size() > 0) blocks.add(list);
+                j += width;
+                n ++;
+            }
+            i += height;
+            m ++;
+            n = 0;
+        }
+
+        System.out.println("block count" + blocks.size());
+
+        Collections.shuffle(blocks);
+        List<Integer> ids = new LinkedList<>();
+        int index = 0;
+        for (int i = 0; i < count; i ++) {
+            if (blocks.size() == 0) break;
+            List<Integer> curr = blocks.get(index % blocks.size());
+            if (curr.size() == 0) {
+                blocks.remove(index);
+                continue;
+            }
+            else {
+                ids.add(curr.get((new Random()).nextInt(curr.size())));
+                index ++;
+            }
+        }
+        return ids;
+    }
+
+    public void generateTerrainV3() {
+        int count = (int) (branchSet.size() * SPECIAL_SECTION_RATE);
+        int average = count / validSSType.length;
+        System.out.println("branch size: " + branchSet.size() + ", count: " + count + ", average: " + average);
+
+        List<Integer> sSectionIndexs = new ArrayList<>();
+        for (int i = 0; i < validSSType.length; i ++) {
+            for (int j = 0;  j < average; j ++) {
+                sSectionIndexs.add(i);
+            }
+        }
+
+        List<Integer> ssTypeIndexList = new ArrayList<>();
+        for (int i = 0; i < validSSType.length; i ++) {
+            ssTypeIndexList.add(i);
+        }
+        Collections.shuffle(ssTypeIndexList);
+        int size = sSectionIndexs.size();
+        for (int j = 0; j < count - size; j ++) {
+            sSectionIndexs.add(ssTypeIndexList.get(j));
+        }
+        Collections.shuffle(sSectionIndexs);
+        System.out.println(sSectionIndexs.toString());
+
+        int[] scores = new int[branchSet.size()];
+        Branch[] branches = new Branch[branchSet.size()];
+        int i = 0;
+        for (Branch branch: branchSet) {
+            int score = branch.getExtraDistance() + (new Random()).nextInt(30);
+            scores[i] = score;
+            branches[i] = branch;
+            i ++;
+        }
+
+        System.out.println("score: " + Arrays.toString(scores));
+        System.out.println("branches: " + Arrays.toString(branches));
+
+        for (int n = scores.length - 2; n >= 0;  n --)  {
+            for (int m = 0; m <= n; m ++) {
+                if (scores[m] < scores[m + 1]) {
+                    Util.swap(scores, m, n);
+                    Util.swap(branches, m, n);
+                }
+            }
+        }
+
+        System.out.println("score: " + Arrays.toString(scores));
+        System.out.println("branches: " + Arrays.toString(branches));
+
+        for (Branch branch: branches)
+        {
+            Hexagon currentHexagon = branch.head;
+            for (Hexagon hexagon: branch.hexagonList) {
+                Segment segment = getSegment(currentHexagon, hexagon);
+                segment.setSsType(SpecialSectionType.DEFAULT);
+                currentHexagon = hexagon;
+            }
+            Segment segment = getSegment(currentHexagon, branch.tail);
+            segment.setSsType(SpecialSectionType.DEFAULT);
+        }
+
+        byte id = 1;
+        for (int index : sSectionIndexs) {
+            int minLength = MIN_LENGTH[index];
+            int maxLength = MAX_LENGTH[index];
+
+            for (int k = 0; k < branches.length; k ++)
+            {
+                Branch branch = branches[k];
+                if (branch == null) continue;
+                if (validSSType[index] == SpecialSectionType.GATES)
+                    System.out.println("branch: " + branch.distance());
+                if (branch.distance() < minLength) continue;
+                if (validSSType[index] == SpecialSectionType.INVISIBLE && branch.distance() != minLength) continue;
+
+                maxLength = Math.min(branch.distance(), maxLength);
+                int length = minLength + (new Random()).nextInt(maxLength - minLength + 1);
+                int remain = branch.distance() - length;
+
+                int startPos = (new Random()).nextInt(remain + 1);
+                List<Hexagon> hexagonList = new LinkedList<>();
+                for (int m = startPos; m <= startPos + length; m ++) {
+                    hexagonList.add(branch.getPoint(m));
+                }
+
+                SpecialSectionV2 specialSection = new SpecialSectionV2(id ++, validSSType[index], hexagonList);
+                specialSectionList.add(specialSection);
+
+                Hexagon currentHexagon = null;
+                for (Hexagon hexagon: specialSection.getHexagonList()) {
+                    if (currentHexagon != null) {
+                        Segment segment = getSegment(currentHexagon, hexagon);
+                        segment.setSsType(validSSType[index]);
+                        System.out.println("set segment type: " + segment.getId() + ", " + validSSType[index]);
+                    }
+                    currentHexagon = hexagon;
+                }
+                System.out.println("type:" + validSSType[index] + ", length:" + specialSection.getHexagonList().size());
+                branches[k] = null;
+                break;
             }
         }
     }
@@ -1503,6 +1749,14 @@ public class MapSkeleton {
             for (Hexagon hexagon: specialSection.getHexagonList()) {
                 byteBuilder.append(hexagon.getId());
             }
+        }
+
+        byteBuilder.append(fixtureList.size());
+        for (Fixture fixture: fixtureList) {
+            byteBuilder.append(fixture.id1);
+            byteBuilder.append(fixture.id2);
+            byteBuilder.append(fixture.fixtureType.getValue());
+
         }
 
         System.out.println("bytes: " + byteBuilder.getBytes().length);

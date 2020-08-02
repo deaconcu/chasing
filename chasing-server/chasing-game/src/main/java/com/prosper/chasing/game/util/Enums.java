@@ -74,7 +74,8 @@ public class Enums {
         GATES(13),
         WILD_FIRE(14),
         LIGHTING(15),
-        RAIN(16);
+        RAIN(16),
+        INVISIBLE(17);
 
         private int value;
 
@@ -554,6 +555,24 @@ public class Enums {
         private byte value;
 
         BuffType(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
+    public enum FixtureType {
+        GATE((byte)1),
+        PORTAL((byte)2),
+        STORE((byte)3),
+        GRASS((byte)4),
+        WHEEL((byte)5);
+
+        private byte value;
+
+        FixtureType(byte value) {
             this.value = value;
         }
 

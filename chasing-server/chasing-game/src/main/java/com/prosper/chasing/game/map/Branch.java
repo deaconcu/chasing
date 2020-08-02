@@ -106,6 +106,12 @@ public class Branch implements Comparable<Branch> {
         }
     }
 
+    public Hexagon getPoint(int index) {
+        if (index == 0) return head;
+        if (index == hexagonList.size() + 1) return tail;
+        else return hexagonList.get(index - 1);
+    }
+
     @Override
     public int compareTo(Branch branch) {
         //return new Integer(Math.abs(segment.getShort())).compareTo(Math.abs(this.getShort()));

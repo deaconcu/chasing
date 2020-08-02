@@ -83,7 +83,17 @@ public class Util {
         return list[ThreadLocalRandom.current().nextInt(length)];
     }
 
+    public static <T> void swap(T[] list, int n, int m) {
+        T t = list[n];
+        list[n] =list[m];
+        list[m] = t;
+    }
 
+    public static void swap(int[] list, int n, int m) {
+        int t = list[n];
+        list[n] =list[m];
+        list[m] = t;
+    }
 
     public static void main(String... args) {
         double a = Math.atan2(-1, 1);
