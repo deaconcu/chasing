@@ -148,6 +148,7 @@ public class Canvas {
     }
 
     private void printFixture(Graphics2D g) {
+        int portalId = 0;
         for (MapSkeleton.Fixture fixture: mapSkeleton.fixtureList) {
             Hexagon hexagon1 = mapSkeleton.hexagonMap.get(fixture.id1);
             Hexagon hexagon2 = mapSkeleton.hexagonMap.get(fixture.id2);
@@ -160,6 +161,11 @@ public class Canvas {
             if (hexagon1 != null) {
                 fillCenteredHexagon(g, hexagon1.originXInFloat(), hexagon1.originYInFloat(),
                         Hexagon.OUTER_RADIUS, Hexagon.INNER_RADIUS);
+                if (fixture.fixtureType == Enums.FixtureType.PORTAL) {
+                    g.setColor(Color.black);
+                    drawCenteredString(g, Integer.toString((portalId ++) / 2), new Rectangle(
+                            Math.round(hexagon1.originXInFloat()), Math.round(hexagon1.originYInFloat()), 0, 2), 120);
+                }
             }
             if (hexagon2 != null) {
                 fillCenteredHexagon(g, hexagon2.originXInFloat(), hexagon2.originYInFloat(),

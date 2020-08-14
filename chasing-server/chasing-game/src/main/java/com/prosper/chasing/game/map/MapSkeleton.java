@@ -776,6 +776,12 @@ public class MapSkeleton {
             fixtureList.add(new Fixture(dId, FixtureType.PORTAL));
             exists.add(dId);
         }
+
+        Collections.shuffle(fixtureList);
+
+        for (Fixture fixture : fixtureList) {
+            System.out.println("type: " + fixture.fixtureType +  ", id1: " + fixture.id1 + ", id2: " + fixture.id2);
+        }
     }
 
     private List<Integer> getDistributedHexagon(int count, Set<Integer> excludes) {
@@ -1756,7 +1762,6 @@ public class MapSkeleton {
             byteBuilder.append(fixture.id1);
             byteBuilder.append(fixture.id2);
             byteBuilder.append(fixture.fixtureType.getValue());
-
         }
 
         System.out.println("bytes: " + byteBuilder.getBytes().length);
